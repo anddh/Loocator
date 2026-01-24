@@ -20,9 +20,9 @@
     <link rel="preconnect" href="https://unpkg.com">
     <link rel="preconnect" href="https://cdn.tailwindcss.com">
 
-    <!-- Fixed Favicon (Url Encoded SVG) -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231e293b'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='70'%3E🚽%3C/text%3E%3C/svg%3E">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231e293b'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='70'%3E🚽%3C/text%3E%3C/svg%3E">
+    <!-- Custom Favicon (Points to icon.png in your repo) -->
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -398,6 +398,15 @@
             const userMarkerRef = useRef(null);
             const fetchController = useRef(null);
 
+            // FIX: Force Leaflet to resize when switching back to map view
+            useEffect(() => {
+                if (view === 'map' && mapInstanceRef.current) {
+                    setTimeout(() => {
+                        mapInstanceRef.current.invalidateSize();
+                    }, 100);
+                }
+            }, [view]);
+
             const showToast = (msg) => {
                 setToast({ msg, visible: true });
                 setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
@@ -636,8 +645,8 @@
                         colorClass = 'bg-rose-400'; 
                         iconHtml = ICONS.baby; 
                     } else if (loc.displayType === 'black') {
-                        colorClass = 'bg-slate-800';
-                        iconHtml = ICONS.trash;
+                        colorClass = 'bg-slate-800'; 
+                        iconHtml = ICONS.trash; 
                     } else if (loc.displayType === 'grey') {
                         colorClass = 'bg-slate-400';
                         iconHtml = ICONS.drop;
