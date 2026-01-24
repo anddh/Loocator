@@ -44,6 +44,10 @@
         /* Hide Scrollbar */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Image Fade In */
+        .img-fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 
     <!-- React & DOM (UMD) -->
@@ -85,7 +89,8 @@
             pin: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5"><path fill-rule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19.02 10 19.02s.11.001.307-.086l.002-.001a1.2 1.2 0 00.364-.266c.306-.32 2.648-2.886 4.603-5.91C17.072 9.97 18 7.352 18 5.5A5.5 5.5 0 0012.5 0 5.5 5.5 0 007 5.5c0 1.852.928 4.47 2.724 7.256a15.22 15.22 0 004.603 5.91 1.2 1.2 0 00.363.267zM10 7.5a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" /></svg>`,
             van: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 13a1 1 0 100 2 1 1 0 000-2z" /><path fill-rule="evenodd" d="M5.5 12.5a.5.5 0 01.5-.5h4a.5.5 0 01.5.5v1a.5.5 0 01-.5.5h-4a.5.5 0 01-.5-.5v-1z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M2.25 7.5a.75.75 0 01.75-.75H17a.75.75 0 01.75.75v2.25h1.5a.75.75 0 00.75-.75V7.5a2.25 2.25 0 00-2.25-2.25h-1.5V4.5a.75.75 0 00-.75-.75h-9a.75.75 0 00-.75.75v.75h-1.5A2.25 2.25 0 002.25 7.5v8.25c0 .414.336.75.75.75h.75a2.25 2.25 0 104.5 0h7.5a2.25 2.25 0 104.5 0h.75a.75.75 0 00.75-.75V12a2.25 2.25 0 00-2.25-2.25H18.75V7.5zM6 3.75a.75.75 0 00-.75.75v.75h9.75V4.5a.75.75 0 00-.75-.75H6z" clip-rule="evenodd" /></svg>`,
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.49 1.45 47.155 47.155 0 00-15.776 0 .75.75 0 01-.49-1.45 48.815 48.815 0 013.878-.512V4.478a2.25 2.25 0 012.25-2.25h3a2.25 2.25 0 012.25 2.25zM6.75 7.5a.75.75 0 01.75-.75h9a.75.75 0 01.75.75v11.25a3 3 0 01-3 3h-4.5a3 3 0 01-3-3V7.5z" clip-rule="evenodd" /></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.177 7.547 7.547 0 01-1.705 4.344h2.04c.26 0 .52.017.775.05a4.5 4.5 0 014.282-4.282c.033-.255.05-.516.05-.775v-2.04a7.548 7.548 0 014.345 1.705 9.743 9.743 0 00-5.177-5.043zM3 13.5a.75.75 0 00.75.75h1.5a.75.75 0 01.75.75v1.5a.75.75 0 00.75.75h.75a.75.75 0 00.75-.75v-1.5a.75.75 0 01.75-.75h1.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75h-1.5a.75.75 0 01-.75-.75v-1.5a.75.75 0 00-.75-.75h-.75a.75.75 0 00-.75.75v1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 00-.75.75v1.5z" clip-rule="evenodd" /><path d="M11.645 18.02a.75.75 0 01.734-.995h8.242a.75.75 0 01.733.995 2.25 2.25 0 01-2.11 1.48H13.755a2.25 2.25 0 01-2.11-1.48z" /></svg>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.177 7.547 7.547 0 01-1.705 4.344h2.04c.26 0 .52.017.775.05a4.5 4.5 0 014.282-4.282c.033-.255.05-.516.05-.775v-2.04a7.548 7.548 0 014.345 1.705 9.743 9.743 0 00-5.177-5.043zM3 13.5a.75.75 0 00.75.75h1.5a.75.75 0 01.75.75v1.5a.75.75 0 00.75.75h.75a.75.75 0 00.75-.75v-1.5a.75.75 0 01.75-.75h1.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75h-1.5a.75.75 0 01-.75-.75v-1.5a.75.75 0 00-.75-.75h-.75a.75.75 0 00-.75.75v1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 00-.75.75v1.5z" clip-rule="evenodd" /><path d="M11.645 18.02a.75.75 0 01.734-.995h8.242a.75.75 0 01.733.995 2.25 2.25 0 01-2.11 1.48H13.755a2.25 2.25 0 01-2.11-1.48z" /></svg>`,
+            eye: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`
         };
 
         const OVERPASS_SERVERS = [
@@ -146,6 +151,8 @@
             if (!loc) return null;
             const [address, setAddress] = useState(null);
             const [loadingAddr, setLoadingAddr] = useState(true);
+            const [imageUrl, setImageUrl] = useState(null);
+            const [imageLoading, setImageLoading] = useState(false);
 
             useEffect(() => {
                 setLoadingAddr(true);
@@ -178,6 +185,41 @@
                 fetchAddr();
             }, [loc]);
 
+            // Logic to fetch images
+            useEffect(() => {
+                setImageUrl(null);
+                setImageLoading(true);
+
+                const fetchImage = async () => {
+                    // 1. Check for direct OSM image tag
+                    if (loc.tags.image) {
+                        setImageUrl(loc.tags.image);
+                        setImageLoading(false);
+                        return;
+                    }
+
+                    // 2. Check for Wikidata tag
+                    if (loc.tags.wikidata) {
+                        try {
+                            const res = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P18&entity=${loc.tags.wikidata}&format=json&origin=*`);
+                            const data = await res.json();
+                            const claims = data.claims.P18;
+                            if (claims && claims.length > 0) {
+                                const fileName = claims[0].mainsnak.datavalue.value;
+                                // Convert Wikimedia filename to URL
+                                const url = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(fileName)}?width=600`;
+                                setImageUrl(url);
+                            }
+                        } catch (e) {
+                            console.error("Wikidata fetch failed", e);
+                        }
+                    }
+                    setImageLoading(false);
+                };
+
+                fetchImage();
+            }, [loc]);
+
             const isPaid = loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no');
             const isAccessible = loc.tags.wheelchair === 'yes';
             const operator = loc.tags.operator;
@@ -192,13 +234,29 @@
             if (loc.displayType === 'black') headerBg = 'bg-slate-700 text-slate-100';
 
             return html`
-                <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-[1500] sheet-transition transform translate-y-0 flex flex-col max-h-[70vh]">
+                <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-[1500] sheet-transition transform translate-y-0 flex flex-col max-h-[85vh]">
                     <div className="w-full flex justify-center pt-3 pb-1" onClick=${onClose}>
                         <div className="w-12 h-1.5 bg-slate-200 rounded-full"></div>
                     </div>
+
+                    ${imageUrl ? html`
+                        <div className="w-full h-48 bg-slate-100 relative overflow-hidden">
+                             <img src=${imageUrl} className="w-full h-full object-cover img-fade-in" alt="Location" />
+                             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                             <button onClick=${onClose} className="absolute top-4 right-4 p-2 bg-black/30 backdrop-blur rounded-full text-white hover:bg-black/50">
+                                <div className="w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div>
+                            </button>
+                        </div>
+                    ` : html`
+                         <div className="absolute top-2 right-4 z-10">
+                            <button onClick=${onClose} className="p-2 bg-slate-50 rounded-full text-slate-400 hover:bg-slate-100">
+                                <div className="w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div>
+                            </button>
+                        </div>
+                    `}
                     
                     <div className="p-6 pt-2 overflow-y-auto">
-                        <div className="flex justify-between items-start mb-4">
+                        <div className="flex justify-between items-start mb-4 ${imageUrl ? 'mt-4' : ''}">
                             <div>
                                 <div className="flex space-x-2 mb-2">
                                     <div className=${'inline-flex items-center px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wide ' + headerBg}>
@@ -213,9 +271,6 @@
                                 <h2 className="text-2xl font-brand font-semibold text-slate-800 leading-tight">${loc.name}</h2>
                                 ${operator && html`<p className="text-xs text-slate-400 mt-1 font-medium">Maintained by ${operator}</p>`}
                             </div>
-                            <button onClick=${onClose} className="p-2 bg-slate-50 rounded-full text-slate-400 hover:bg-slate-100">
-                                <div className="w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div>
-                            </button>
                         </div>
 
                         <!-- Address Section -->
@@ -265,12 +320,28 @@
                             </div>
                         `}
 
-                        <a href=${`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lon}`} 
-                           target="_blank" 
-                           className="w-full bg-slate-800 text-white font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform hover:bg-slate-700">
-                            <span className="w-6 h-6" dangerouslySetInnerHTML=${{__html: ICONS.nav}}></span>
-                            <span>Navigate Here</span>
-                        </a>
+                        <div className="space-y-3 mb-4">
+                            <a href=${`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lon}`} 
+                               target="_blank" 
+                               className="w-full bg-slate-800 text-white font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform hover:bg-slate-700">
+                                <span className="w-6 h-6" dangerouslySetInnerHTML=${{__html: ICONS.nav}}></span>
+                                <span>Navigate Here</span>
+                            </a>
+
+                            <a href=${`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${loc.lat},${loc.lon}`} 
+                               target="_blank" 
+                               className="w-full bg-indigo-50 text-indigo-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform hover:bg-indigo-100 border border-indigo-100">
+                                <span className="w-6 h-6" dangerouslySetInnerHTML=${{__html: ICONS.eye}}></span>
+                                <span>Street Preview</span>
+                            </a>
+                        </div>
+                        
+                        <!-- Street View Fallback Hint -->
+                        ${!imageUrl && html`
+                            <p className="text-[10px] text-center text-slate-400">
+                                No community photo available. Try Street Preview.
+                            </p>
+                        `}
                     </div>
                 </div>
             `;
@@ -514,8 +585,6 @@
                     if (loc.isBlack && loc.displayType !== 'black') extras.push({ color: 'bg-slate-800', pos: 'bottom-0 -left-1' });
 
                     const badgesHtml = extras.map((badge, i) => {
-                        // If we have conflicting positions, just offset slightly (simple collision handling)
-                        // Actually, let's just stick to the specific corners logic above for now. 
                         return `<div class="absolute w-3.5 h-3.5 border-2 border-white rounded-full shadow-sm ${badge.color} ${badge.pos}"></div>`;
                     }).join('');
 
