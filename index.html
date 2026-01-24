@@ -549,7 +549,38 @@
                 });
 
                 setLoading(true);
-                debouncedFetch(map.getBounds());
+                // Try to get GPS first, if not fall back to default map center
+                if (navigator.geolocation) {
+                    showToast('Locating you...');
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            const { latitude, longitude } = pos.coords;
+                            setUserPos([latitude, longitude]);
+                            map.setView([latitude, longitude], 17);
+                            
+                            // Add User Marker
+                            L.marker([latitude, longitude], {
+                                icon: L.divIcon({
+                                    className: 'bg-transparent',
+                                    html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div>',
+                                    iconSize: [20, 20]
+                                })
+                            }).addTo(map);
+                            
+                            showToast('Location found!');
+                            debouncedFetch(map.getBounds());
+                        },
+                        (err) => {
+                            // GPS failed, just fetch at default center
+                            console.log('GPS autostart failed', err);
+                            debouncedFetch(map.getBounds());
+                        },
+                        { enableHighAccuracy: true, timeout: 5000 }
+                    );
+                } else {
+                    debouncedFetch(map.getBounds());
+                }
+
             }, []);
 
             useEffect(() => {
