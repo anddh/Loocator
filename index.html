@@ -3,10 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Loo-cator</title>
+    <title>Loocator</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Fredoka -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -16,32 +21,26 @@
         body, html { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f3f4f6; }
         #root { height: 100%; display: flex; flex-direction: column; }
         
-        /* Pulse animations */
-        @keyframes pulse-ring {
-            0% { transform: scale(0.33); opacity: 1; }
-            80%, 100% { opacity: 0; }
-        }
-        @keyframes pulse-dot {
-            0% { transform: scale(0.8); }
-            50% { transform: scale(1); }
-            100% { transform: scale(0.8); }
-        }
-        .user-pin-ring {
-            position: absolute; width: 20px; height: 20px; border-radius: 50%;
-            background-color: #3b82f6; opacity: 0.7; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-        }
-        .user-pin-dot {
-            position: absolute; width: 10px; height: 10px; border-radius: 50%;
-            background-color: white; border: 2px solid #3b82f6; top: 5px; left: 5px;
-            animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.4s infinite;
-        }
+        .font-brand { font-family: 'Fredoka', sans-serif; }
+        
+        /* Smooth transitions for the bottom sheet */
+        .sheet-transition { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        
+        /* Pulse animations for GPS */
+        @keyframes pulse-ring { 0% { transform: scale(0.33); opacity: 1; } 80%, 100% { opacity: 0; } }
+        @keyframes pulse-dot { 0% { transform: scale(0.8); } 50% { transform: scale(1); } 100% { transform: scale(0.8); } }
+        .user-pin-ring { position: absolute; width: 20px; height: 20px; border-radius: 50%; background-color: #3b82f6; opacity: 0.7; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
+        .user-pin-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background-color: white; border: 2px solid #3b82f6; top: 5px; left: 5px; animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.4s infinite; }
         
         /* Leaflet overrides */
-        .leaflet-container { font-family: inherit; }
-        .leaflet-popup-content-wrapper { border-radius: 12px; padding: 0; overflow: hidden; }
-        .leaflet-popup-content { margin: 0; width: 260px !important; }
+        .leaflet-container { font-family: 'Fredoka', sans-serif; }
         .leaflet-bar { border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .leaflet-control-zoom { display: none; }
+        .leaflet-control-attribution { font-size: 8px; opacity: 0.6; }
+
+        /* Hide Scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 
     <!-- React & DOM (UMD) -->
@@ -58,30 +57,30 @@
     <div id="root">
         <!-- Watchdog fallback -->
         <div id="loading-fallback" class="h-full w-full flex flex-col items-center justify-center bg-gray-50 text-gray-600 p-6 text-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-            <h2 class="text-xl font-bold mb-2">Starting Loo-cator...</h2>
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-4"></div>
+            <h2 class="text-xl font-bold mb-2 font-sans">Starting Loocator...</h2>
         </div>
     </div>
 
-    <!-- Main Application Script (Standard JS, no Babel) -->
+    <!-- Main Application Script -->
     <script>
-        // 1. Setup htm to use React
         const html = htm.bind(React.createElement);
         const { useState, useEffect, useRef, useMemo } = React;
 
-        // 2. Icons (SVG Strings)
+        // --- ICONS ---
         const ICONS = {
-            toilet: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-white"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>`,
-            water: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-white"><path fill-rule="evenodd" d="M11.484 2.17a.75.75 0 011.032 0 11.209 11.209 0 007.877 10.853c.963.422 1.598 1.435 1.586 2.492-.013 1.157-1.184 6.198-9.99 5.98-8.581-.212-9.66-5.384-9.641-6.452.015-1.026.602-2.022 1.516-2.453a11.21 11.21 0 007.62-10.42z" clip-rule="evenodd" /></svg>`,
-            baby: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-white"><path d="M11.584 2.376a.75.75 0 01.832 0 2.413 2.413 0 001.604.372c.583-.09 1.22.185 1.48.72L16.3 5.46a3 3 0 01-2.227 4.29L12.75 10v9.5a2.25 2.25 0 01-2.25 2.25H9.75A2.25 2.25 0 017.5 19.5V10.793l-1.323-.44a3 3 0 01-2.227-4.29l.799-1.993c.259-.535.897-.81 1.48-.72.614.095 1.15-.098 1.604-.372a.75.75 0 01.832 0l1.92.64z" /><path d="M12 2.25a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75z" /></svg>`,
+            toilet: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19.5 9h-15a.75.75 0 00-.75.75v3c0 3.86 2.806 7.072 6.516 7.785A2.247 2.247 0 0012 21.75a2.248 2.248 0 001.734-1.215c3.71-.713 6.516-3.925 6.516-7.785v-3a.75.75 0 00-.75-.75z" /><path d="M5.632 7.5h12.736A2.25 2.25 0 0016.12 5.25h-8.24A2.25 2.25 0 005.632 7.5z" /></svg>`,
+            water: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M12 2.25a.75.75 0 01.75.75v.857a22.38 22.38 0 014.28 1.488.75.75 0 11-.56 1.391A20.875 20.875 0 0012.75 5.378v.997c2.315.545 4.39 1.986 5.673 4.024.364.577.107 1.353-.553 1.48a12.757 12.757 0 01-11.74 0c-.66-.127-.917-.903-.553-1.48 1.284-2.038 3.359-3.48 5.673-4.024v-.997a20.875 20.875 0 00-3.72.766.75.75 0 11-.56-1.39 22.38 22.38 0 014.28-1.49V3a.75.75 0 01.75-.75zM8.077 15.688a.75.75 0 01.996.177 9.873 9.873 0 004.854 2.133.75.75 0 01-.254 1.478 11.373 11.373 0 01-5.773-2.613.75.75 0 01.177-1.175z" clip-rule="evenodd" /></svg>`,
+            baby: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM9.5 9a1 1 0 100 2 1 1 0 000-2zm4 1a1 1 0 112 0 1 1 0 01-2 0zm-2.25 5.25a.75.75 0 00-1.5 0 2.25 2.25 0 004.5 0 .75.75 0 00-1.5 0 .75.75 0 01-1.5 0z" clip-rule="evenodd" /></svg>`,
             target: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>`,
-            list: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>`,
-            map: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.875 1.875 0 00-1.006 0L4.375 5.186c-.381.19-.622.58-.622 1.006v8.25c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" /></svg>`,
-            search: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>`,
-            nav: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>`
+            list: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>`,
+            map: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.875 1.875 0 00-1.006 0L4.375 5.186c-.381.19-.622.58-.622 1.006v8.25c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" /></svg>`,
+            search: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>`,
+            nav: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>`,
+            x: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`,
+            check: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>`
         };
 
-        // 3. Utilities
         const OVERPASS_SERVERS = [
             'https://overpass-api.de/api/interpreter',
             'https://overpass.kumi.systems/api/interpreter',
@@ -97,30 +96,96 @@
             };
         }
 
-        // 4. Components
+        // --- COMPONENTS ---
+
         const Loader = () => html`
-            <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow-lg border border-gray-100 z-[1000]">
-                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-sm font-medium text-gray-700">Scanning area...</span>
+            <div className="flex items-center space-x-2 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-indigo-100 z-[1000] animate-bounce">
+                <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm font-bold text-indigo-900 font-brand">Scanning...</span>
             </div>
         `;
 
-        const AlertPill = ({ msg, type = 'warning' }) => html`
-            <div className=${'px-4 py-2 rounded-full shadow-lg text-sm font-medium z-[1000] border ' + (type === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200')}>
+        const AlertPill = ({ msg }) => html`
+            <div className="px-4 py-2 rounded-full shadow-lg text-sm font-bold font-brand z-[1000] bg-amber-100 text-amber-800 border-2 border-white">
                 ${msg}
             </div>
         `;
 
         const Toast = ({ msg, visible }) => html`
-            <div className=${'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-xl transition-all duration-300 z-[2000] flex items-center space-x-2 ' + (visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none')}>
+            <div className=${'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-900/90 backdrop-blur text-white px-6 py-3 rounded-full shadow-2xl transition-all duration-300 z-[2000] flex items-center space-x-2 font-brand ' + (visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none')}>
                 <span>${msg}</span>
             </div>
         `;
 
-        // 5. Main App
+        const DetailsCard = ({ loc, onClose }) => {
+            if (!loc) return null;
+            
+            const isPaid = loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no');
+            const isAccessible = loc.tags.wheelchair === 'yes';
+            const operator = loc.tags.operator;
+            const hours = loc.tags.opening_hours;
+
+            return html`
+                <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-[1500] sheet-transition transform translate-y-0 flex flex-col max-h-[70vh]">
+                    <div className="w-full flex justify-center pt-3 pb-1" onClick=${onClose}>
+                        <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+                    </div>
+                    
+                    <div className="p-6 pt-2 overflow-y-auto">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <div className=${'inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wide mb-2 ' + (loc.baseType === 'toilet' ? 'bg-indigo-100 text-indigo-700' : loc.baseType === 'water' ? 'bg-cyan-100 text-cyan-700' : 'bg-fuchsia-100 text-fuchsia-700')}>
+                                    <span>${loc.baseType.toUpperCase()}</span>
+                                </div>
+                                <h2 className="text-2xl font-brand font-bold text-gray-800 leading-tight">${loc.name}</h2>
+                                ${operator && html`<p className="text-xs text-gray-400 mt-1 font-medium">Maintained by ${operator}</p>`}
+                            </div>
+                            <button onClick=${onClose} className="p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200">
+                                <div className="w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div>
+                            </button>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 mb-6">
+                            <div className=${'px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1 ' + (isPaid ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800')}>
+                                ${isPaid ? 'Pay to use' : 'Free entry'}
+                            </div>
+                            
+                            ${isAccessible && html`
+                                <div className="px-3 py-1.5 rounded-lg text-sm font-bold bg-blue-100 text-blue-800 flex items-center gap-1">
+                                    <span className="w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.check}}></span> Accessible
+                                </div>
+                            `}
+                            
+                            ${loc.hasBaby && html`
+                                <div className="px-3 py-1.5 rounded-lg text-sm font-bold bg-fuchsia-100 text-fuchsia-800 flex items-center gap-1">
+                                    <span className="w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.baby}}></span> Baby Change
+                                </div>
+                            `}
+                        </div>
+
+                        ${hours && html`
+                            <div className="mb-6 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                <p className="text-xs text-gray-400 font-bold uppercase mb-1">Opening Hours</p>
+                                <p className="text-sm font-medium text-gray-700">${hours.replace(/;/g, '\n')}</p>
+                            </div>
+                        `}
+
+                        <a href=${`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lon}`} 
+                           target="_blank" 
+                           className="w-full bg-gray-900 text-white font-bold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+                            <span className="w-6 h-6" dangerouslySetInnerHTML=${{__html: ICONS.nav}}></span>
+                            <span>Navigate Here</span>
+                        </a>
+                    </div>
+                </div>
+            `;
+        };
+
+        // --- MAIN APP ---
         function App() {
             const [view, setView] = useState('map');
-            const [locations, setLocations] = useState([]);
+            const [allLocations, setAllLocations] = useState([]); // Raw fetched data
+            const [selectedLoc, setSelectedLoc] = useState(null);
             const [loading, setLoading] = useState(false);
             const [toast, setToast] = useState({ msg: '', visible: false });
             const [zoomWarning, setZoomWarning] = useState(false);
@@ -139,30 +204,54 @@
                 setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
             };
 
+            // Calculate visible locations client-side
+            const visibleLocations = useMemo(() => {
+                return allLocations.filter(loc => {
+                    if (filters.toilet && loc.isToilet) return true;
+                    if (filters.water && loc.isWater) return true;
+                    if (filters.baby && loc.hasBaby) return true;
+                    return false;
+                }).map(loc => {
+                    // Smart Icon Logic
+                    let displayType = loc.baseType;
+                    
+                    // If showing strictly because of Baby filter (and toilet is OFF), 
+                    // switch icon to Baby so user knows why it's there.
+                    if (filters.baby && loc.hasBaby && !filters.toilet && loc.isToilet) {
+                        displayType = 'baby';
+                    }
+                    
+                    // Water is always water
+                    if (loc.isWater) displayType = 'water';
+
+                    return { ...loc, displayType };
+                });
+            }, [allLocations, filters]);
+
             const fetchOverpass = async (bounds) => {
                 const s = bounds.getSouth();
                 const w = bounds.getWest();
                 const n = bounds.getNorth();
                 const e = bounds.getEast();
-
                 const bboxStr = `(${s},${w},${n},${e})`;
 
-                let query = '[out:json][timeout:15];(';
-                if (filters.toilet) query += `node["amenity"="toilets"]${bboxStr};`;
-                if (filters.water) query += `node["amenity"="drinking_water"]${bboxStr};`;
-                if (filters.baby) {
-                     query += `node["diaper"]${bboxStr};`;
-                     query += `node["changing_table"]${bboxStr};`;
-                }
-                query += ');out;';
+                // ALWAYS fetch everything. Filter locally.
+                const query = `[out:json][timeout:15];(
+                    node["amenity"="toilets"]${bboxStr};
+                    node["amenity"="drinking_water"]${bboxStr};
+                    node["diaper"]${bboxStr};
+                    node["changing_table"]${bboxStr};
+                );out;`;
 
                 let success = false;
                 let attempt = 0;
                 
                 while (!success && attempt < OVERPASS_SERVERS.length) {
                     try {
+                        if (fetchController.current) fetchController.current.abort();
                         const controller = new AbortController();
                         fetchController.current = controller;
+                        
                         const server = OVERPASS_SERVERS[attempt];
                         const response = await fetch(server, {
                             method: 'POST',
@@ -177,26 +266,36 @@
                         const uniqueLocs = new Map();
                         data.elements.forEach(el => {
                             if (uniqueLocs.has(el.id)) return;
-                            let type = 'toilet';
-                            if (el.tags.amenity === 'drinking_water') type = 'water';
-                            else if (el.tags.diaper === 'yes' || el.tags.changing_table === 'yes') type = 'baby';
+                            
+                            // Determine properties
+                            const isToilet = el.tags.amenity === 'toilets';
+                            const isWater = el.tags.amenity === 'drinking_water';
+                            const hasBaby = el.tags.diaper === 'yes' || el.tags.changing_table === 'yes' || el.tags.amenity === 'baby_hatch';
+                            
+                            let baseType = 'toilet';
+                            if (isWater) baseType = 'water';
+                            else if (!isToilet && hasBaby) baseType = 'baby'; // Standalone baby room
                             
                             uniqueLocs.set(el.id, {
                                 id: el.id,
                                 lat: el.lat,
                                 lon: el.lon,
-                                type: type,
-                                name: el.tags.name || (type === 'toilet' ? 'Public Toilet' : (type === 'water' ? 'Water Fountain' : 'Baby Station')),
+                                baseType,
+                                isToilet,
+                                isWater,
+                                hasBaby,
+                                name: el.tags.name || (baseType === 'toilet' ? 'Public Toilet' : (baseType === 'water' ? 'Water Fountain' : 'Baby Station')),
                                 tags: el.tags
                             });
                         });
-                        setLocations(Array.from(uniqueLocs.values()));
+                        setAllLocations(Array.from(uniqueLocs.values()));
                         setLoading(false);
                     } catch (err) {
+                        if (err.name === 'AbortError') return;
                         attempt++;
                         if (attempt === OVERPASS_SERVERS.length) {
                              setLoading(false);
-                             showToast("Network busy. Try moving map.");
+                             showToast("Network busy.");
                         }
                     }
                 }
@@ -204,7 +303,7 @@
 
             const debouncedFetch = useMemo(() => debounce((bounds) => {
                 fetchOverpass(bounds);
-            }, 800), [filters]);
+            }, 800), []);
 
             useEffect(() => {
                 if (!mapRef.current || mapInstanceRef.current) return;
@@ -217,7 +316,7 @@
                 mapInstanceRef.current = map;
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
-                    attribution: '&copy; OpenStreetMap'
+                    attribution: ''
                 }).addTo(map);
                 markersRef.current = L.layerGroup().addTo(map);
 
@@ -227,7 +326,7 @@
                     if (z < 14) {
                         setZoomWarning(true);
                         setLoading(false);
-                        setLocations([]);
+                        setAllLocations([]); // Clear raw data on zoom out
                         markersRef.current.clearLayers();
                     } else {
                         setZoomWarning(false);
@@ -235,50 +334,51 @@
                         debouncedFetch(map.getBounds());
                     }
                 });
+
+                map.on('click', () => {
+                    setSelectedLoc(null);
+                });
+
                 setLoading(true);
                 debouncedFetch(map.getBounds());
             }, []);
 
+            // Marker Updates - watch visibleLocations (derived state)
             useEffect(() => {
                 if (!markersRef.current || !mapInstanceRef.current) return;
                 markersRef.current.clearLayers();
-                locations.forEach(loc => {
-                    let colorClass = 'bg-blue-500';
+                
+                visibleLocations.forEach(loc => {
+                    let colorClass = 'bg-indigo-500';
                     let iconHtml = ICONS.toilet;
-                    if (loc.type === 'water') { colorClass = 'bg-cyan-400'; iconHtml = ICONS.water; }
-                    else if (loc.type === 'baby') { colorClass = 'bg-purple-400'; iconHtml = ICONS.baby; }
+                    
+                    if (loc.displayType === 'water') { 
+                        colorClass = 'bg-cyan-500'; 
+                        iconHtml = ICONS.water; 
+                    } else if (loc.displayType === 'baby') { 
+                        colorClass = 'bg-fuchsia-500'; 
+                        iconHtml = ICONS.baby; 
+                    }
 
-                    const htmlStr = `<div class="${colorClass} w-8 h-8 rounded-full flex items-center justify-center shadow-md border-2 border-white transform hover:scale-110 transition-transform">${iconHtml}</div>`;
+                    const htmlStr = `<div class="${colorClass} w-9 h-9 rounded-full flex items-center justify-center shadow-lg border-2 border-white text-white transform hover:scale-110 transition-transform">${iconHtml}</div>`;
+                    
                     const icon = L.divIcon({
                         className: 'bg-transparent',
                         html: htmlStr,
-                        iconSize: [32, 32],
-                        iconAnchor: [16, 32],
-                        popupAnchor: [0, -32]
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 36],
+                        popupAnchor: [0, -36]
                     });
 
-                    const navUrl = `https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lon}`;
-                    const popupContent = `
-                        <div class="p-4 font-sans">
-                            <h3 class="font-bold text-gray-800 text-lg mb-1">${loc.name}</h3>
-                            <div class="text-xs text-gray-500 mb-3 uppercase tracking-wider font-semibold">${loc.type}</div>
-                            <a href="${navUrl}" target="_blank" class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2">
-                                <span class="w-4 h-4">${ICONS.nav}</span> Navigate
-                            </a>
-                        </div>`;
-
-                    L.marker([loc.lat, loc.lon], { icon: icon })
-                        .bindPopup(popupContent)
-                        .addTo(markersRef.current);
+                    const marker = L.marker([loc.lat, loc.lon], { icon: icon }).addTo(markersRef.current);
+                    
+                    marker.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        mapInstanceRef.current.flyTo([loc.lat - 0.002, loc.lon], 16, { duration: 0.5 });
+                        setSelectedLoc(loc);
+                    });
                 });
-            }, [locations]);
-
-            useEffect(() => {
-                if (mapInstanceRef.current && mapInstanceRef.current.getZoom() >= 14) {
-                    setLoading(true);
-                    debouncedFetch(mapInstanceRef.current.getBounds());
-                }
-            }, [filters]);
+            }, [visibleLocations]);
 
             const handleSearch = async (e) => {
                 e.preventDefault();
@@ -325,15 +425,19 @@
             };
 
             const FilterBtn = ({ type, label, active, onClick }) => {
-                let activeClass = 'bg-gray-100 text-gray-500';
+                let btnClass = 'flex items-center space-x-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all shadow-sm ';
+                
                 if (active) {
-                    if (type === 'toilet') activeClass = 'bg-blue-500 text-white';
-                    if (type === 'water') activeClass = 'bg-cyan-500 text-white';
-                    if (type === 'baby') activeClass = 'bg-purple-500 text-white';
+                    if (type === 'toilet') btnClass += 'bg-indigo-500 text-white ring-2 ring-indigo-300 ring-offset-1 shadow-indigo-200';
+                    if (type === 'water') btnClass += 'bg-cyan-500 text-white ring-2 ring-cyan-300 ring-offset-1 shadow-cyan-200';
+                    if (type === 'baby') btnClass += 'bg-fuchsia-500 text-white ring-2 ring-fuchsia-300 ring-offset-1 shadow-fuchsia-200';
+                } else {
+                    btnClass += 'bg-gray-100 text-gray-400 hover:bg-gray-200';
                 }
+
                 return html`
-                    <button onClick=${onClick} className=${'flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm active:scale-95 ' + activeClass}>
-                        <span className="w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS[type]}}></span>
+                    <button onClick=${onClick} className=${btnClass}>
+                        <span className="w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS[type]}}></span>
                         <span>${label}</span>
                     </button>
                 `;
@@ -341,59 +445,69 @@
 
             return html`
                 <div className="h-full flex flex-col font-sans text-gray-800 relative overflow-hidden">
-                    <div className="bg-white z-20 shadow-sm flex-none">
-                        <div className="p-3">
-                            <form onSubmit=${handleSearch} className="relative">
-                                <input type="text" placeholder="Search city..." 
-                                    className="w-full bg-gray-100 rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                                    value=${searchTerm} onInput=${(e) => setSearchTerm(e.target.value)} />
-                                <div className="absolute left-3 top-3 text-gray-400 w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div>
-                            </form>
-                        </div>
-                        <div className="px-3 pb-3 flex space-x-2 overflow-x-auto no-scrollbar">
-                            <${FilterBtn} type="toilet" label="Toilets" active=${filters.toilet} onClick=${() => setFilters({...filters, toilet: !filters.toilet})} />
-                            <${FilterBtn} type="water" label="Water" active=${filters.water} onClick=${() => setFilters({...filters, water: !filters.water})} />
-                            <${FilterBtn} type="baby" label="Baby" active=${filters.baby} onClick=${() => setFilters({...filters, baby: !filters.baby})} />
-                            <div className="flex-grow"></div>
+                    
+                    <div className="bg-white z-20 shadow-sm flex-none pb-2 rounded-b-3xl">
+                        <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                            <h1 className="text-3xl font-brand text-indigo-600 tracking-tight" style=${{fontWeight: 600}}>Loocator</h1>
                             <button onClick=${() => setView(view === 'map' ? 'list' : 'map')}
-                                className="bg-gray-800 text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-md active:scale-95">
+                                className="bg-gray-100 text-gray-600 px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 hover:bg-gray-200 transition-colors">
                                 <span className="w-4 h-4" dangerouslySetInnerHTML=${{__html: view === 'map' ? ICONS.list : ICONS.map}}></span>
                                 <span>${view === 'map' ? 'List' : 'Map'}</span>
                             </button>
+                        </div>
+                        
+                        <div className="px-4 pb-2">
+                            <form onSubmit=${handleSearch} className="relative">
+                                <input type="text" placeholder="Search city..." 
+                                    className="w-full bg-gray-50 rounded-2xl py-3 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-inner"
+                                    value=${searchTerm} onInput=${(e) => setSearchTerm(e.target.value)} />
+                                <div className="absolute left-3.5 top-3 text-gray-400 w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div>
+                            </form>
+                        </div>
+                        
+                        <div className="px-4 flex space-x-2 overflow-x-auto no-scrollbar pb-1">
+                            <${FilterBtn} type="toilet" label="Toilets" active=${filters.toilet} onClick=${() => setFilters({...filters, toilet: !filters.toilet})} />
+                            <${FilterBtn} type="water" label="Water" active=${filters.water} onClick=${() => setFilters({...filters, water: !filters.water})} />
+                            <${FilterBtn} type="baby" label="Baby" active=${filters.baby} onClick=${() => setFilters({...filters, baby: !filters.baby})} />
                         </div>
                     </div>
 
                     <div className="flex-grow relative">
                         <div className="absolute top-4 left-0 right-0 flex justify-center z-[1000] pointer-events-none">
                             ${loading && html`<${Loader} />`}
-                            ${zoomWarning && !loading && html`<${AlertPill} msg="Zoom in to see locations" />`}
+                            ${zoomWarning && !loading && html`<${AlertPill} msg="Zoom in to find spots" />`}
                         </div>
 
                         <div className=${'w-full h-full ' + (view === 'map' ? 'block' : 'hidden')}>
-                            <div id="map" ref=${mapRef} className="w-full h-full bg-gray-200"></div>
+                            <div id="map" ref=${mapRef} className="w-full h-full bg-gray-100"></div>
                         </div>
 
                         ${view === 'list' && html`
                             <div className="w-full h-full bg-gray-50 overflow-y-auto custom-scroll p-4 pb-24">
-                                ${locations.length === 0 ? html`
+                                ${visibleLocations.length === 0 ? html`
                                     <div className="text-center text-gray-400 mt-20">
-                                        <div className="w-16 h-16 mx-auto mb-4 text-gray-300" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div>
-                                        <p>No locations found.</p>
+                                        <div className="w-16 h-16 mx-auto mb-4 text-gray-300 opacity-50" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div>
+                                        <p className="font-brand text-lg">No spots visible.</p>
                                     </div>
                                 ` : html`
                                     <div className="space-y-3">
-                                        ${locations.map(loc => html`
-                                            <div key=${loc.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-                                                <div className="flex items-center space-x-3">
-                                                    <div className=${'w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 ' + (loc.type === 'toilet' ? 'bg-blue-500' : loc.type === 'water' ? 'bg-cyan-400' : 'bg-purple-400')}
-                                                        dangerouslySetInnerHTML=${{__html: ICONS[loc.type]}}></div>
+                                        ${visibleLocations.map(loc => html`
+                                            <div key=${loc.id} onClick=${() => { setSelectedLoc(loc); }} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between active:scale-[0.98] transition-transform">
+                                                <div className="flex items-center space-x-4">
+                                                    <div className=${'w-12 h-12 rounded-full flex items-center justify-center text-white shrink-0 shadow-md ' + (loc.displayType === 'toilet' ? 'bg-indigo-500' : loc.displayType === 'water' ? 'bg-cyan-500' : 'bg-fuchsia-500')}
+                                                        dangerouslySetInnerHTML=${{__html: ICONS[loc.displayType]}}></div>
                                                     <div>
-                                                        <h4 className="font-bold text-gray-800 text-sm">${loc.name}</h4>
+                                                        <h4 className="font-bold text-gray-800 font-brand text-base">${loc.name}</h4>
+                                                        <div className="flex gap-2 mt-1">
+                                                             ${(loc.tags.fee === 'yes') && html`<span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">PAID</span>`}
+                                                             ${(loc.tags.wheelchair === 'yes') && html`<span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md">ACCESS</span>`}
+                                                             ${(loc.hasBaby) && html`<span className="text-[10px] font-bold bg-fuchsia-100 text-fuchsia-800 px-2 py-0.5 rounded-md">BABY</span>`}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <a href=${'https://www.google.com/maps/search/?api=1&query=' + loc.lat + ',' + loc.lon} target="_blank"
-                                                    className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-colors"
-                                                    dangerouslySetInnerHTML=${{__html: ICONS.nav}}></a>
+                                                <div className="text-gray-300 transform rotate-180">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
+                                                </div>
                                             </div>
                                         `)}
                                     </div>
@@ -403,8 +517,10 @@
                     </div>
 
                     <button onClick=${handleGPS}
-                        className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-transform"
+                        className=${'absolute right-5 w-14 h-14 bg-gray-900 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 ' + (selectedLoc ? 'bottom-80' : 'bottom-8')}
                         dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>
+
+                    ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} onClose=${() => setSelectedLoc(null)} />`}
 
                     <${Toast} msg=${toast.msg} visible=${toast.visible} />
                 </div>
@@ -416,4 +532,5 @@
     </script>
 </body>
 </html>
+
 
