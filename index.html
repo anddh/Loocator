@@ -773,29 +773,37 @@
                                     </div>
                                 ` : html`
                                     <div className="space-y-3">
-                                        ${visibleLocations.map(loc => html`
-                                            <div key=${loc.id} onClick=${() => { setSelectedLoc(loc); }} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between active:scale-[0.98] transition-transform">
-                                                <div className="flex items-center space-x-4">
-                                                    <div className=${'w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 ' + 
-                                                        (loc.displayType === 'black' ? 'bg-slate-800' : 
-                                                         loc.displayType === 'grey' ? 'bg-slate-400' :
-                                                         loc.displayType === 'toilet' ? 'bg-slate-500' : 
-                                                         loc.displayType === 'water' ? 'bg-teal-500' : 'bg-rose-400')}
-                                                        dangerouslySetInnerHTML=${{__html: loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType]}}></div>
-                                                    <div>
-                                                        <h4 className="font-semibold text-slate-700 font-brand text-base">${loc.name}</h4>
-                                                        <div className="flex gap-2 mt-1">
-                                                             ${(loc.tags.fee === 'yes') && html`<span className="text-[10px] font-bold bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md">PAID</span>`}
-                                                             ${(loc.tags.wheelchair === 'yes') && html`<span className="text-[10px] font-bold bg-sky-50 text-sky-600 px-2 py-0.5 rounded-md">ACCESS</span>`}
-                                                             ${(loc.hasBaby) && html`<span className="text-[10px] font-bold bg-rose-50 text-rose-600 px-2 py-0.5 rounded-md">BABY</span>`}
+                                        ${visibleLocations.map(loc => {
+                                            const dist = userPos ? calculateDistance(userPos[0], userPos[1], loc.lat, loc.lon) : null;
+                                            return html`
+                                                <div key=${loc.id} onClick=${() => { setSelectedLoc(loc); }} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between active:scale-[0.98] transition-transform">
+                                                    <div className="flex items-center space-x-4">
+                                                        <div className=${'w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 ' + 
+                                                            (loc.displayType === 'black' ? 'bg-slate-800' : 
+                                                             loc.displayType === 'grey' ? 'bg-slate-400' :
+                                                             loc.displayType === 'toilet' ? 'bg-slate-500' : 
+                                                             loc.displayType === 'water' ? 'bg-teal-500' : 'bg-rose-400')}
+                                                            dangerouslySetInnerHTML=${{__html: loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType]}}></div>
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <h4 className="font-semibold text-slate-700 font-brand text-base">${loc.name}</h4>
+                                                                ${dist && html`
+                                                                    <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full whitespace-nowrap">${dist}</span>
+                                                                `}
+                                                            </div>
+                                                            <div className="flex gap-2 mt-1">
+                                                                 ${(loc.tags.fee === 'yes') && html`<span className="text-[10px] font-bold bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md">PAID</span>`}
+                                                                 ${(loc.tags.wheelchair === 'yes') && html`<span className="text-[10px] font-bold bg-sky-50 text-sky-600 px-2 py-0.5 rounded-md">ACCESS</span>`}
+                                                                 ${(loc.hasBaby) && html`<span className="text-[10px] font-bold bg-rose-50 text-rose-600 px-2 py-0.5 rounded-md">BABY</span>`}
+                                                            </div>
                                                         </div>
                                                     </div>
+                                                    <div className="text-slate-300 transform rotate-180">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
+                                                    </div>
                                                 </div>
-                                                <div className="text-slate-300 transform rotate-180">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
-                                                </div>
-                                            </div>
-                                        `)}
+                                            `;
+                                        })}
                                     </div>
                                 `}
                             </div>
