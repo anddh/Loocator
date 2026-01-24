@@ -11,32 +11,35 @@
     <!-- Google Fonts: Fredoka -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
     <style>
         /* Custom Styles */
-        body, html { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f3f4f6; }
+        body, html { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f8fafc; }
         #root { height: 100%; display: flex; flex-direction: column; }
         
         .font-brand { font-family: 'Fredoka', sans-serif; }
         
         /* Smooth transitions for the bottom sheet */
-        .sheet-transition { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .sheet-transition { transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
         
         /* Pulse animations for GPS */
         @keyframes pulse-ring { 0% { transform: scale(0.33); opacity: 1; } 80%, 100% { opacity: 0; } }
         @keyframes pulse-dot { 0% { transform: scale(0.8); } 50% { transform: scale(1); } 100% { transform: scale(0.8); } }
-        .user-pin-ring { position: absolute; width: 20px; height: 20px; border-radius: 50%; background-color: #3b82f6; opacity: 0.7; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
-        .user-pin-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background-color: white; border: 2px solid #3b82f6; top: 5px; left: 5px; animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.4s infinite; }
+        .user-pin-ring { position: absolute; width: 20px; height: 20px; border-radius: 50%; background-color: #475569; opacity: 0.7; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
+        .user-pin-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background-color: white; border: 2px solid #475569; top: 5px; left: 5px; animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.4s infinite; }
         
         /* Leaflet overrides */
         .leaflet-container { font-family: 'Fredoka', sans-serif; }
         .leaflet-bar { border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .leaflet-control-zoom { display: none; }
         .leaflet-control-attribution { font-size: 8px; opacity: 0.6; }
+        
+        /* Muted Map Filter: This desaturates the map tiles for a classier look */
+        .muted-map-tiles .leaflet-tile { filter: saturate(0.6) contrast(0.95); }
 
         /* Hide Scrollbar */
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -56,9 +59,9 @@
 <body>
     <div id="root">
         <!-- Watchdog fallback -->
-        <div id="loading-fallback" class="h-full w-full flex flex-col items-center justify-center bg-gray-50 text-gray-600 p-6 text-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-4"></div>
-            <h2 class="text-xl font-bold mb-2 font-sans">Starting Loocator...</h2>
+        <div id="loading-fallback" class="h-full w-full flex flex-col items-center justify-center bg-slate-50 text-slate-500 p-6 text-center">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-slate-600 mb-4"></div>
+            <h2 class="text-xl font-bold mb-2 font-brand">Starting Loocator...</h2>
         </div>
     </div>
 
@@ -99,20 +102,20 @@
         // --- COMPONENTS ---
 
         const Loader = () => html`
-            <div className="flex items-center space-x-2 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-indigo-100 z-[1000] animate-bounce">
-                <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-sm font-bold text-indigo-900 font-brand">Scanning...</span>
+            <div className="flex items-center space-x-2 bg-slate-800/90 backdrop-blur px-4 py-2 rounded-full shadow-lg z-[1000] animate-bounce">
+                <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm font-medium text-slate-200 font-brand">Scanning...</span>
             </div>
         `;
 
         const AlertPill = ({ msg }) => html`
-            <div className="px-4 py-2 rounded-full shadow-lg text-sm font-bold font-brand z-[1000] bg-amber-100 text-amber-800 border-2 border-white">
+            <div className="px-4 py-2 rounded-full shadow-lg text-sm font-medium font-brand z-[1000] bg-orange-100 text-orange-800 border-2 border-white/50">
                 ${msg}
             </div>
         `;
 
         const Toast = ({ msg, visible }) => html`
-            <div className=${'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-900/90 backdrop-blur text-white px-6 py-3 rounded-full shadow-2xl transition-all duration-300 z-[2000] flex items-center space-x-2 font-brand ' + (visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none')}>
+            <div className=${'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-slate-800/95 backdrop-blur text-slate-100 px-6 py-3 rounded-full shadow-xl transition-all duration-300 z-[2000] flex items-center space-x-2 font-brand ' + (visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none')}>
                 <span>${msg}</span>
             </div>
         `;
@@ -125,54 +128,60 @@
             const operator = loc.tags.operator;
             const hours = loc.tags.opening_hours;
 
+            // Muted Color logic for the sheet headers
+            let headerBg = 'bg-slate-100 text-slate-600';
+            if (loc.baseType === 'toilet') headerBg = 'bg-slate-100 text-slate-600';
+            if (loc.baseType === 'water') headerBg = 'bg-teal-50 text-teal-700';
+            if (loc.baseType === 'baby') headerBg = 'bg-rose-50 text-rose-700';
+
             return html`
                 <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-[1500] sheet-transition transform translate-y-0 flex flex-col max-h-[70vh]">
                     <div className="w-full flex justify-center pt-3 pb-1" onClick=${onClose}>
-                        <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+                        <div className="w-12 h-1.5 bg-slate-200 rounded-full"></div>
                     </div>
                     
                     <div className="p-6 pt-2 overflow-y-auto">
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <div className=${'inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wide mb-2 ' + (loc.baseType === 'toilet' ? 'bg-indigo-100 text-indigo-700' : loc.baseType === 'water' ? 'bg-cyan-100 text-cyan-700' : 'bg-fuchsia-100 text-fuchsia-700')}>
+                                <div className=${'inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wide mb-2 ' + headerBg}>
                                     <span>${loc.baseType.toUpperCase()}</span>
                                 </div>
-                                <h2 className="text-2xl font-brand font-bold text-gray-800 leading-tight">${loc.name}</h2>
-                                ${operator && html`<p className="text-xs text-gray-400 mt-1 font-medium">Maintained by ${operator}</p>`}
+                                <h2 className="text-2xl font-brand font-semibold text-slate-800 leading-tight">${loc.name}</h2>
+                                ${operator && html`<p className="text-xs text-slate-400 mt-1 font-medium">Maintained by ${operator}</p>`}
                             </div>
-                            <button onClick=${onClose} className="p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200">
+                            <button onClick=${onClose} className="p-2 bg-slate-50 rounded-full text-slate-400 hover:bg-slate-100">
                                 <div className="w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div>
                             </button>
                         </div>
 
                         <div className="flex flex-wrap gap-2 mb-6">
-                            <div className=${'px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1 ' + (isPaid ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800')}>
+                            <div className=${'px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1 ' + (isPaid ? 'bg-orange-50 text-orange-700 border border-orange-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100')}>
                                 ${isPaid ? 'Pay to use' : 'Free entry'}
                             </div>
                             
                             ${isAccessible && html`
-                                <div className="px-3 py-1.5 rounded-lg text-sm font-bold bg-blue-100 text-blue-800 flex items-center gap-1">
+                                <div className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-sky-50 text-sky-700 border border-sky-100 flex items-center gap-1">
                                     <span className="w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.check}}></span> Accessible
                                 </div>
                             `}
                             
                             ${loc.hasBaby && html`
-                                <div className="px-3 py-1.5 rounded-lg text-sm font-bold bg-fuchsia-100 text-fuchsia-800 flex items-center gap-1">
+                                <div className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-rose-50 text-rose-700 border border-rose-100 flex items-center gap-1">
                                     <span className="w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.baby}}></span> Baby Change
                                 </div>
                             `}
                         </div>
 
                         ${hours && html`
-                            <div className="mb-6 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                <p className="text-xs text-gray-400 font-bold uppercase mb-1">Opening Hours</p>
-                                <p className="text-sm font-medium text-gray-700">${hours.replace(/;/g, '\n')}</p>
+                            <div className="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <p className="text-xs text-slate-400 font-bold uppercase mb-1">Opening Hours</p>
+                                <p className="text-sm font-medium text-slate-600 whitespace-pre-line">${hours.replace(/;/g, '\n')}</p>
                             </div>
                         `}
 
                         <a href=${`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lon}`} 
                            target="_blank" 
-                           className="w-full bg-gray-900 text-white font-bold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+                           className="w-full bg-slate-800 text-white font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform hover:bg-slate-700">
                             <span className="w-6 h-6" dangerouslySetInnerHTML=${{__html: ICONS.nav}}></span>
                             <span>Navigate Here</span>
                         </a>
@@ -184,7 +193,7 @@
         // --- MAIN APP ---
         function App() {
             const [view, setView] = useState('map');
-            const [allLocations, setAllLocations] = useState([]); // Raw fetched data
+            const [allLocations, setAllLocations] = useState([]);
             const [selectedLoc, setSelectedLoc] = useState(null);
             const [loading, setLoading] = useState(false);
             const [toast, setToast] = useState({ msg: '', visible: false });
@@ -204,7 +213,6 @@
                 setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
             };
 
-            // Calculate visible locations client-side
             const visibleLocations = useMemo(() => {
                 return allLocations.filter(loc => {
                     if (filters.toilet && loc.isToilet) return true;
@@ -212,18 +220,11 @@
                     if (filters.baby && loc.hasBaby) return true;
                     return false;
                 }).map(loc => {
-                    // Smart Icon Logic
                     let displayType = loc.baseType;
-                    
-                    // If showing strictly because of Baby filter (and toilet is OFF), 
-                    // switch icon to Baby so user knows why it's there.
                     if (filters.baby && loc.hasBaby && !filters.toilet && loc.isToilet) {
                         displayType = 'baby';
                     }
-                    
-                    // Water is always water
                     if (loc.isWater) displayType = 'water';
-
                     return { ...loc, displayType };
                 });
             }, [allLocations, filters]);
@@ -235,7 +236,6 @@
                 const e = bounds.getEast();
                 const bboxStr = `(${s},${w},${n},${e})`;
 
-                // ALWAYS fetch everything. Filter locally.
                 const query = `[out:json][timeout:15];(
                     node["amenity"="toilets"]${bboxStr};
                     node["amenity"="drinking_water"]${bboxStr};
@@ -266,15 +266,13 @@
                         const uniqueLocs = new Map();
                         data.elements.forEach(el => {
                             if (uniqueLocs.has(el.id)) return;
-                            
-                            // Determine properties
                             const isToilet = el.tags.amenity === 'toilets';
                             const isWater = el.tags.amenity === 'drinking_water';
                             const hasBaby = el.tags.diaper === 'yes' || el.tags.changing_table === 'yes' || el.tags.amenity === 'baby_hatch';
                             
                             let baseType = 'toilet';
                             if (isWater) baseType = 'water';
-                            else if (!isToilet && hasBaby) baseType = 'baby'; // Standalone baby room
+                            else if (!isToilet && hasBaby) baseType = 'baby'; 
                             
                             uniqueLocs.set(el.id, {
                                 id: el.id,
@@ -310,10 +308,15 @@
 
                 const map = L.map(mapRef.current, {
                     zoomControl: false,
-                    attributionControl: false
+                    attributionControl: false,
+                    zoomAnimation: true
                 }).setView(mapCenter, mapZoom);
                 
                 mapInstanceRef.current = map;
+                
+                // Add muted class to container for the tile filter
+                map.getContainer().classList.add('muted-map-tiles');
+
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     attribution: ''
@@ -326,7 +329,7 @@
                     if (z < 14) {
                         setZoomWarning(true);
                         setLoading(false);
-                        setAllLocations([]); // Clear raw data on zoom out
+                        setAllLocations([]);
                         markersRef.current.clearLayers();
                     } else {
                         setZoomWarning(false);
@@ -343,24 +346,24 @@
                 debouncedFetch(map.getBounds());
             }, []);
 
-            // Marker Updates - watch visibleLocations (derived state)
             useEffect(() => {
                 if (!markersRef.current || !mapInstanceRef.current) return;
                 markersRef.current.clearLayers();
                 
                 visibleLocations.forEach(loc => {
-                    let colorClass = 'bg-indigo-500';
+                    // Muted Pin Colors
+                    let colorClass = 'bg-slate-600'; // Slate for Toilets
                     let iconHtml = ICONS.toilet;
                     
                     if (loc.displayType === 'water') { 
-                        colorClass = 'bg-cyan-500'; 
+                        colorClass = 'bg-teal-500'; // Teal for Water
                         iconHtml = ICONS.water; 
                     } else if (loc.displayType === 'baby') { 
-                        colorClass = 'bg-fuchsia-500'; 
+                        colorClass = 'bg-rose-400'; // Warm Rose for Baby
                         iconHtml = ICONS.baby; 
                     }
 
-                    const htmlStr = `<div class="${colorClass} w-9 h-9 rounded-full flex items-center justify-center shadow-lg border-2 border-white text-white transform hover:scale-110 transition-transform">${iconHtml}</div>`;
+                    const htmlStr = `<div class="${colorClass} w-9 h-9 rounded-full flex items-center justify-center shadow-md border-2 border-white text-white transform hover:scale-110 transition-transform">${iconHtml}</div>`;
                     
                     const icon = L.divIcon({
                         className: 'bg-transparent',
@@ -425,14 +428,15 @@
             };
 
             const FilterBtn = ({ type, label, active, onClick }) => {
-                let btnClass = 'flex items-center space-x-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all shadow-sm ';
+                let btnClass = 'flex items-center space-x-2 px-4 py-2.5 rounded-full text-xs font-semibold transition-all shadow-sm ';
                 
                 if (active) {
-                    if (type === 'toilet') btnClass += 'bg-indigo-500 text-white ring-2 ring-indigo-300 ring-offset-1 shadow-indigo-200';
-                    if (type === 'water') btnClass += 'bg-cyan-500 text-white ring-2 ring-cyan-300 ring-offset-1 shadow-cyan-200';
-                    if (type === 'baby') btnClass += 'bg-fuchsia-500 text-white ring-2 ring-fuchsia-300 ring-offset-1 shadow-fuchsia-200';
+                    // Muted Active States
+                    if (type === 'toilet') btnClass += 'bg-slate-600 text-white shadow-slate-200';
+                    if (type === 'water') btnClass += 'bg-teal-500 text-white shadow-teal-100';
+                    if (type === 'baby') btnClass += 'bg-rose-400 text-white shadow-rose-100';
                 } else {
-                    btnClass += 'bg-gray-100 text-gray-400 hover:bg-gray-200';
+                    btnClass += 'bg-slate-100 text-slate-400 hover:bg-slate-200';
                 }
 
                 return html`
@@ -444,13 +448,14 @@
             };
 
             return html`
-                <div className="h-full flex flex-col font-sans text-gray-800 relative overflow-hidden">
+                <div className="h-full flex flex-col font-sans text-slate-800 relative overflow-hidden">
                     
-                    <div className="bg-white z-20 shadow-sm flex-none pb-2 rounded-b-3xl">
+                    <!-- Header with muted colors -->
+                    <div className="bg-white/95 backdrop-blur z-20 shadow-sm flex-none pb-2 rounded-b-3xl">
                         <div className="flex items-center justify-between px-5 pt-4 pb-2">
-                            <h1 className="text-3xl font-brand text-indigo-600 tracking-tight" style=${{fontWeight: 600}}>Loocator</h1>
+                            <h1 className="text-2xl font-brand text-slate-700 tracking-tight" style=${{fontWeight: 600}}>Loocator</h1>
                             <button onClick=${() => setView(view === 'map' ? 'list' : 'map')}
-                                className="bg-gray-100 text-gray-600 px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 hover:bg-gray-200 transition-colors">
+                                className="bg-slate-100 text-slate-500 px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 hover:bg-slate-200 transition-colors">
                                 <span className="w-4 h-4" dangerouslySetInnerHTML=${{__html: view === 'map' ? ICONS.list : ICONS.map}}></span>
                                 <span>${view === 'map' ? 'List' : 'Map'}</span>
                             </button>
@@ -459,9 +464,9 @@
                         <div className="px-4 pb-2">
                             <form onSubmit=${handleSearch} className="relative">
                                 <input type="text" placeholder="Search city..." 
-                                    className="w-full bg-gray-50 rounded-2xl py-3 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-inner"
+                                    className="w-full bg-slate-50 rounded-2xl py-3 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-400 focus:bg-white transition-all shadow-inner text-slate-600 placeholder-slate-400"
                                     value=${searchTerm} onInput=${(e) => setSearchTerm(e.target.value)} />
-                                <div className="absolute left-3.5 top-3 text-gray-400 w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div>
+                                <div className="absolute left-3.5 top-3 text-slate-400 w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div>
                             </form>
                         </div>
                         
@@ -472,40 +477,40 @@
                         </div>
                     </div>
 
-                    <div className="flex-grow relative">
+                    <div className="flex-grow relative bg-slate-100">
                         <div className="absolute top-4 left-0 right-0 flex justify-center z-[1000] pointer-events-none">
                             ${loading && html`<${Loader} />`}
                             ${zoomWarning && !loading && html`<${AlertPill} msg="Zoom in to find spots" />`}
                         </div>
 
                         <div className=${'w-full h-full ' + (view === 'map' ? 'block' : 'hidden')}>
-                            <div id="map" ref=${mapRef} className="w-full h-full bg-gray-100"></div>
+                            <div id="map" ref=${mapRef} className="w-full h-full bg-slate-100"></div>
                         </div>
 
                         ${view === 'list' && html`
-                            <div className="w-full h-full bg-gray-50 overflow-y-auto custom-scroll p-4 pb-24">
+                            <div className="w-full h-full bg-slate-50 overflow-y-auto custom-scroll p-4 pb-24">
                                 ${visibleLocations.length === 0 ? html`
-                                    <div className="text-center text-gray-400 mt-20">
-                                        <div className="w-16 h-16 mx-auto mb-4 text-gray-300 opacity-50" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div>
+                                    <div className="text-center text-slate-400 mt-20">
+                                        <div className="w-16 h-16 mx-auto mb-4 text-slate-300 opacity-50" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div>
                                         <p className="font-brand text-lg">No spots visible.</p>
                                     </div>
                                 ` : html`
                                     <div className="space-y-3">
                                         ${visibleLocations.map(loc => html`
-                                            <div key=${loc.id} onClick=${() => { setSelectedLoc(loc); }} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between active:scale-[0.98] transition-transform">
+                                            <div key=${loc.id} onClick=${() => { setSelectedLoc(loc); }} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between active:scale-[0.98] transition-transform">
                                                 <div className="flex items-center space-x-4">
-                                                    <div className=${'w-12 h-12 rounded-full flex items-center justify-center text-white shrink-0 shadow-md ' + (loc.displayType === 'toilet' ? 'bg-indigo-500' : loc.displayType === 'water' ? 'bg-cyan-500' : 'bg-fuchsia-500')}
+                                                    <div className=${'w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 ' + (loc.displayType === 'toilet' ? 'bg-slate-500' : loc.displayType === 'water' ? 'bg-teal-500' : 'bg-rose-400')}
                                                         dangerouslySetInnerHTML=${{__html: ICONS[loc.displayType]}}></div>
                                                     <div>
-                                                        <h4 className="font-bold text-gray-800 font-brand text-base">${loc.name}</h4>
+                                                        <h4 className="font-semibold text-slate-700 font-brand text-base">${loc.name}</h4>
                                                         <div className="flex gap-2 mt-1">
-                                                             ${(loc.tags.fee === 'yes') && html`<span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">PAID</span>`}
-                                                             ${(loc.tags.wheelchair === 'yes') && html`<span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md">ACCESS</span>`}
-                                                             ${(loc.hasBaby) && html`<span className="text-[10px] font-bold bg-fuchsia-100 text-fuchsia-800 px-2 py-0.5 rounded-md">BABY</span>`}
+                                                             ${(loc.tags.fee === 'yes') && html`<span className="text-[10px] font-bold bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md">PAID</span>`}
+                                                             ${(loc.tags.wheelchair === 'yes') && html`<span className="text-[10px] font-bold bg-sky-50 text-sky-600 px-2 py-0.5 rounded-md">ACCESS</span>`}
+                                                             ${(loc.hasBaby) && html`<span className="text-[10px] font-bold bg-rose-50 text-rose-600 px-2 py-0.5 rounded-md">BABY</span>`}
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-gray-300 transform rotate-180">
+                                                <div className="text-slate-300 transform rotate-180">
                                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
                                                 </div>
                                             </div>
@@ -517,7 +522,7 @@
                     </div>
 
                     <button onClick=${handleGPS}
-                        className=${'absolute right-5 w-14 h-14 bg-gray-900 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 ' + (selectedLoc ? 'bottom-80' : 'bottom-8')}
+                        className=${'absolute right-5 w-14 h-14 bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 ' + (selectedLoc ? 'bottom-80' : 'bottom-8')}
                         dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>
 
                     ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} onClose=${() => setSelectedLoc(null)} />`}
