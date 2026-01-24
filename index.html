@@ -12,11 +12,11 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
     <style>
-        /* Custom Styles for Map and Animations */
+        /* Custom Styles */
         body, html { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f3f4f6; }
         #root { height: 100%; display: flex; flex-direction: column; }
         
-        /* Pulse animation for user location */
+        /* Pulse animations */
         @keyframes pulse-ring {
             0% { transform: scale(0.33); opacity: 1; }
             80%, 100% { opacity: 0; }
@@ -36,139 +36,108 @@
             animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.4s infinite;
         }
         
-        /* Custom Scrollbar for list view */
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
         /* Leaflet overrides */
         .leaflet-container { font-family: inherit; }
         .leaflet-popup-content-wrapper { border-radius: 12px; padding: 0; overflow: hidden; }
         .leaflet-popup-content { margin: 0; width: 260px !important; }
         .leaflet-bar { border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .leaflet-control-zoom { display: none; } /* We will hide default zoom for cleaner mobile UI */
+        .leaflet-control-zoom { display: none; }
     </style>
 
-    <!-- React & DOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- React & DOM (UMD) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
+    <!-- htm (The Babel Replacement) -->
+    <script crossorigin src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
 </head>
 <body>
     <div id="root">
-        <!-- Watchdog fallback content -->
+        <!-- Watchdog fallback -->
         <div id="loading-fallback" class="h-full w-full flex flex-col items-center justify-center bg-gray-50 text-gray-600 p-6 text-center">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-            <h2 class="text-xl font-bold mb-2">Initializing Loo-cator...</h2>
-            <p class="text-sm">Loading maps and libraries.</p>
+            <h2 class="text-xl font-bold mb-2">Starting Loo-cator...</h2>
         </div>
     </div>
 
-    <!-- Watchdog Script -->
+    <!-- Main Application Script (Standard JS, no Babel) -->
     <script>
-        setTimeout(function() {
-            var root = document.getElementById('root');
-            var fallback = document.getElementById('loading-fallback');
-            // If the fallback is still the only child, React failed to mount
-            if (fallback && root.contains(fallback)) {
-                fallback.innerHTML = '<div class="text-red-500 font-bold text-xl mb-2">System Error</div>' +
-                                     '<p>React failed to initialize within 8 seconds.</p>' +
-                                     '<p class="text-xs mt-4 text-gray-500">Please check your internet connection or console for "Script Error".</p>';
-            }
-        }, 8000);
-    </script>
-
-    <!-- Main React Application -->
-    <script type="text/babel" data-presets="react">
+        // 1. Setup htm to use React
+        const html = htm.bind(React.createElement);
         const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- ICONS (SVG Strings) ---
-        // Using string concatenation for safety and easy injection
+        // 2. Icons (SVG Strings)
         const ICONS = {
-            toilet: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-white"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>', // Simplified person icon for WC
-            water: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-white"><path fill-rule="evenodd" d="M11.484 2.17a.75.75 0 011.032 0 11.209 11.209 0 007.877 10.853c.963.422 1.598 1.435 1.586 2.492-.013 1.157-1.184 6.198-9.99 5.98-8.581-.212-9.66-5.384-9.641-6.452.015-1.026.602-2.022 1.516-2.453a11.21 11.21 0 007.62-10.42z" clip-rule="evenodd" /></svg>',
-            baby: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-white"><path d="M11.584 2.376a.75.75 0 01.832 0 2.413 2.413 0 001.604.372c.583-.09 1.22.185 1.48.72L16.3 5.46a3 3 0 01-2.227 4.29L12.75 10v9.5a2.25 2.25 0 01-2.25 2.25H9.75A2.25 2.25 0 017.5 19.5V10.793l-1.323-.44a3 3 0 01-2.227-4.29l.799-1.993c.259-.535.897-.81 1.48-.72.614.095 1.15-.098 1.604-.372a.75.75 0 01.832 0l1.92.64z" /><path d="M12 2.25a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75z" /></svg>',
-            target: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>',
-            list: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>',
-            map: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.875 1.875 0 00-1.006 0L4.375 5.186c-.381.19-.622.58-.622 1.006v8.25c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" /></svg>',
-            search: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>',
-            nav: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>'
+            toilet: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-white"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>`,
+            water: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-white"><path fill-rule="evenodd" d="M11.484 2.17a.75.75 0 011.032 0 11.209 11.209 0 007.877 10.853c.963.422 1.598 1.435 1.586 2.492-.013 1.157-1.184 6.198-9.99 5.98-8.581-.212-9.66-5.384-9.641-6.452.015-1.026.602-2.022 1.516-2.453a11.21 11.21 0 007.62-10.42z" clip-rule="evenodd" /></svg>`,
+            baby: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-white"><path d="M11.584 2.376a.75.75 0 01.832 0 2.413 2.413 0 001.604.372c.583-.09 1.22.185 1.48.72L16.3 5.46a3 3 0 01-2.227 4.29L12.75 10v9.5a2.25 2.25 0 01-2.25 2.25H9.75A2.25 2.25 0 017.5 19.5V10.793l-1.323-.44a3 3 0 01-2.227-4.29l.799-1.993c.259-.535.897-.81 1.48-.72.614.095 1.15-.098 1.604-.372a.75.75 0 01.832 0l1.92.64z" /><path d="M12 2.25a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75z" /></svg>`,
+            target: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>`,
+            list: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>`,
+            map: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.875 1.875 0 00-1.006 0L4.375 5.186c-.381.19-.622.58-.622 1.006v8.25c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" /></svg>`,
+            search: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>`,
+            nav: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>`
         };
 
-        // --- UTILITIES ---
+        // 3. Utilities
         const OVERPASS_SERVERS = [
             'https://overpass-api.de/api/interpreter',
             'https://overpass.kumi.systems/api/interpreter',
             'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
         ];
 
-        // Debounce helper
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
+                const later = () => { clearTimeout(timeout); func(...args); };
                 clearTimeout(timeout);
                 timeout = setTimeout(later, wait);
             };
         }
 
-        // --- COMPONENTS ---
-
-        const Loader = () => (
+        // 4. Components
+        const Loader = () => html`
             <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow-lg border border-gray-100 z-[1000]">
                 <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                 <span className="text-sm font-medium text-gray-700">Scanning area...</span>
             </div>
-        );
+        `;
 
-        const AlertPill = ({ msg, type = 'warning' }) => (
-            <div className={'px-4 py-2 rounded-full shadow-lg text-sm font-medium z-[1000] border ' + (type === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200')}>
-                {msg}
+        const AlertPill = ({ msg, type = 'warning' }) => html`
+            <div className=${'px-4 py-2 rounded-full shadow-lg text-sm font-medium z-[1000] border ' + (type === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200')}>
+                ${msg}
             </div>
-        );
+        `;
 
-        const Toast = ({ msg, visible }) => (
-            <div className={'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-xl transition-all duration-300 z-[2000] flex items-center space-x-2 ' + (visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none')}>
-                <span>{msg}</span>
+        const Toast = ({ msg, visible }) => html`
+            <div className=${'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-xl transition-all duration-300 z-[2000] flex items-center space-x-2 ' + (visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none')}>
+                <span>${msg}</span>
             </div>
-        );
+        `;
 
-        // --- MAIN APP COMPONENT ---
-
+        // 5. Main App
         function App() {
-            // State
-            const [view, setView] = useState('map'); // 'map' or 'list'
+            const [view, setView] = useState('map');
             const [locations, setLocations] = useState([]);
             const [loading, setLoading] = useState(false);
             const [toast, setToast] = useState({ msg: '', visible: false });
             const [zoomWarning, setZoomWarning] = useState(false);
             const [filters, setFilters] = useState({ toilet: true, water: true, baby: true });
             const [searchTerm, setSearchTerm] = useState('');
-            const [mapCenter, setMapCenter] = useState([28.1235, -15.4363]); // Las Palmas Default
+            const [mapCenter, setMapCenter] = useState([28.1235, -15.4363]); 
             const [mapZoom, setMapZoom] = useState(15);
             
-            // Refs
             const mapRef = useRef(null);
             const mapInstanceRef = useRef(null);
-            const markersRef = useRef(null); // LayerGroup for markers
-            const fetchController = useRef(null); // To abort fetch if needed
+            const markersRef = useRef(null);
+            const fetchController = useRef(null);
 
-            // Show Toast helper
             const showToast = (msg) => {
                 setToast({ msg, visible: true });
                 setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
             };
-
-            // --- DATA FETCHING ---
 
             const fetchOverpass = async (bounds) => {
                 const s = bounds.getSouth();
@@ -176,31 +145,24 @@
                 const n = bounds.getNorth();
                 const e = bounds.getEast();
 
-                // Construct bbox string for Overpass
-                // Note: The bounding box in Overpass is (south, west, north, east)
-                const bboxStr = '(' + s + ',' + w + ',' + n + ',' + e + ')';
+                const bboxStr = `(${s},${w},${n},${e})`;
 
-                // Query: Toilets, Drinking Water, Baby Changing
-                // Using string concatenation carefully for parser safety
                 let query = '[out:json][timeout:15];(';
-                if (filters.toilet) query = query + 'node["amenity"="toilets"]' + bboxStr + ';';
-                if (filters.water) query = query + 'node["amenity"="drinking_water"]' + bboxStr + ';';
+                if (filters.toilet) query += `node["amenity"="toilets"]${bboxStr};`;
+                if (filters.water) query += `node["amenity"="drinking_water"]${bboxStr};`;
                 if (filters.baby) {
-                     query = query + 'node["diaper"]' + bboxStr + ';';
-                     query = query + 'node["changing_table"]' + bboxStr + ';';
+                     query += `node["diaper"]${bboxStr};`;
+                     query += `node["changing_table"]${bboxStr};`;
                 }
-                query = query + ');out;';
+                query += ');out;';
 
                 let success = false;
                 let attempt = 0;
                 
-                // Server Rotation Logic
                 while (!success && attempt < OVERPASS_SERVERS.length) {
                     try {
                         const controller = new AbortController();
                         fetchController.current = controller;
-                        
-                        // Try current server
                         const server = OVERPASS_SERVERS[attempt];
                         const response = await fetch(server, {
                             method: 'POST',
@@ -209,22 +171,15 @@
                         });
 
                         if (!response.ok) throw new Error('Server error');
-
                         const data = await response.json();
                         success = true;
                         
-                        // Process Data
                         const uniqueLocs = new Map();
-                        
                         data.elements.forEach(el => {
                             if (uniqueLocs.has(el.id)) return;
-
                             let type = 'toilet';
                             if (el.tags.amenity === 'drinking_water') type = 'water';
                             else if (el.tags.diaper === 'yes' || el.tags.changing_table === 'yes') type = 'baby';
-                            // Note: Toilets often have diaper tags. We prioritize diaper status if baby filter is on? 
-                            // Simplification: If it's a toilet AND has diaper, treat as toilet but show diaper icon in details later.
-                            // For map pin color, we stick to primary amenity.
                             
                             uniqueLocs.set(el.id, {
                                 id: el.id,
@@ -235,58 +190,44 @@
                                 tags: el.tags
                             });
                         });
-
                         setLocations(Array.from(uniqueLocs.values()));
                         setLoading(false);
-
                     } catch (err) {
-                        console.warn('Attempt ' + (attempt + 1) + ' failed: ' + err.message);
                         attempt++;
                         if (attempt === OVERPASS_SERVERS.length) {
                              setLoading(false);
-                             showToast("Could not fetch data. Network busy.");
+                             showToast("Network busy. Try moving map.");
                         }
                     }
                 }
             };
 
-            // Debounced fetcher
             const debouncedFetch = useMemo(() => debounce((bounds) => {
                 fetchOverpass(bounds);
             }, 800), [filters]);
 
-            // --- MAP INITIALIZATION & LOGIC ---
-
             useEffect(() => {
                 if (!mapRef.current || mapInstanceRef.current) return;
 
-                // Init Map
                 const map = L.map(mapRef.current, {
                     zoomControl: false,
                     attributionControl: false
                 }).setView(mapCenter, mapZoom);
                 
                 mapInstanceRef.current = map;
-
-                // Add Tile Layer (OSM)
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     attribution: '&copy; OpenStreetMap'
                 }).addTo(map);
-
-                // Add Markers Layer
                 markersRef.current = L.layerGroup().addTo(map);
 
-                // Move Handler
                 map.on('moveend', () => {
                     const z = map.getZoom();
                     setMapZoom(z);
-                    setMapCenter([map.getCenter().lat, map.getCenter().lng]);
-
                     if (z < 14) {
                         setZoomWarning(true);
                         setLoading(false);
-                        setLocations([]); // Clear pins to improve perf when zoomed out
+                        setLocations([]);
                         markersRef.current.clearLayers();
                     } else {
                         setZoomWarning(false);
@@ -294,55 +235,37 @@
                         debouncedFetch(map.getBounds());
                     }
                 });
-
-                // Initial Fetch
                 setLoading(true);
                 debouncedFetch(map.getBounds());
+            }, []);
 
-            }, []); // Run once on mount
-
-            // --- MARKER UPDATES ---
-            
-            // Watch 'locations' and update markers
             useEffect(() => {
                 if (!markersRef.current || !mapInstanceRef.current) return;
-
                 markersRef.current.clearLayers();
-
                 locations.forEach(loc => {
                     let colorClass = 'bg-blue-500';
                     let iconHtml = ICONS.toilet;
-                    
-                    if (loc.type === 'water') {
-                        colorClass = 'bg-cyan-400';
-                        iconHtml = ICONS.water;
-                    } else if (loc.type === 'baby') {
-                        colorClass = 'bg-purple-400';
-                        iconHtml = ICONS.baby;
-                    }
+                    if (loc.type === 'water') { colorClass = 'bg-cyan-400'; iconHtml = ICONS.water; }
+                    else if (loc.type === 'baby') { colorClass = 'bg-purple-400'; iconHtml = ICONS.baby; }
 
-                    // Create Custom Icon via HTML string concatenation
-                    // Tailwind classes for styling the marker
-                    const html = '<div class="' + colorClass + ' w-8 h-8 rounded-full flex items-center justify-center shadow-md border-2 border-white transform hover:scale-110 transition-transform">' + iconHtml + '</div>';
-
+                    const htmlStr = `<div class="${colorClass} w-8 h-8 rounded-full flex items-center justify-center shadow-md border-2 border-white transform hover:scale-110 transition-transform">${iconHtml}</div>`;
                     const icon = L.divIcon({
                         className: 'bg-transparent',
-                        html: html,
+                        html: htmlStr,
                         iconSize: [32, 32],
-                        iconAnchor: [16, 32], // Bottom center anchor mostly
+                        iconAnchor: [16, 32],
                         popupAnchor: [0, -32]
                     });
 
-                    // Popup Content
-                    const navUrl = 'https://www.google.com/maps/search/?api=1&query=' + loc.lat + ',' + loc.lon;
-                    
-                    const popupContent = '<div class="p-4 font-sans">' +
-                        '<h3 class="font-bold text-gray-800 text-lg mb-1">' + loc.name + '</h3>' +
-                        '<div class="text-xs text-gray-500 mb-3 uppercase tracking-wider font-semibold">' + loc.type + '</div>' +
-                        '<a href="' + navUrl + '" target="_blank" class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2">' +
-                        '<span class="w-4 h-4">' + ICONS.nav + '</span> Navigate' +
-                        '</a>' +
-                        '</div>';
+                    const navUrl = `https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lon}`;
+                    const popupContent = `
+                        <div class="p-4 font-sans">
+                            <h3 class="font-bold text-gray-800 text-lg mb-1">${loc.name}</h3>
+                            <div class="text-xs text-gray-500 mb-3 uppercase tracking-wider font-semibold">${loc.type}</div>
+                            <a href="${navUrl}" target="_blank" class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                <span class="w-4 h-4">${ICONS.nav}</span> Navigate
+                            </a>
+                        </div>`;
 
                     L.marker([loc.lat, loc.lon], { icon: icon })
                         .bindPopup(popupContent)
@@ -350,7 +273,6 @@
                 });
             }, [locations]);
 
-            // Watch Filters to re-trigger fetch
             useEffect(() => {
                 if (mapInstanceRef.current && mapInstanceRef.current.getZoom() >= 14) {
                     setLoading(true);
@@ -358,12 +280,140 @@
                 }
             }, [filters]);
 
-            // --- SEARCH LOGIC ---
-
             const handleSearch = async (e) => {
                 e.preventDefault();
                 if (!searchTerm) return;
-                
                 setLoading(true);
                 try {
-                    const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURICom
+                    const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm));
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        const result = data[0];
+                        mapInstanceRef.current.flyTo([result.lat, result.lon], 16);
+                        setSearchTerm('');
+                        showToast(`Welcome to ${result.display_name.split(',')[0]}`);
+                    } else {
+                        showToast('Place not found.');
+                    }
+                } catch (err) {
+                    showToast('Search failed.');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleGPS = () => {
+                if (!navigator.geolocation) { showToast('GPS not supported'); return; }
+                showToast('Locating you...');
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        const { latitude, longitude } = pos.coords;
+                        if (mapInstanceRef.current) {
+                            mapInstanceRef.current.flyTo([latitude, longitude], 17);
+                            L.marker([latitude, longitude], {
+                                icon: L.divIcon({
+                                    className: 'bg-transparent',
+                                    html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div>',
+                                    iconSize: [20, 20]
+                                })
+                            }).addTo(mapInstanceRef.current);
+                        }
+                    },
+                    (err) => showToast('GPS Access Denied'),
+                    { enableHighAccuracy: true }
+                );
+            };
+
+            const FilterBtn = ({ type, label, active, onClick }) => {
+                let activeClass = 'bg-gray-100 text-gray-500';
+                if (active) {
+                    if (type === 'toilet') activeClass = 'bg-blue-500 text-white';
+                    if (type === 'water') activeClass = 'bg-cyan-500 text-white';
+                    if (type === 'baby') activeClass = 'bg-purple-500 text-white';
+                }
+                return html`
+                    <button onClick=${onClick} className=${'flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm active:scale-95 ' + activeClass}>
+                        <span className="w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS[type]}}></span>
+                        <span>${label}</span>
+                    </button>
+                `;
+            };
+
+            return html`
+                <div className="h-full flex flex-col font-sans text-gray-800 relative overflow-hidden">
+                    <div className="bg-white z-20 shadow-sm flex-none">
+                        <div className="p-3">
+                            <form onSubmit=${handleSearch} className="relative">
+                                <input type="text" placeholder="Search city..." 
+                                    className="w-full bg-gray-100 rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                    value=${searchTerm} onInput=${(e) => setSearchTerm(e.target.value)} />
+                                <div className="absolute left-3 top-3 text-gray-400 w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div>
+                            </form>
+                        </div>
+                        <div className="px-3 pb-3 flex space-x-2 overflow-x-auto no-scrollbar">
+                            <${FilterBtn} type="toilet" label="Toilets" active=${filters.toilet} onClick=${() => setFilters({...filters, toilet: !filters.toilet})} />
+                            <${FilterBtn} type="water" label="Water" active=${filters.water} onClick=${() => setFilters({...filters, water: !filters.water})} />
+                            <${FilterBtn} type="baby" label="Baby" active=${filters.baby} onClick=${() => setFilters({...filters, baby: !filters.baby})} />
+                            <div className="flex-grow"></div>
+                            <button onClick=${() => setView(view === 'map' ? 'list' : 'map')}
+                                className="bg-gray-800 text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-md active:scale-95">
+                                <span className="w-4 h-4" dangerouslySetInnerHTML=${{__html: view === 'map' ? ICONS.list : ICONS.map}}></span>
+                                <span>${view === 'map' ? 'List' : 'Map'}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex-grow relative">
+                        <div className="absolute top-4 left-0 right-0 flex justify-center z-[1000] pointer-events-none">
+                            ${loading && html`<${Loader} />`}
+                            ${zoomWarning && !loading && html`<${AlertPill} msg="Zoom in to see locations" />`}
+                        </div>
+
+                        <div className=${'w-full h-full ' + (view === 'map' ? 'block' : 'hidden')}>
+                            <div id="map" ref=${mapRef} className="w-full h-full bg-gray-200"></div>
+                        </div>
+
+                        ${view === 'list' && html`
+                            <div className="w-full h-full bg-gray-50 overflow-y-auto custom-scroll p-4 pb-24">
+                                ${locations.length === 0 ? html`
+                                    <div className="text-center text-gray-400 mt-20">
+                                        <div className="w-16 h-16 mx-auto mb-4 text-gray-300" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div>
+                                        <p>No locations found.</p>
+                                    </div>
+                                ` : html`
+                                    <div className="space-y-3">
+                                        ${locations.map(loc => html`
+                                            <div key=${loc.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                                                <div className="flex items-center space-x-3">
+                                                    <div className=${'w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 ' + (loc.type === 'toilet' ? 'bg-blue-500' : loc.type === 'water' ? 'bg-cyan-400' : 'bg-purple-400')}
+                                                        dangerouslySetInnerHTML=${{__html: ICONS[loc.type]}}></div>
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-800 text-sm">${loc.name}</h4>
+                                                    </div>
+                                                </div>
+                                                <a href=${'https://www.google.com/maps/search/?api=1&query=' + loc.lat + ',' + loc.lon} target="_blank"
+                                                    className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-colors"
+                                                    dangerouslySetInnerHTML=${{__html: ICONS.nav}}></a>
+                                            </div>
+                                        `)}
+                                    </div>
+                                `}
+                            </div>
+                        `}
+                    </div>
+
+                    <button onClick=${handleGPS}
+                        className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-transform"
+                        dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>
+
+                    <${Toast} msg=${toast.msg} visible=${toast.visible} />
+                </div>
+            `;
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(html`<${App} />`);
+    </script>
+</body>
+</html>
+
