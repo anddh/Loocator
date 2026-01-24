@@ -2,15 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Find toilets, water, and camper services.">
+    
     <title>Loocator</title>
+
+    <!-- Performance Optimizations -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+
+    <!-- Embedded Favicon (SVG Data URI) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%231e293b'/%3E%3Cpath fill='%23ffffff' d='M75 37.5H25c-2.76 0-5 2.24-5 5v15c0 10.35 7.65 18.89 17.5 20.37V87.5c0 2.76 2.24 5 5 5h15c2.76 0 5-2.24 5-5V77.87C67.35 76.39 75 67.85 75 57.5v-15c0-2.76-2.24-5-5-5zM37.5 25h25c2.76 0 5-2.24 5-5s-2.24-5-5-5h-25c-2.76 0-5 2.24-5 5s2.24 5 5 5z'/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231e293b'/%3E%3Cpath fill='%23ffffff' d='M75 37.5H25c-2.76 0-5 2.24-5 5v15c0 10.35 7.65 18.89 17.5 20.37V87.5c0 2.76 2.24 5 5 5h15c2.76 0 5-2.24 5-5V77.87C67.35 76.39 75 67.85 75 57.5v-15c0-2.76-2.24-5-5-5zM37.5 25h25c2.76 0 5-2.24 5-5s-2.24-5-5-5h-25c-2.76 0-5 2.24-5 5s2.24 5 5 5z'/%3E%3C/svg%3E">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Google Fonts: Fredoka -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
     
     <!-- Leaflet CSS -->
@@ -48,6 +61,9 @@
         /* Image Fade In */
         .img-fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Safe Area for Mobile (iPhone Notch) */
+        .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 
     <!-- React & DOM (UMD) -->
@@ -234,7 +250,7 @@
             if (loc.displayType === 'black') headerBg = 'bg-slate-700 text-slate-100';
 
             return html`
-                <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-[1500] sheet-transition transform translate-y-0 flex flex-col max-h-[85vh]">
+                <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-[1500] sheet-transition transform translate-y-0 flex flex-col max-h-[85vh] safe-pb">
                     <div className="w-full flex justify-center pt-3 pb-1" onClick=${onClose}>
                         <div className="w-12 h-1.5 bg-slate-200 rounded-full"></div>
                     </div>
@@ -716,7 +732,7 @@
             return html`
                 <div className="h-full flex flex-col font-sans text-slate-800 relative overflow-hidden">
                     
-                    <div className="bg-white/95 backdrop-blur z-20 shadow-sm flex-none pb-2 rounded-b-3xl">
+                    <div className="bg-white/95 backdrop-blur z-20 shadow-sm flex-none pb-2 rounded-b-3xl safe-pb">
                         <div className="flex items-center justify-between px-5 pt-4 pb-2">
                             <h1 className="text-2xl font-brand text-slate-700 tracking-tight" style=${{fontWeight: 600}}>Loocator</h1>
                             <div className="flex gap-2">
@@ -765,7 +781,7 @@
                         </div>
 
                         ${view === 'list' && html`
-                            <div className="w-full h-full bg-slate-50 overflow-y-auto custom-scroll p-4 pb-24">
+                            <div className="w-full h-full bg-slate-50 overflow-y-auto custom-scroll p-4 pb-24 safe-pb">
                                 ${visibleLocations.length === 0 ? html`
                                     <div className="text-center text-slate-400 mt-20">
                                         <div className="w-16 h-16 mx-auto mb-4 text-slate-300 opacity-50" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div>
