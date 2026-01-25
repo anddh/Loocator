@@ -11,26 +11,20 @@
     
     <title>Loocator</title>
 
-    <!-- Link to the Manifest File -->
     <link rel="manifest" href="manifest.json">
 
-    <!-- Performance Optimizations -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://unpkg.com">
     <link rel="preconnect" href="https://cdn.tailwindcss.com">
 
-    <!-- Custom Favicon (Points to icon.png in your repo) -->
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Google Fonts: Fredoka -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
     
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
     <style>
@@ -71,26 +65,21 @@
         .safe-pt { padding-top: env(safe-area-inset-top); }
     </style>
 
-    <!-- React & DOM (UMD) -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- htm (The Babel Replacement) -->
     <script crossorigin src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
 
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
 <body>
     <div id="root">
-        <!-- Watchdog fallback -->
         <div id="loading-fallback" class="h-full w-full flex flex-col items-center justify-center bg-slate-50 text-slate-500 p-6 text-center">
             <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-slate-600 mb-4"></div>
             <h2 class="text-xl font-bold mb-2 font-brand">Starting Loocator...</h2>
         </div>
     </div>
 
-    <!-- Main Application Script -->
     <script>
         const html = htm.bind(React.createElement);
         const { useState, useEffect, useRef, useMemo } = React;
@@ -110,7 +99,7 @@
             pin: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5"><path fill-rule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19.02 10 19.02s.11.001.307-.086l.002-.001a1.2 1.2 0 00.364-.266c.306-.32 2.648-2.886 4.603-5.91C17.072 9.97 18 7.352 18 5.5A5.5 5.5 0 0012.5 0 5.5 5.5 0 007 5.5c0 1.852.928 4.47 2.724 7.256a15.22 15.22 0 004.603 5.91 1.2 1.2 0 00.363.267zM10 7.5a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" /></svg>`,
             van: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 13a1 1 0 100 2 1 1 0 000-2z" /><path fill-rule="evenodd" d="M5.5 12.5a.5.5 0 01.5-.5h4a.5.5 0 01.5.5v1a.5.5 0 01-.5.5h-4a.5.5 0 01-.5-.5v-1z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M2.25 7.5a.75.75 0 01.75-.75H17a.75.75 0 01.75.75v2.25h1.5a.75.75 0 00.75-.75V7.5a2.25 2.25 0 00-2.25-2.25h-1.5V4.5a.75.75 0 00-.75-.75h-9a.75.75 0 00-.75.75v.75h-1.5A2.25 2.25 0 002.25 7.5v8.25c0 .414.336.75.75.75h.75a2.25 2.25 0 104.5 0h7.5a2.25 2.25 0 104.5 0h.75a.75.75 0 00.75-.75V12a2.25 2.25 0 00-2.25-2.25H18.75V7.5zM6 3.75a.75.75 0 00-.75.75v.75h9.75V4.5a.75.75 0 00-.75-.75H6z" clip-rule="evenodd" /></svg>`,
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.49 1.45 47.155 47.155 0 00-15.776 0 .75.75 0 01-.49-1.45 48.815 48.815 0 013.878-.512V4.478a2.25 2.25 0 012.25-2.25h3a2.25 2.25 0 012.25 2.25zM6.75 7.5a.75.75 0 01.75-.75h9a.75.75 0 01.75.75v11.25a3 3 0 01-3 3h-4.5a3 3 0 01-3-3V7.5z" clip-rule="evenodd" /></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.177 7.547 7.547 0 01-1.705 4.344h2.04c.26 0 .52.017.775.05a4.5 4.5 0 014.282-4.282c.033-.255.05-.516.05-.775v-2.04a7.548 7.548 0 014.345 1.705 9.743 9.743 0 00-5.177-5.043zM3 13.5a.75.75 0 00.75.75h1.5a.75.75 0 01.75.75v1.5a.75.75 0 00.75.75h.75a.75.75 0 00.75-.75v-1.5a.75.75 0 01.75-.75h1.5a.75.75 0 00.75-.75v-1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 00-.75.75v1.5z" clip-rule="evenodd" /><path d="M11.645 18.02a.75.75 0 01.734-.995h8.242a.75.75 0 01.733.995 2.25 2.25 0 01-2.11 1.48H13.755a2.25 2.25 0 01-2.11-1.48z" /></svg>`,
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.177 7.547 7.547 0 01-1.705 4.344h2.04c.26 0 .52.017.775.05a4.5 4.5 0 014.282-4.282c.033-.255.05-.516.05-.775v-2.04a7.548 7.548 0 014.345 1.705 9.743 9.743 0 00-5.177-5.043zM3 13.5a.75.75 0 00.75.75h1.5a.75.75 0 01.75.75v1.5a.75.75 0 00.75.75h.75a.75.75 0 00.75-.75v-1.5a.75.75 0 01.75-.75h1.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75h-1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 00-.75.75v1.5z" clip-rule="evenodd" /><path d="M11.645 18.02a.75.75 0 01.734-.995h8.242a.75.75 0 01.733.995 2.25 2.25 0 01-2.11 1.48H13.755a2.25 2.25 0 01-2.11-1.48z" /></svg>`,
             eye: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`,
             download: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`
         };
@@ -130,6 +119,13 @@
             };
         }
 
+        // Helper to convert Degrees to Radians
+        function deg2rad(deg) {
+            return deg * (Math.PI/180);
+        }
+
+        // Calculate straight line distance (Haversine formula)
+        // returns object { text: "1.2km", km: 1.2 } for sorting
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371; 
             const dLat = deg2rad(lat2 - lat1);
@@ -140,12 +136,11 @@
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
             const d = R * c; 
             
-            if (d < 1) return Math.round(d * 1000) + 'm';
-            return d.toFixed(1) + 'km';
-        }
+            let text = '';
+            if (d < 1) text = Math.round(d * 1000) + 'm';
+            else text = d.toFixed(1) + 'km';
 
-        function deg2rad(deg) {
-            return deg * (Math.PI/180);
+            return { text, km: d };
         }
 
         // --- COMPONENTS ---
@@ -246,7 +241,8 @@
             const isAccessible = loc.tags.wheelchair === 'yes';
             const operator = loc.tags.operator;
             const hours = loc.tags.opening_hours;
-            const distance = userLoc ? calculateDistance(userLoc[0], userLoc[1], loc.lat, loc.lon) : null;
+            const distObj = userLoc ? calculateDistance(userLoc[0], userLoc[1], loc.lat, loc.lon) : null;
+            const distanceText = distObj ? distObj.text : null;
 
             // Header Colors
             let headerBg = 'bg-slate-100 text-slate-600';
@@ -284,9 +280,9 @@
                                     <div className=${'inline-flex items-center px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wide ' + headerBg}>
                                         ${loc.displayType === 'black' ? 'BLACK WATER' : loc.displayType === 'grey' ? 'GREY WATER' : loc.baseType.toUpperCase()}
                                     </div>
-                                    ${distance && html`
+                                    ${distanceText && html`
                                         <div className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide bg-slate-100 text-slate-500">
-                                            ${distance} AWAY
+                                            ${distanceText} AWAY
                                         </div>
                                     `}
                                 </div>
@@ -295,7 +291,6 @@
                             </div>
                         </div>
 
-                        <!-- Address Section -->
                         <div className="mb-5 flex items-start space-x-2 text-slate-500">
                             <div className="w-4 h-4 mt-0.5 shrink-0" dangerouslySetInnerHTML=${{__html: ICONS.pin}}></div>
                             ${loadingAddr ? html`
@@ -358,7 +353,6 @@
                             </a>
                         </div>
                         
-                        <!-- Street View Fallback Hint -->
                         ${!imageUrl && html`
                             <p className="text-[10px] text-center text-slate-400">
                                 No community photo available. Try Street Preview.
@@ -413,7 +407,8 @@
             };
 
             const visibleLocations = useMemo(() => {
-                return allLocations.filter(loc => {
+                // 1. Filter
+                const filtered = allLocations.filter(loc => {
                     if (isCamperMode) {
                         if (vanFilters.black && loc.isBlack) return true;
                         if (vanFilters.grey && loc.isGrey) return true;
@@ -441,24 +436,52 @@
                     
                     return { ...loc, displayType };
                 });
-            }, [allLocations, isCamperMode, stdFilters, vanFilters]);
 
-            const fetchOverpass = async (bounds) => {
-                const s = bounds.getSouth();
-                const w = bounds.getWest();
-                const n = bounds.getNorth();
-                const e = bounds.getEast();
-                const bboxStr = `(${s},${w},${n},${e})`;
+                // 2. Sort by distance if user location or map center is available
+                // Prefer userPos, otherwise use mapCenter
+                const center = userPos || mapCenter;
+                if (center) {
+                    return filtered.sort((a, b) => {
+                        const distA = calculateDistance(center[0], center[1], a.lat, a.lon).km;
+                        const distB = calculateDistance(center[0], center[1], b.lat, b.lon).km;
+                        return distA - distB;
+                    });
+                }
 
-                // Extended query to include dump stations and water points
-                const query = `[out:json][timeout:15];(
-                    node["amenity"="toilets"]${bboxStr};
-                    node["amenity"="drinking_water"]${bboxStr};
-                    node["amenity"="water_point"]${bboxStr};
-                    node["amenity"="sanitary_dump_station"]${bboxStr};
-                    node["diaper"]${bboxStr};
-                    node["changing_table"]${bboxStr};
-                );out;`;
+                return filtered;
+            }, [allLocations, isCamperMode, stdFilters, vanFilters, userPos, mapCenter]);
+
+            const fetchOverpass = async (bounds, isRetry = false) => {
+                let query = '';
+                
+                if (isRetry) {
+                    // Fallback Query: Around center, 50km radius
+                    const center = bounds.getCenter();
+                    const radius = 50000; // 50km
+                    query = `[out:json][timeout:25];(
+                        node["amenity"="toilets"](around:${radius},${center.lat},${center.lng});
+                        node["amenity"="drinking_water"](around:${radius},${center.lat},${center.lng});
+                        node["amenity"="water_point"](around:${radius},${center.lat},${center.lng});
+                        node["amenity"="sanitary_dump_station"](around:${radius},${center.lat},${center.lng});
+                        node["diaper"](around:${radius},${center.lat},${center.lng});
+                        node["changing_table"](around:${radius},${center.lat},${center.lng});
+                    );out;`;
+                } else {
+                    // Standard Query: Bounding Box
+                    const s = bounds.getSouth();
+                    const w = bounds.getWest();
+                    const n = bounds.getNorth();
+                    const e = bounds.getEast();
+                    const bboxStr = `(${s},${w},${n},${e})`;
+                    query = `[out:json][timeout:15];(
+                        node["amenity"="toilets"]${bboxStr};
+                        node["amenity"="drinking_water"]${bboxStr};
+                        node["amenity"="water_point"]${bboxStr};
+                        node["amenity"="sanitary_dump_station"]${bboxStr};
+                        node["diaper"]${bboxStr};
+                        node["changing_table"]${bboxStr};
+                    );out;`;
+                }
 
                 let success = false;
                 let attempt = 0;
@@ -480,6 +503,14 @@
                         const data = await response.json();
                         success = true;
                         
+                        // If no results and this wasn't already a retry, try the "Wide Search"
+                        if (data.elements.length === 0 && !isRetry) {
+                            showToast("No spots here. Searching 50km radius...");
+                            // Recursively call with retry=true
+                            fetchOverpass(bounds, true);
+                            return; 
+                        }
+
                         const uniqueLocs = new Map();
                         data.elements.forEach(el => {
                             if (uniqueLocs.has(el.id)) return;
@@ -831,7 +862,9 @@
                                 ` : html`
                                     <div className="space-y-3">
                                         ${visibleLocations.map(loc => {
-                                            const dist = userPos ? calculateDistance(userPos[0], userPos[1], loc.lat, loc.lon) : null;
+                                            const dist = userPos ? calculateDistance(userPos[0], userPos[1], loc.lat, loc.lon) : (mapCenter ? calculateDistance(mapCenter[0], mapCenter[1], loc.lat, loc.lon) : null);
+                                            const distText = dist ? dist.text : null;
+                                            
                                             return html`
                                                 <div key=${loc.id} onClick=${() => { setSelectedLoc(loc); }} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between active:scale-[0.98] transition-transform">
                                                     <div className="flex items-center space-x-4">
@@ -844,8 +877,8 @@
                                                         <div>
                                                             <div className="flex items-center gap-2">
                                                                 <h4 className="font-semibold text-slate-700 font-brand text-base">${loc.name}</h4>
-                                                                ${dist && html`
-                                                                    <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full whitespace-nowrap">${dist}</span>
+                                                                ${distText && html`
+                                                                    <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full whitespace-nowrap">${distText}</span>
                                                                 `}
                                                             </div>
                                                             <div className="flex gap-2 mt-1">
@@ -883,5 +916,3 @@
     </script>
 </body>
 </html>
-
-
