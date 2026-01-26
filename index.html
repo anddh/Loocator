@@ -42,7 +42,9 @@
         .icon-sm { font-size: 20px !important; }
         .icon-md { font-size: 24px !important; }
         
-        .marker-badge { position: absolute; width: 10px; height: 10px; border: 1.5px solid white; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.3); z-index: 20; }
+        /* Removed marker-badge css as we use pie charts now */
+        .pie-icon { text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+
         .user-pin-ring { position: absolute; width: 20px; height: 20px; border-radius: 50%; background-color: #475569; opacity: 0.7; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
         .user-pin-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background-color: white; border: 2px solid #475569; top: 5px; left: 5px; animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.4s infinite; }
         @keyframes pulse-ring { 0% { transform: scale(0.33); opacity: 1; } 80%, 100% { opacity: 0; } }
@@ -96,6 +98,16 @@
         };
 
         const OVERPASS_SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+        
+        // Colors mapping for the pie chart
+        const TYPE_COLORS = {
+            toilet: '#64748b', // slate-500
+            water: '#14b8a6',  // teal-500
+            baby: '#fb7185',   // rose-400
+            shower: '#0ea5e9', // sky-500
+            black: '#1e293b',  // slate-800
+            grey: '#94a3b8'    // slate-400
+        };
 
         function debounce(func, wait) {
             let timeout;
@@ -369,7 +381,6 @@
             const fetchOverpass = async (bounds, isRetry = false) => {
                 const queryBounds = isRetry ? null : bounds.pad(0.5);
                 const area = isRetry ? `(around:5000,${bounds.getCenter().lat},${bounds.getCenter().lng})` : `(${queryBounds.getSouth()},${queryBounds.getWest()},${queryBounds.getNorth()},${queryBounds.getEast()})`;
-                // Use 'nwr' (node/way/relation) instead of 'node' to catch buildings and polygons
                 const query = `[out:json][timeout:25];(nwr["amenity"="toilets"]${area};nwr["amenity"="drinking_water"]${area};nwr["amenity"="water_point"]${area};nwr["amenity"="sanitary_dump_station"]${area};nwr["amenity"="shower"]${area};nwr["diaper"]${area};nwr["changing_table"]${area};);out center;`;
                 try {
                     const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query) });
@@ -377,11 +388,9 @@
                     if (data.elements.length === 0 && !isRetry) { showToast("Nothing nearby. Scanning 5km radius..."); fetchOverpass(bounds, true); return; }
                     
                     setAllLocations(data.elements.map(el => {
-                        // Handle center coordinates for ways/relations
                         const lat = el.lat || (el.center && el.center.lat);
                         const lon = el.lon || (el.center && el.center.lon);
                         
-                        // Safety check
                         if (!lat || !lon) return null;
 
                         return {
@@ -395,7 +404,7 @@
                             baseType: el.tags.amenity === 'sanitary_dump_station' ? 'dump' : el.tags.amenity === 'shower' ? 'shower' : el.tags.amenity === 'drinking_water' ? 'water' : 'toilet',
                             name: el.tags.name || (el.tags.amenity === 'sanitary_dump_station' ? "Dump Station" : "Service Point")
                         };
-                    }).filter(Boolean)); // Remove nulls
+                    }).filter(Boolean)); 
                     setLoading(false);
                 } catch (e) { setLoading(false); }
             };
@@ -479,13 +488,44 @@
                 if (!markersRef.current) return;
                 markersRef.current.clearLayers();
                 visibleLocations.forEach(loc => {
-                    let color = loc.displayType === 'water' ? 'bg-teal-500' : loc.displayType === 'baby' ? 'bg-rose-400' : loc.displayType === 'black' ? 'bg-slate-800' : loc.displayType === 'grey' ? 'bg-slate-400' : loc.displayType === 'shower' ? 'bg-sky-500' : 'bg-slate-600';
-                    let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType];
-                    const extras = [];
-                    if (loc.isWater && loc.displayType !== 'water') extras.push('bg-teal-500');
-                    if (loc.isBlack && loc.displayType !== 'black') extras.push('bg-slate-800');
-                    const badges = extras.map((c, i) => `<div class="marker-badge ${c}" style="top: ${i*4}px; right: -4px"></div>`).join('');
-                    L.marker([loc.lat, loc.lon], { icon: L.divIcon({ className: '', html: `<div class="relative w-9 h-9"><div class="${color} w-9 h-9 rounded-full flex items-center justify-center border-2 border-white text-white z-10 relative shadow-sm">${iconHtml}</div>${badges}</div>`, iconSize: [36, 36], iconAnchor: [18, 36] }) }).addTo(markersRef.current).on('click', () => setSelectedLoc(loc));
+                    // Determine which icon to show (based on displayType)
+                    let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet;
+                    
+                    // Identify all active types for the pie chart
+                    const types = [];
+                    if (loc.isToilet) types.push('toilet');
+                    if (loc.isWater) types.push('water');
+                    if (loc.hasBaby) types.push('baby');
+                    if (loc.hasShower) types.push('shower');
+                    if (loc.isBlack) types.push('black');
+                    if (loc.isGrey) types.push('grey');
+                    
+                    // Fallback to avoid errors
+                    if (types.length === 0) types.push('toilet');
+
+                    // Create Gradient String
+                    let backgroundStyle = '';
+                    if (types.length === 1) {
+                         backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`;
+                    } else {
+                        const segmentSize = 100 / types.length;
+                        const gradientParts = types.map((t, i) => {
+                            const color = TYPE_COLORS[t];
+                            const start = i * segmentSize;
+                            const end = (i + 1) * segmentSize;
+                            return `${color} ${start}% ${end}%`;
+                        });
+                        backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`;
+                    }
+
+                    L.marker([loc.lat, loc.lon], { 
+                        icon: L.divIcon({ 
+                            className: '', 
+                            html: `<div class="relative w-9 h-9"><div class="w-9 h-9 rounded-full flex items-center justify-center border-2 border-white text-white z-10 relative shadow-sm" style="${backgroundStyle}"><div class="pie-icon flex items-center justify-center">${iconHtml}</div></div></div>`, 
+                            iconSize: [36, 36], 
+                            iconAnchor: [18, 36] 
+                        }) 
+                    }).addTo(markersRef.current).on('click', () => setSelectedLoc(loc));
                 });
             }, [visibleLocations]);
 
