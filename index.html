@@ -346,6 +346,7 @@
             const [userPos, setUserPos] = useState([51.505, -0.09]); 
             const [deferredPrompt, setDeferredPrompt] = useState(null);
             const [searchBounds, setSearchBounds] = useState(null); 
+            const [isInstalled, setIsInstalled] = useState(false);
             
             // Contribution States
             const [showContribute, setShowContribute] = useState(false);
@@ -443,15 +444,45 @@
                 showToast(source === 'GPS' ? "Location found!" : source === 'IP' ? "Approximate location found" : "Using default location");
             };
 
-            // Re-added the missing useEffect for PWA installation
+            // PWA Logic: Check if installed, and handle install prompt
             useEffect(() => {
+                // Check if already in standalone mode
+                if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+                    setIsInstalled(true);
+                }
+
+                // Listen for install event
                 const handler = (e) => {
                     e.preventDefault();
                     setDeferredPrompt(e);
                 };
                 window.addEventListener('beforeinstallprompt', handler);
-                return () => window.removeEventListener('beforeinstallprompt', handler);
+                window.addEventListener('appinstalled', () => setIsInstalled(true));
+                return () => {
+                    window.removeEventListener('beforeinstallprompt', handler);
+                    window.removeEventListener('appinstalled', () => setIsInstalled(true));
+                }
             }, []);
+
+            const handleInstall = () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            setDeferredPrompt(null);
+                            setIsInstalled(true);
+                        }
+                    });
+                } else {
+                    // Fallback instructions
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                    if (isIOS) {
+                        showToast("Tap 'Share' then 'Add to Home Screen'");
+                    } else {
+                        showToast("Use browser menu to Install App");
+                    }
+                }
+            };
 
             useEffect(() => {
                 if (!mapRef.current || mapInstanceRef.current) return;
@@ -551,7 +582,6 @@
 
             const handleSearch = async (e) => { e.preventDefault(); if (!searchTerm) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); setSearchTerm(''); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else { showToast('Place not found.'); } } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
             const handleGPS = () => { if (!navigator.geolocation) { showToast('GPS not supported'); return; } showToast('Locating you...'); navigator.geolocation.getCurrentPosition((pos) => { const coords = [pos.coords.latitude, pos.coords.longitude]; updateUserLocation(coords, 'GPS'); }, (err) => showToast('GPS Access Denied'), { enableHighAccuracy: true }); };
-            const handleInstall = () => { if (!deferredPrompt) return; deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') setDeferredPrompt(null); }); };
 
             const startPickingLocation = () => {
                 setIsPickingLocation(true);
@@ -599,7 +629,7 @@
                     <div class="flex items-center justify-between px-5 pt-4 pb-2">
                         <h1 class="text-2xl font-brand font-semibold text-slate-700 tracking-tight">Loocator</h1>
                         <div class="flex gap-2">
-                            ${deferredPrompt && html`<button onClick=${handleInstall} class="bg-indigo-100 text-indigo-600 px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2"><div class="flex items-center justify-center w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.download}}></div><span>Install</span></button>`}
+                            ${!isInstalled && html`<button onClick=${handleInstall} class="bg-indigo-100 text-indigo-600 px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2"><div class="flex items-center justify-center w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.download}}></div><span>Install</span></button>`}
                             <button onClick=${() => setIsCamperMode(!isCamperMode)} class=${'px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-colors ' + (isCamperMode ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500')}><div class="flex items-center justify-center w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.van}}></div><span>${isCamperMode ? 'Van On' : 'Van Mode'}</span></button>
                             <button onClick=${() => setShowFilters(true)} class="bg-slate-100 text-slate-500 px-3 py-2 rounded-full text-xs font-bold"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.filter}}></div></button>
                             <button onClick=${() => setView(view === 'map' ? 'list' : 'map')} class="bg-slate-100 text-slate-500 px-3 py-2 rounded-full text-xs font-bold"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: view === 'map' ? ICONS.list : ICONS.map}}></div></button>
