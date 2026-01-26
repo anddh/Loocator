@@ -87,6 +87,10 @@
             shower: `<span class="material-symbols-rounded icon-sm">shower</span>`,
             filter: `<span class="material-symbols-rounded icon-sm">tune</span>`,
             download: `<span class="material-symbols-rounded icon-sm">download</span>`,
+            plus: `<span class="material-symbols-rounded icon-md">add</span>`,
+            edit: `<span class="material-symbols-rounded icon-sm">edit</span>`,
+            note: `<span class="material-symbols-rounded icon-sm">rate_review</span>`,
+            send: `<span class="material-symbols-rounded icon-sm">send</span>`,
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
             drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
@@ -138,6 +142,83 @@
                     </div>
                 </div>
             </div>`;
+
+        const ContributeSheet = ({ lat, lon, onClose, onShowToast }) => {
+            const [text, setText] = useState('');
+            const [sending, setSending] = useState(false);
+            const [sent, setSent] = useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if (!text.trim()) return;
+                setSending(true);
+
+                try {
+                    const formData = new FormData();
+                    formData.append('lat', lat);
+                    formData.append('lon', lon);
+                    formData.append('text', text + ' #LoocatorApp');
+
+                    // Post to OSM API (Anonymous note)
+                    const res = await fetch('https://api.openstreetmap.org/api/0.6/notes.json', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (res.ok) {
+                        setSent(true);
+                        onShowToast("Note sent to map editors!");
+                        setTimeout(onClose, 2000);
+                    } else {
+                        throw new Error("Failed");
+                    }
+                } catch (err) {
+                    onShowToast("Failed to send note. Try again.");
+                    setSending(false);
+                }
+            };
+
+            return html`
+            <div class="fixed inset-0 z-[1600] flex flex-col justify-end pointer-events-none">
+                <div class="absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity" onClick=${onClose}></div>
+                <div class="bg-white w-full rounded-t-3xl shadow-2xl p-6 pb-12 pointer-events-auto transform transition-transform duration-300">
+                    <div class="flex justify-center mb-4"><div class="w-12 h-1.5 bg-slate-200 rounded-full"></div></div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold font-brand text-slate-800">Add Missing Spot</h2>
+                        <button onClick=${onClose} className="p-2 bg-slate-50 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
+                    </div>
+                    
+                    ${!sent ? html`
+                        <div class="space-y-4">
+                            <p class="text-slate-500 text-sm">Describe what is here (e.g. "Public toilet, 50p fee"). This will be sent anonymously to OpenStreetMap volunteers.</p>
+                            <textarea 
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[100px]"
+                                placeholder="Type description here..."
+                                value=${text}
+                                onInput=${(e) => setText(e.target.value)}
+                                disabled=${sending}
+                            ></textarea>
+                            <button 
+                                onClick=${handleSubmit}
+                                disabled=${sending || !text.trim()}
+                                class=${'w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-md transition-all ' + (sending || !text.trim() ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-indigo-600 text-white active:scale-95')}
+                            >
+                                ${sending ? html`<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>` : html`<div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.send}}></div>`}
+                                <span>${sending ? 'Sending...' : 'Send Note'}</span>
+                            </button>
+                        </div>
+                    ` : html`
+                        <div class="flex flex-col items-center justify-center py-8 text-center animate-pulse">
+                            <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+                                <span class="material-symbols-rounded text-3xl">check</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-800">Thank you!</h3>
+                            <p class="text-slate-500">Your contribution helps everyone.</p>
+                        </div>
+                    `}
+                </div>
+            </div>`;
+        }
 
         const DetailsCard = ({ loc, userLoc, onClose }) => {
             if (!loc) return null;
@@ -234,14 +315,16 @@
             const [freeOnly, setFreeOnly] = useState(false);
             const [bottleOnly, setBottleOnly] = useState(false);
             const [searchTerm, setSearchTerm] = useState('');
-            
-            // Updated: Default fallback to London (General View) if everything fails
             const [mapCenter, setMapCenter] = useState([51.505, -0.09]); 
-            const [userPos, setUserPos] = useState([51.505, -0.09]); // Default for calc, will be updated
-            
+            const [userPos, setUserPos] = useState([51.505, -0.09]); 
             const [deferredPrompt, setDeferredPrompt] = useState(null);
             const [searchBounds, setSearchBounds] = useState(null); 
             
+            // Contribution States
+            const [showContribute, setShowContribute] = useState(false);
+            const [isPickingLocation, setIsPickingLocation] = useState(false);
+            const [contributeCoords, setContributeCoords] = useState(null);
+
             const mapRef = useRef(null);
             const mapInstanceRef = useRef(null);
             const markersRef = useRef(null);
@@ -286,22 +369,33 @@
             const fetchOverpass = async (bounds, isRetry = false) => {
                 const queryBounds = isRetry ? null : bounds.pad(0.5);
                 const area = isRetry ? `(around:5000,${bounds.getCenter().lat},${bounds.getCenter().lng})` : `(${queryBounds.getSouth()},${queryBounds.getWest()},${queryBounds.getNorth()},${queryBounds.getEast()})`;
-                const query = `[out:json][timeout:25];(node["amenity"="toilets"]${area};node["amenity"="drinking_water"]${area};node["amenity"="water_point"]${area};node["amenity"="sanitary_dump_station"]${area};node["amenity"="shower"]${area};node["diaper"]${area};node["changing_table"]${area};);out;`;
+                // Use 'nwr' (node/way/relation) instead of 'node' to catch buildings and polygons
+                const query = `[out:json][timeout:25];(nwr["amenity"="toilets"]${area};nwr["amenity"="drinking_water"]${area};nwr["amenity"="water_point"]${area};nwr["amenity"="sanitary_dump_station"]${area};nwr["amenity"="shower"]${area};nwr["diaper"]${area};nwr["changing_table"]${area};);out center;`;
                 try {
                     const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query) });
                     const data = await res.json();
                     if (data.elements.length === 0 && !isRetry) { showToast("Nothing nearby. Scanning 5km radius..."); fetchOverpass(bounds, true); return; }
-                    setAllLocations(data.elements.map(el => ({
-                        id: el.id, lat: el.lat, lon: el.lon, tags: el.tags,
-                        isToilet: el.tags.amenity === 'toilets',
-                        isWater: el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point',
-                        hasBaby: el.tags.diaper === 'yes' || el.tags.changing_table === 'yes',
-                        hasShower: el.tags.amenity === 'shower' || el.tags.shower === 'yes',
-                        isBlack: (el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:chemical_toilet'] !== 'no') || (el.tags.amenity === 'toilets' && el.tags.sanitary_dump_station === 'yes'),
-                        isGrey: el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:grey_water'] !== 'no',
-                        baseType: el.tags.amenity === 'sanitary_dump_station' ? 'dump' : el.tags.amenity === 'shower' ? 'shower' : el.tags.amenity === 'drinking_water' ? 'water' : 'toilet',
-                        name: el.tags.name || (el.tags.amenity === 'sanitary_dump_station' ? "Dump Station" : "Service Point")
-                    })));
+                    
+                    setAllLocations(data.elements.map(el => {
+                        // Handle center coordinates for ways/relations
+                        const lat = el.lat || (el.center && el.center.lat);
+                        const lon = el.lon || (el.center && el.center.lon);
+                        
+                        // Safety check
+                        if (!lat || !lon) return null;
+
+                        return {
+                            id: el.id, lat: lat, lon: lon, tags: el.tags,
+                            isToilet: el.tags.amenity === 'toilets',
+                            isWater: el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point',
+                            hasBaby: el.tags.diaper === 'yes' || el.tags.changing_table === 'yes',
+                            hasShower: el.tags.amenity === 'shower' || el.tags.shower === 'yes',
+                            isBlack: (el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:chemical_toilet'] !== 'no') || (el.tags.amenity === 'toilets' && el.tags.sanitary_dump_station === 'yes'),
+                            isGrey: el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:grey_water'] !== 'no',
+                            baseType: el.tags.amenity === 'sanitary_dump_station' ? 'dump' : el.tags.amenity === 'shower' ? 'shower' : el.tags.amenity === 'drinking_water' ? 'water' : 'toilet',
+                            name: el.tags.name || (el.tags.amenity === 'sanitary_dump_station' ? "Dump Station" : "Service Point")
+                        };
+                    }).filter(Boolean)); // Remove nulls
                     setLoading(false);
                 } catch (e) { setLoading(false); }
             };
@@ -327,7 +421,6 @@
 
             useEffect(() => {
                 if (!mapRef.current || mapInstanceRef.current) return;
-                // Init map with default center (London), but don't fetch yet
                 const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(mapCenter, 13);
                 mapInstanceRef.current = map;
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -350,10 +443,8 @@
                 map.on('moveend', handleMove);
                 setLoading(true);
 
-                // Location Cascade: GPS -> IP -> Default
                 const findLocation = async () => {
                     try {
-                        // 1. Try High Accuracy GPS
                         const pos = await new Promise((resolve, reject) => {
                             navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000, enableHighAccuracy: true });
                         });
@@ -362,7 +453,6 @@
                     } catch (gpsError) {
                         console.warn("GPS failed, trying IP...");
                         try {
-                            // 2. Try IP Geolocation
                             const res = await fetch('https://ipapi.co/json/');
                             if (!res.ok) throw new Error('IP service failed');
                             const data = await res.json();
@@ -373,10 +463,8 @@
                                 throw new Error('Invalid IP data');
                             }
                         } catch (ipError) {
-                            // 3. Fallback (Already at default center), just stop loading and toast
                             setLoading(false);
                             showToast("Could not locate you automatically. Move map to search.");
-                            // We are already at mapCenter (London), so just fetch for that
                             setSearchBounds(map.getBounds());
                             debouncedFetch(map.getBounds());
                         }
@@ -406,6 +494,26 @@
             const handleGPS = () => { if (!navigator.geolocation) { showToast('GPS not supported'); return; } showToast('Locating you...'); navigator.geolocation.getCurrentPosition((pos) => { const coords = [pos.coords.latitude, pos.coords.longitude]; updateUserLocation(coords, 'GPS'); }, (err) => showToast('GPS Access Denied'), { enableHighAccuracy: true }); };
             const handleInstall = () => { if (!deferredPrompt) return; deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') setDeferredPrompt(null); }); };
 
+            const startPickingLocation = () => {
+                setIsPickingLocation(true);
+                if (mapInstanceRef.current && mapInstanceRef.current.getZoom() < 18) {
+                    mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18, { duration: 0.5 });
+                }
+            };
+
+            const confirmLocation = () => {
+                if (mapInstanceRef.current) {
+                    const center = mapInstanceRef.current.getCenter();
+                    setContributeCoords({ lat: center.lat, lon: center.lng });
+                    setIsPickingLocation(false);
+                    setShowContribute(true);
+                }
+            };
+
+            const cancelPicking = () => {
+                setIsPickingLocation(false);
+            };
+
             const FilterBtn = ({ type, label, active, onClick, color = 'slate' }) => {
                 const colors = { slate: 'bg-slate-600', teal: 'bg-teal-500', rose: 'bg-rose-400', black: 'bg-slate-800', grey: 'bg-slate-400', sky: 'bg-sky-500' };
                 return html`<button onClick=${onClick} class=${'flex items-center space-x-2 px-4 py-2.5 rounded-full text-xs font-semibold shrink-0 ' + (active ? colors[color] + ' text-white shadow-sm' : 'bg-slate-100 text-slate-400')}><div class="flex items-center justify-center w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS[type]}}></div><span>${label}</span></button>`;
@@ -433,9 +541,26 @@
                         ${!isCamperMode ? html`<${FilterBtn} type="toilet" label="Toilets" active=${stdFilters.toilet} onClick=${() => setStdFilters({...stdFilters, toilet: !stdFilters.toilet})} /><${FilterBtn} type="water" label="Water" active=${stdFilters.water} color="teal" onClick=${() => setStdFilters({...stdFilters, water: !stdFilters.water})} /><${FilterBtn} type="baby" label="Baby" active=${stdFilters.baby} color="rose" onClick=${() => setStdFilters({...stdFilters, baby: !stdFilters.baby})} />` : html`<${FilterBtn} type="trash" label="Black" active=${vanFilters.black} color="black" onClick=${() => setVanFilters({...vanFilters, black: !vanFilters.black})} /><${FilterBtn} type="drop" label="Grey" active=${vanFilters.grey} color="grey" onClick=${() => setVanFilters({...vanFilters, grey: !vanFilters.grey})} /><${FilterBtn} type="water" label="Tank" active=${vanFilters.water} color="teal" onClick=${() => setVanFilters({...vanFilters, water: !vanFilters.water})} /><${FilterBtn} type="shower" label="Shower" active=${vanFilters.shower} color="sky" onClick=${() => setVanFilters({...vanFilters, shower: !vanFilters.shower})} />`}
                     </div>
                 </div>
-                <div class="map-wrapper">
+                <div class="map-wrapper relative">
                     <div class="absolute top-4 left-0 right-0 flex justify-center z-[1000] pointer-events-none">${loading && html`<${Loader} />`}${zoomWarning && !loading && html`<${AlertPill} msg="Zoom in to find spots" />`}</div>
+                    
+                    ${isPickingLocation && html`
+                        <div class="absolute inset-0 z-[1100] pointer-events-none flex items-center justify-center">
+                            <div class="text-indigo-600 drop-shadow-xl -translate-y-1/2">
+                                <span class="material-symbols-rounded text-6xl">location_on</span>
+                            </div>
+                        </div>
+                        <div class="absolute bottom-10 left-0 right-0 z-[1200] flex flex-col items-center space-y-3 px-6 pointer-events-auto">
+                            <div class="bg-slate-800/80 backdrop-blur text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">Move map to position pin</div>
+                            <div class="flex w-full gap-3 max-w-sm">
+                                <button onClick=${cancelPicking} class="flex-1 bg-white text-slate-600 font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform">Cancel</button>
+                                <button onClick=${confirmLocation} class="flex-[2] bg-indigo-600 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform">Confirm Location</button>
+                            </div>
+                        </div>
+                    `}
+
                     <div id="map" ref=${mapRef}></div>
+                    
                     ${view === 'list' && html`<div class="list-wrapper p-4 pb-24 safe-pb">
                         ${inAreaLocs.length === 0 && furtherLocs.length === 0 && html`<div class="text-center text-slate-400 mt-20"><div class="w-16 h-16 mx-auto mb-4 text-slate-300 opacity-50 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div><p class="font-brand text-lg">No spots visible.</p></div>`}
                         
@@ -451,8 +576,15 @@
                         `}
                     </div>`}
                 </div>
-                <button onClick=${() => mapInstanceRef.current.flyTo(userPos, 17)} class=${'absolute right-5 w-14 h-14 bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 ' + (selectedLoc ? 'bottom-80' : 'bottom-8')} dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>
+                
+                ${!isPickingLocation && html`
+                    <button onClick=${startPickingLocation} class=${'absolute right-5 w-14 h-14 bg-white text-indigo-600 rounded-full shadow-lg flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 ' + (selectedLoc ? 'bottom-96' : 'bottom-24')} dangerouslySetInnerHTML=${{__html: ICONS.plus}}></button>
+
+                    <button onClick=${() => mapInstanceRef.current.flyTo(userPos, 17)} class=${'absolute right-5 w-14 h-14 bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 ' + (selectedLoc ? 'bottom-80' : 'bottom-8')} dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>
+                `}
+                
                 ${showFilters && html`<${FilterSheet} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} onClose=${() => setShowFilters(false)} />`}
+                ${showContribute && contributeCoords && html`<${ContributeSheet} lat=${contributeCoords.lat} lon=${contributeCoords.lon} onClose=${() => setShowContribute(false)} onShowToast=${showToast} />`}
                 ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} userLoc=${userPos} onClose=${() => setSelectedLoc(null)} />`}
                 <${Toast} msg=${toast.msg} visible=${toast.visible} />
             `;
@@ -463,5 +595,3 @@
     </script>
 </body>
 </html>
-
-
