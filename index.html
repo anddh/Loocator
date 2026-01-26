@@ -94,7 +94,7 @@
             note: `<span class="material-symbols-rounded icon-sm">rate_review</span>`,
             send: `<span class="material-symbols-rounded icon-sm">send</span>`,
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
         const OVERPASS_SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
@@ -493,10 +493,8 @@
                 if (!markersRef.current) return;
                 markersRef.current.clearLayers();
                 visibleLocations.forEach(loc => {
-                    // Determine which icon to show (based on displayType)
                     let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet;
                     
-                    // Identify all active types for the pie chart
                     const types = [];
                     if (loc.isToilet) types.push('toilet');
                     if (loc.isWater) types.push('water');
@@ -505,10 +503,8 @@
                     if (loc.isBlack) types.push('black');
                     if (loc.isGrey) types.push('grey');
                     
-                    // Fallback to avoid errors
                     if (types.length === 0) types.push('toilet');
 
-                    // Create Gradient String
                     let backgroundStyle = '';
                     if (types.length === 1) {
                          backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`;
@@ -534,7 +530,6 @@
                 });
             }, [visibleLocations]);
 
-            // Handlers
             const handleSearch = async (e) => { e.preventDefault(); if (!searchTerm) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); setSearchTerm(''); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else { showToast('Place not found.'); } } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
             const handleGPS = () => { if (!navigator.geolocation) { showToast('GPS not supported'); return; } showToast('Locating you...'); navigator.geolocation.getCurrentPosition((pos) => { const coords = [pos.coords.latitude, pos.coords.longitude]; updateUserLocation(coords, 'GPS'); }, (err) => showToast('GPS Access Denied'), { enableHighAccuracy: true }); };
             const handleInstall = () => { if (!deferredPrompt) return; deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') setDeferredPrompt(null); }); };
@@ -567,7 +562,19 @@
             const goToLoc = (loc) => {
                 setSelectedLoc(loc); 
                 setView('map'); 
-                mapInstanceRef.current.flyTo([loc.lat, loc.lon], 17);
+                
+                const map = mapInstanceRef.current;
+                if (map) {
+                    const targetZoom = 17;
+                    const point = map.project([loc.lat, loc.lon], targetZoom);
+                    // Shift the visual center down by 25% of the screen height
+                    // This forces the map to center on a point "below" the pin, pushing the pin "up"
+                    const offsetY = map.getSize().y * 0.25; 
+                    const targetPoint = L.point(point.x, point.y + offsetY);
+                    const newCenter = map.unproject(targetPoint, targetZoom);
+                    
+                    map.flyTo(newCenter, targetZoom);
+                }
             }
 
             return html`
