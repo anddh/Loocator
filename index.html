@@ -104,7 +104,7 @@
             note: `<span class="material-symbols-rounded icon-sm">rate_review</span>`,
             send: `<span class="material-symbols-rounded icon-sm">send</span>`,
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
         const OVERPASS_SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
@@ -442,6 +442,16 @@
                 }
                 showToast(source === 'GPS' ? "Location found!" : source === 'IP' ? "Approximate location found" : "Using default location");
             };
+
+            // Re-added the missing useEffect for PWA installation
+            useEffect(() => {
+                const handler = (e) => {
+                    e.preventDefault();
+                    setDeferredPrompt(e);
+                };
+                window.addEventListener('beforeinstallprompt', handler);
+                return () => window.removeEventListener('beforeinstallprompt', handler);
+            }, []);
 
             useEffect(() => {
                 if (!mapRef.current || mapInstanceRef.current) return;
