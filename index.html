@@ -42,7 +42,6 @@
         .icon-sm { font-size: 20px !important; }
         .icon-md { font-size: 24px !important; }
         
-        /* Removed marker-badge css as we use pie charts now */
         .pie-icon { text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
 
         .user-pin-ring { position: absolute; width: 20px; height: 20px; border-radius: 50%; background-color: #475569; opacity: 0.7; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
@@ -94,7 +93,7 @@
             note: `<span class="material-symbols-rounded icon-sm">rate_review</span>`,
             send: `<span class="material-symbols-rounded icon-sm">send</span>`,
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
         const OVERPASS_SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
@@ -171,7 +170,6 @@
                     formData.append('lon', lon);
                     formData.append('text', text + ' #LoocatorApp');
 
-                    // Post to OSM API (Anonymous note)
                     const res = await fetch('https://api.openstreetmap.org/api/0.6/notes.json', {
                         method: 'POST',
                         body: formData
@@ -458,31 +456,28 @@
                 setLoading(true);
 
                 const findLocation = async () => {
+                    let gpsResolved = false;
+
+                    // 1. Race to see if we can get IP location fast
                     try {
-                        const pos = await new Promise((resolve, reject) => {
-                            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000, enableHighAccuracy: true });
-                        });
-                        const coords = [pos.coords.latitude, pos.coords.longitude];
-                        updateUserLocation(coords, 'GPS');
-                    } catch (gpsError) {
-                        console.warn("GPS failed, trying IP...");
-                        try {
-                            const res = await fetch('https://ipapi.co/json/');
-                            if (!res.ok) throw new Error('IP service failed');
+                        const res = await fetch('https://ipapi.co/json/');
+                        if (res.ok) {
                             const data = await res.json();
-                            if(data.latitude && data.longitude) {
-                                const coords = [data.latitude, data.longitude];
-                                updateUserLocation(coords, 'IP');
-                            } else {
-                                throw new Error('Invalid IP data');
+                            if (!gpsResolved && data.latitude && data.longitude) {
+                                updateUserLocation([data.latitude, data.longitude], 'IP');
                             }
-                        } catch (ipError) {
-                            setLoading(false);
-                            showToast("Could not locate you automatically. Move map to search.");
-                            setSearchBounds(map.getBounds());
-                            debouncedFetch(map.getBounds());
                         }
-                    }
+                    } catch (e) { console.log('IP Loc failed'); }
+
+                    // 2. Simultaneously try GPS (High Accuracy)
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            gpsResolved = true;
+                            updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS');
+                        },
+                        (err) => { console.log('GPS denied'); },
+                        { enableHighAccuracy: true, timeout: 10000 }
+                    );
                 };
 
                 findLocation();
@@ -567,8 +562,6 @@
                 if (map) {
                     const targetZoom = 17;
                     const point = map.project([loc.lat, loc.lon], targetZoom);
-                    // Shift the visual center down by 25% of the screen height
-                    // This forces the map to center on a point "below" the pin, pushing the pin "up"
                     const offsetY = map.getSize().y * 0.25; 
                     const targetPoint = L.point(point.x, point.y + offsetY);
                     const newCenter = map.unproject(targetPoint, targetZoom);
