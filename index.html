@@ -725,10 +725,10 @@
 
             useEffect(() => {
                 if (!mapRef.current || mapInstanceRef.current) return;
-                const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(mapCenter, 13);
+                const map = L.map(mapRef.current, { zoomControl: false }).setView(mapCenter, 13);
                 mapInstanceRef.current = map;
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    attribution: '', // Attribution moved to About modal
                     subdomains: 'abcd',
                     maxZoom: 20
                 }).addTo(map);
@@ -937,10 +937,10 @@
                     </div>`}
                 </div>
                 
-                ${!isPickingLocation && html`
-                    <button onClick=${startPickingLocation} class=${'absolute right-5 w-14 h-14 bg-white text-indigo-600 rounded-full shadow-lg flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 ' + (selectedLoc ? 'bottom-96' : 'bottom-24')} dangerouslySetInnerHTML=${{__html: ICONS.plus}}></button>
+                ${!isPickingLocation && !selectedLoc && html`
+                    <button onClick=${startPickingLocation} class="absolute right-5 w-14 h-14 bg-white text-indigo-600 rounded-full shadow-lg flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 bottom-24" dangerouslySetInnerHTML=${{__html: ICONS.plus}}></button>
 
-                    <button onClick=${handleGPS} class=${'absolute right-5 w-14 h-14 bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 ' + (selectedLoc ? 'bottom-80' : 'bottom-8')} dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>
+                    <button onClick=${handleGPS} class="absolute right-5 w-14 h-14 bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 bottom-8" dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>
                 `}
                 
                 ${showFilters && html`<${FilterSheet} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} onClose=${() => setShowFilters(false)} />`}
