@@ -367,13 +367,6 @@
                     setFetchedAddr(ADDRESS_CACHE[loc.id]);
                     return;
                 }
-
-                // Staggered Fetch only for top 15 items to respect API limits
-                // Renaming is visual only for now, can be improved later
-                if (index < 15 && !fetchedAddr) {
-                    // This block is removed for performance as per user request
-                    // We rely on initial fetch data now (loc.rawAddress)
-                }
             }, [loc.id, index]);
 
             const displayAddress = fetchedAddr || loc.rawAddress;
@@ -538,8 +531,24 @@
 
                         let finalName = el.tags.name;
                         if (!finalName) {
+                            const operator = el.tags.operator;
                             if (street) {
                                 finalName = `${street} ${baseName}`;
+                            } else if (operator) {
+                                finalName = `${operator} ${baseName}`;
+                            } else if (el.tags.ref) {
+                                finalName = `${baseName} (${el.tags.ref})`;
+                            } else if (el.tags.fee) {
+                                const feeText = el.tags.fee === 'no' ? 'Free' : 'Paid';
+                                finalName = `${feeText} ${baseName}`;
+                            } else if (el.tags.description) {
+                                // Use first 4 words of description if available
+                                const descWords = el.tags.description.split(' ');
+                                if (descWords.length > 0) {
+                                    finalName = descWords.slice(0, 4).join(' ') + (descWords.length > 4 ? '...' : '');
+                                } else {
+                                    finalName = baseName;
+                                }
                             } else {
                                 finalName = baseName;
                             }
