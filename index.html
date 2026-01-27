@@ -10,8 +10,10 @@
     
     <title>Loocator</title>
 
+    <!-- Link to the Manifest File -->
     <link rel="manifest" href="manifest.json">
 
+    <!-- Fonts & Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://unpkg.com">
@@ -20,12 +22,14 @@
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
     
+    <!-- Google Material Symbols -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
+    <!-- GOOGLE ANALYTICS START -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-C5W3F59SDX"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -34,6 +38,8 @@
 
         gtag('config', 'G-C5W3F59SDX');
     </script>
+    <!-- GOOGLE ANALYTICS END -->
+
     <style>
         body, html { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f8fafc; font-family: 'Fredoka', sans-serif; }
         #root { height: 100%; display: flex; flex-direction: column; }
@@ -42,11 +48,9 @@
         #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
         .list-wrapper { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 50; background: #f8fafc; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         
-        .muted-map-tiles .leaflet-tile { filter: saturate(0.6) contrast(0.95); }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .icon-sm { font-size: 20px !important; }
-        .icon-md { font-size: 24px !important; }
-        
+        /* Updated map tile background color to match Voyager style */
+        .leaflet-container { background: #d4dadc; }
+
         .pie-icon { text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
 
         .user-pin-ring { position: absolute; width: 20px; height: 20px; border-radius: 50%; background-color: #475569; opacity: 0.7; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
@@ -74,6 +78,7 @@
         .animate-shake-wrapper { animation: shake 3s cubic-bezier(.36,.07,.19,.97) infinite; }
     </style>
 
+    <!-- Reliable React CDN -->
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
@@ -721,8 +726,10 @@
                 if (!mapRef.current || mapInstanceRef.current) return;
                 const map = L.map(mapRef.current, { zoomControl: false }).setView(mapCenter, 13);
                 mapInstanceRef.current = map;
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains: 'abcd',
+                    maxZoom: 20
                 }).addTo(map);
                 markersRef.current = L.layerGroup().addTo(map);
                 
@@ -882,6 +889,7 @@
                         ${loading && html`<${Loader} />`}
                         ${zoomWarning && !loading && html`<${AlertPill} msg="Zoom in to find spots" />`}
                         
+                        <!-- NEW LIST VIEW BUTTON -->
                         ${showListHint && html`
                             <div class="animate-shake-wrapper">
                                 <button 
