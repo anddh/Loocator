@@ -62,6 +62,21 @@
 
         .safe-pt { padding-top: env(safe-area-inset-top); }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
+        
+        /* Hide scrollbar for inputs */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        /* Custom Shake Animation */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10% { transform: translateX(-2px); }
+            20% { transform: translateX(2px); }
+            30% { transform: translateX(-2px); }
+            40% { transform: translateX(2px); }
+            50% { transform: translateX(0); }
+        }
+        .animate-shake { animation: shake 3s cubic-bezier(.36,.07,.19,.97) infinite; }
     </style>
 
     <!-- Reliable React CDN -->
@@ -81,6 +96,13 @@
     <script>
         const html = htm.bind(React.createElement);
         const { useState, useEffect, useRef, useMemo } = React;
+
+        // Haptic Feedback Helper
+        const triggerHaptic = () => {
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                navigator.vibrate(15);
+            }
+        };
 
         const ICONS = {
             toilet: `<span class="material-symbols-rounded icon-sm">wc</span>`,
@@ -146,35 +168,44 @@
         const AlertPill = ({ msg }) => html`<div class="px-4 py-2 rounded-full shadow-lg text-sm font-medium font-brand z-[1000] bg-orange-100 text-orange-800 border-2 border-white/50">${msg}</div>`;
         const Toast = ({ msg, visible }) => html`<div class=${'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-slate-800/95 backdrop-blur text-slate-100 px-6 py-3 rounded-full shadow-xl transition-all duration-300 z-[2000] flex items-center space-x-2 font-brand ' + (visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none')}><span>${msg}</span></div>`;
 
-        const FilterSheet = ({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, onClose }) => html`
+        const FilterSheet = ({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, onClose }) => {
+            const handleClose = () => { triggerHaptic(); onClose(); };
+            const toggleFree = () => { triggerHaptic(); setFreeOnly(!freeOnly); };
+            const toggleBottle = () => { triggerHaptic(); setBottleOnly(!bottleOnly); };
+
+            return html`
             <div class="fixed inset-0 z-[1600] flex flex-col justify-end pointer-events-none">
-                <div class="absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity" onClick=${onClose}></div>
+                <div class="absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity" onClick=${handleClose}></div>
                 <div class="bg-white w-full rounded-t-3xl shadow-2xl p-6 pb-12 pointer-events-auto transform transition-transform duration-300">
                     <div class="flex justify-center mb-4"><div class="w-12 h-1.5 bg-slate-200 rounded-full"></div></div>
                     <div class="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-bold font-brand text-slate-800">Options</h2>
-                        <button onClick=${onClose} className="p-2 bg-slate-50 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
+                        <button onClick=${handleClose} className="p-2 bg-slate-50 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
                     </div>
                     <div class="space-y-4">
-                        <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100" onClick=${() => setFreeOnly(!freeOnly)}>
+                        <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100" onClick=${toggleFree}>
                             <span class="font-medium text-slate-700">Free use only</span>
                             <div class=${'w-12 h-7 rounded-full relative transition-colors duration-200 ' + (freeOnly ? 'bg-emerald-500' : 'bg-slate-300')}><div class=${'absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow transition-transform duration-200 ' + (freeOnly ? 'translate-x-5' : 'translate-x-0')}></div></div>
                         </label>
-                        <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100" onClick=${() => setBottleOnly(!bottleOnly)}>
+                        <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100" onClick=${toggleBottle}>
                             <div><span class="font-medium text-slate-700 block">Bottle refill only</span><span class="text-xs text-slate-400">Only affects water points</span></div>
                             <div class=${'w-12 h-7 rounded-full relative transition-colors duration-200 ' + (bottleOnly ? 'bg-emerald-500' : 'bg-slate-300')}><div class=${'absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow transition-transform duration-200 ' + (bottleOnly ? 'translate-x-5' : 'translate-x-0')}></div></div>
                         </label>
                     </div>
                 </div>
             </div>`;
+        }
 
         const ContributeSheet = ({ lat, lon, onClose, onShowToast }) => {
             const [text, setText] = useState('');
             const [sending, setSending] = useState(false);
             const [sent, setSent] = useState(false);
 
+            const handleClose = () => { triggerHaptic(); onClose(); };
+
             const handleSubmit = async (e) => {
                 e.preventDefault();
+                triggerHaptic();
                 if (!text.trim()) return;
                 setSending(true);
 
@@ -205,12 +236,12 @@
 
             return html`
             <div class="fixed inset-0 z-[1600] flex flex-col justify-end pointer-events-none">
-                <div class="absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity" onClick=${onClose}></div>
+                <div class="absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity" onClick=${handleClose}></div>
                 <div class="bg-white w-full rounded-t-3xl shadow-2xl p-6 pb-12 pointer-events-auto transform transition-transform duration-300">
                     <div class="flex justify-center mb-4"><div class="w-12 h-1.5 bg-slate-200 rounded-full"></div></div>
                     <div class="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-bold font-brand text-slate-800">Add Missing Spot</h2>
-                        <button onClick=${onClose} className="p-2 bg-slate-50 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
+                        <button onClick=${handleClose} className="p-2 bg-slate-50 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
                     </div>
                     
                     ${!sent ? html`
@@ -249,6 +280,9 @@
             if (!loc) return null;
             const [address, setAddress] = useState('Loading...');
             const [imageUrl, setImageUrl] = useState(null);
+
+            const handleClose = () => { triggerHaptic(); onClose(); };
+            const handleAction = () => { triggerHaptic(); };
 
             useEffect(() => {
                 // If we already have a cached address from list view, use it immediately
@@ -300,8 +334,8 @@
 
             return html`
                 <div class="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-[1500] sheet-transition transform translate-y-0 flex flex-col max-h-[85vh] safe-pb">
-                    <div class="w-full flex justify-center pt-3 pb-1" onClick=${onClose}><div class="w-12 h-1.5 bg-slate-200 rounded-full"></div></div>
-                    ${imageUrl ? html`<div class="w-full h-48 bg-slate-100 relative overflow-hidden"><img src=${imageUrl} class="w-full h-full object-cover img-fade-in"/><div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div><button onClick=${onClose} class="absolute top-4 right-4 p-2 bg-black/30 backdrop-blur rounded-full text-white"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>` : html`<div class="absolute top-2 right-4 z-10"><button onClick=${onClose} class="p-2 bg-slate-50 rounded-full text-slate-400 hover:bg-slate-100"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>`}
+                    <div class="w-full flex justify-center pt-3 pb-1" onClick=${handleClose}><div class="w-12 h-1.5 bg-slate-200 rounded-full"></div></div>
+                    ${imageUrl ? html`<div class="w-full h-48 bg-slate-100 relative overflow-hidden"><img src=${imageUrl} class="w-full h-full object-cover img-fade-in"/><div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div><button onClick=${handleClose} class="absolute top-4 right-4 p-2 bg-black/30 backdrop-blur rounded-full text-white"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>` : html`<div class="absolute top-2 right-4 z-10"><button onClick=${handleClose} class="p-2 bg-slate-50 rounded-full text-slate-400 hover:bg-slate-100"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>`}
                     <div class="p-6 pt-2 overflow-y-auto">
                         <div class="mb-4">
                             <div class="flex space-x-2 mb-2">
@@ -321,8 +355,8 @@
                             ${loc.isGrey && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-200 text-slate-700 border border-slate-300 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.drop}}></span> Grey Waste</div>`}
                         </div>
                         <div class="space-y-3 mb-4">
-                            <a href=${`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lon}`} target="_blank" class="w-full bg-slate-800 text-white font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.nav}}></div><span>Navigate Here</span></a>
-                            <a href=${`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${loc.lat},${loc.lon}`} target="_blank" class="w-full bg-indigo-50 text-indigo-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-indigo-100"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.eye}}></div><span>Street Preview</span></a>
+                            <a href=${`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lon}`} target="_blank" onClick=${handleAction} class="w-full bg-slate-800 text-white font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.nav}}></div><span>Navigate Here</span></a>
+                            <a href=${`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${loc.lat},${loc.lon}`} target="_blank" onClick=${handleAction} class="w-full bg-indigo-50 text-indigo-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-indigo-100"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.eye}}></div><span>Street Preview</span></a>
                         </div>
                     </div>
                 </div>
@@ -372,7 +406,7 @@
             const displayAddress = fetchedAddr || loc.rawAddress;
 
             return html`
-                <div onClick=${onClick} class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform">
+                <div onClick=${() => { triggerHaptic(); onClick(); }} class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform">
                     <div class="flex items-center space-x-4 overflow-hidden">
                         <div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm pie-icon" style=${{ cssText: backgroundStyle }} dangerouslySetInnerHTML=${{__html: iconHtml}}></div>
                         <div class="flex flex-col overflow-hidden">
@@ -431,6 +465,21 @@
             }, [isCamperMode]);
 
             const showToast = (msg) => { setToast({ msg, visible: true }); setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000); };
+            
+            const toggleMode = () => {
+                triggerHaptic();
+                setIsCamperMode(!isCamperMode);
+            };
+            
+            const handleFilterClick = () => {
+                triggerHaptic();
+                setShowFilters(true);
+            };
+            
+            const handleViewToggle = () => {
+                triggerHaptic();
+                setView(view === 'map' ? 'list' : 'map');
+            };
 
             const visibleLocations = useMemo(() => {
                 return allLocations.filter(loc => {
@@ -464,6 +513,9 @@
                 });
                 return [inArea, further];
             }, [visibleLocations, searchBounds]);
+            
+            // Calculate if we should show the "Nothing nearby" hint
+            const showListHint = !loading && view === 'map' && visibleLocations.length > 0 && inAreaLocs.length === 0;
 
             // UPDATED: Radius-based Fetch Logic
             const fetchOverpass = async (bounds, retryRadius = null) => {
@@ -531,24 +583,8 @@
 
                         let finalName = el.tags.name;
                         if (!finalName) {
-                            const operator = el.tags.operator;
                             if (street) {
                                 finalName = `${street} ${baseName}`;
-                            } else if (operator) {
-                                finalName = `${operator} ${baseName}`;
-                            } else if (el.tags.ref) {
-                                finalName = `${baseName} (${el.tags.ref})`;
-                            } else if (el.tags.fee) {
-                                const feeText = el.tags.fee === 'no' ? 'Free' : 'Paid';
-                                finalName = `${feeText} ${baseName}`;
-                            } else if (el.tags.description) {
-                                // Use first 4 words of description if available
-                                const descWords = el.tags.description.split(' ');
-                                if (descWords.length > 0) {
-                                    finalName = descWords.slice(0, 4).join(' ') + (descWords.length > 4 ? '...' : '');
-                                } else {
-                                    finalName = baseName;
-                                }
                             } else {
                                 finalName = baseName;
                             }
@@ -611,6 +647,7 @@
             }, []);
 
             const handleInstall = () => {
+                triggerHaptic();
                 if (deferredPrompt) {
                     deferredPrompt.prompt();
                     deferredPrompt.userChoice.then((choiceResult) => {
@@ -722,14 +759,15 @@
                             iconSize: [36, 36], 
                             iconAnchor: [18, 36] 
                         }) 
-                    }).addTo(markersRef.current).on('click', () => setSelectedLoc(loc));
+                    }).addTo(markersRef.current).on('click', () => { triggerHaptic(); setSelectedLoc(loc); });
                 });
             }, [visibleLocations]);
 
-            const handleSearch = async (e) => { e.preventDefault(); if (!searchTerm) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); setSearchTerm(''); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else { showToast('Place not found.'); } } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
-            const handleGPS = () => { if (!navigator.geolocation) { showToast('GPS not supported'); return; } showToast('Locating you...'); navigator.geolocation.getCurrentPosition((pos) => { const coords = [pos.coords.latitude, pos.coords.longitude]; updateUserLocation(coords, 'GPS'); }, (err) => showToast('GPS Access Denied'), { enableHighAccuracy: true }); };
+            const handleSearch = async (e) => { e.preventDefault(); triggerHaptic(); if (!searchTerm) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); setSearchTerm(''); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else { showToast('Place not found.'); } } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
+            const handleGPS = () => { triggerHaptic(); if (!navigator.geolocation) { showToast('GPS not supported'); return; } showToast('Locating you...'); navigator.geolocation.getCurrentPosition((pos) => { const coords = [pos.coords.latitude, pos.coords.longitude]; updateUserLocation(coords, 'GPS'); }, (err) => showToast('GPS Access Denied'), { enableHighAccuracy: true }); };
 
             const startPickingLocation = () => {
+                triggerHaptic();
                 setIsPickingLocation(true);
                 if (mapInstanceRef.current && mapInstanceRef.current.getZoom() < 18) {
                     mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18, { duration: 0.5 });
@@ -737,6 +775,7 @@
             };
 
             const confirmLocation = () => {
+                triggerHaptic();
                 if (mapInstanceRef.current) {
                     const center = mapInstanceRef.current.getCenter();
                     setContributeCoords({ lat: center.lat, lon: center.lng });
@@ -746,15 +785,17 @@
             };
 
             const cancelPicking = () => {
+                triggerHaptic();
                 setIsPickingLocation(false);
             };
 
             const FilterBtn = ({ type, label, active, onClick, color = 'slate' }) => {
                 const colors = { slate: 'bg-slate-600', teal: 'bg-teal-500', rose: 'bg-rose-400', black: 'bg-slate-800', grey: 'bg-slate-400', sky: 'bg-sky-500' };
-                return html`<button onClick=${onClick} class=${'flex items-center space-x-2 px-4 py-2.5 rounded-full text-xs font-semibold shrink-0 ' + (active ? colors[color] + ' text-white shadow-sm' : 'bg-slate-100 text-slate-400')}><div class="flex items-center justify-center w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS[type]}}></div><span>${label}</span></button>`;
+                return html`<button onClick=${() => { triggerHaptic(); onClick(); }} class=${'flex items-center space-x-2 px-4 py-2.5 rounded-full text-xs font-semibold shrink-0 ' + (active ? colors[color] + ' text-white shadow-sm' : 'bg-slate-100 text-slate-400')}><div class="flex items-center justify-center w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS[type]}}></div><span>${label}</span></button>`;
             };
 
             const goToLoc = (loc) => {
+                triggerHaptic();
                 setSelectedLoc(loc); 
                 setView('map'); 
                 
@@ -769,6 +810,11 @@
                     map.flyTo(newCenter, targetZoom);
                 }
             }
+            
+            const handleViewChange = () => {
+                triggerHaptic();
+                setView('list');
+            }
 
             return html`
                 <div class="bg-white/95 backdrop-blur z-[100] shadow-sm safe-pt">
@@ -776,9 +822,9 @@
                         <h1 class="text-2xl font-brand font-semibold text-slate-700 tracking-tight">Loocator</h1>
                         <div class="flex gap-2">
                             ${!isInstalled && html`<button onClick=${handleInstall} class="bg-indigo-100 text-indigo-600 px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2"><div class="flex items-center justify-center w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.download}}></div><span>Install</span></button>`}
-                            <button onClick=${() => setIsCamperMode(!isCamperMode)} class=${'px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-colors ' + (isCamperMode ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500')}><div class="flex items-center justify-center w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.van}}></div><span>${isCamperMode ? 'Van On' : 'Van Mode'}</span></button>
-                            <button onClick=${() => setShowFilters(true)} class="bg-slate-100 text-slate-500 px-3 py-2 rounded-full text-xs font-bold"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.filter}}></div></button>
-                            <button onClick=${() => setView(view === 'map' ? 'list' : 'map')} class="bg-slate-100 text-slate-500 px-3 py-2 rounded-full text-xs font-bold"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: view === 'map' ? ICONS.list : ICONS.map}}></div></button>
+                            <button onClick=${toggleMode} class=${'px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-colors ' + (isCamperMode ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500')}><div class="flex items-center justify-center w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.van}}></div><span>${isCamperMode ? 'Van On' : 'Van Mode'}</span></button>
+                            <button onClick=${handleFilterClick} class="bg-slate-100 text-slate-500 px-3 py-2 rounded-full text-xs font-bold"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.filter}}></div></button>
+                            <button onClick=${handleViewToggle} class="bg-slate-100 text-slate-500 px-3 py-2 rounded-full text-xs font-bold"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: view === 'map' ? ICONS.list : ICONS.map}}></div></button>
                         </div>
                     </div>
                     <div class="px-4 pb-2"><form onSubmit=${handleSearch} class="relative"><input type="text" placeholder="Search city..." class="w-full bg-slate-50 rounded-2xl py-3 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-400 focus:bg-white shadow-inner text-slate-600 placeholder-slate-400" value=${searchTerm} onInput=${e => setSearchTerm(e.target.value)} /><button type="submit" class="absolute left-3.5 top-3 text-slate-400 w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></button></form></div>
@@ -787,7 +833,21 @@
                     </div>
                 </div>
                 <div class="map-wrapper relative">
-                    <div class="absolute top-4 left-0 right-0 flex justify-center z-[1000] pointer-events-none">${loading && html`<${Loader} />`}${zoomWarning && !loading && html`<${AlertPill} msg="Zoom in to find spots" />`}</div>
+                    <div class="absolute top-4 left-0 right-0 flex justify-center z-[1000] pointer-events-none">
+                        ${loading && html`<${Loader} />`}
+                        ${zoomWarning && !loading && html`<${AlertPill} msg="Zoom in to find spots" />`}
+                        
+                        <!-- NEW LIST VIEW BUTTON -->
+                        ${showListHint && html`
+                            <button 
+                                onClick=${handleViewChange} 
+                                class="bg-white text-indigo-600 px-5 py-2.5 rounded-full shadow-lg text-sm font-bold font-brand z-[1000] pointer-events-auto active:scale-95 transition-transform flex items-center gap-2 mt-2 animate-shake"
+                            >
+                                <span>Nothing nearby. View List</span>
+                                <div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.list}}></div>
+                            </button>
+                        `}
+                    </div>
                     
                     ${isPickingLocation && html`
                         <div class="absolute inset-0 z-[1100] pointer-events-none flex items-center justify-center">
@@ -825,7 +885,7 @@
                 ${!isPickingLocation && html`
                     <button onClick=${startPickingLocation} class=${'absolute right-5 w-14 h-14 bg-white text-indigo-600 rounded-full shadow-lg flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 ' + (selectedLoc ? 'bottom-96' : 'bottom-24')} dangerouslySetInnerHTML=${{__html: ICONS.plus}}></button>
 
-                    <button onClick=${() => mapInstanceRef.current.flyTo(userPos, 17)} class=${'absolute right-5 w-14 h-14 bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 ' + (selectedLoc ? 'bottom-80' : 'bottom-8')} dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>
+                    <button onClick=${handleGPS} class=${'absolute right-5 w-14 h-14 bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 ' + (selectedLoc ? 'bottom-80' : 'bottom-8')} dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>
                 `}
                 
                 ${showFilters && html`<${FilterSheet} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} onClose=${() => setShowFilters(false)} />`}
