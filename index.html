@@ -427,9 +427,14 @@
                 if (view === 'map' && mapInstanceRef.current) setTimeout(() => mapInstanceRef.current.invalidateSize(), 100); 
             }, [view]);
 
-            // Sync Ref with State
+            // Sync Ref with State and Rescan
             useEffect(() => {
                 camperModeRef.current = isCamperMode;
+                // Trigger rescan when mode changes to ensure we hit the correct radius/waterfall logic
+                if (mapInstanceRef.current) {
+                    setLoading(true);
+                    debouncedFetch(mapInstanceRef.current.getBounds());
+                }
             }, [isCamperMode]);
 
             const showToast = (msg) => { setToast({ msg, visible: true }); setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000); };
