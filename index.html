@@ -76,7 +76,8 @@
             40% { transform: translateX(2px); }
             50% { transform: translateX(0); }
         }
-        .animate-shake { animation: shake 3s cubic-bezier(.36,.07,.19,.97) infinite; }
+        /* Applied to wrapper, not button, so active:scale works */
+        .animate-shake-wrapper { animation: shake 3s cubic-bezier(.36,.07,.19,.97) infinite; }
     </style>
 
     <!-- Reliable React CDN -->
@@ -99,8 +100,9 @@
 
         // Haptic Feedback Helper
         const triggerHaptic = () => {
+            // Increased to 50ms for better perceptibility
             if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                navigator.vibrate(15);
+                try { navigator.vibrate(50); } catch(e) {}
             }
         };
 
@@ -839,13 +841,15 @@
                         
                         <!-- NEW LIST VIEW BUTTON -->
                         ${showListHint && html`
-                            <button 
-                                onClick=${handleViewChange} 
-                                class="bg-white text-indigo-600 px-5 py-2.5 rounded-full shadow-lg text-sm font-bold font-brand z-[1000] pointer-events-auto active:scale-95 transition-transform flex items-center gap-2 mt-2 animate-shake"
-                            >
-                                <span>Nothing nearby. View List</span>
-                                <div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.list}}></div>
-                            </button>
+                            <div class="animate-shake-wrapper">
+                                <button 
+                                    onClick=${handleViewChange} 
+                                    class="bg-white text-indigo-600 px-5 py-2.5 rounded-full shadow-lg text-sm font-bold font-brand z-[1000] pointer-events-auto active:scale-95 transition-transform flex items-center gap-2 mt-2"
+                                >
+                                    <span>Nothing nearby. View List</span>
+                                    <div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.list}}></div>
+                                </button>
+                            </div>
                         `}
                     </div>
                     
