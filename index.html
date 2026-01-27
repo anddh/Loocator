@@ -10,8 +10,10 @@
     
     <title>Loocator</title>
 
+    <!-- Link to the Manifest File -->
     <link rel="manifest" href="manifest.json">
 
+    <!-- Fonts & Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://unpkg.com">
@@ -20,12 +22,14 @@
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
     
+    <!-- Google Material Symbols -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
+    <!-- GOOGLE ANALYTICS START -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-C5W3F59SDX"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -34,6 +38,8 @@
 
         gtag('config', 'G-C5W3F59SDX');
     </script>
+    <!-- GOOGLE ANALYTICS END -->
+
     <style>
         body, html { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f8fafc; font-family: 'Fredoka', sans-serif; }
         #root { height: 100%; display: flex; flex-direction: column; }
@@ -58,6 +64,7 @@
         .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 
+    <!-- Reliable React CDN -->
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
@@ -97,7 +104,7 @@
             note: `<span class="material-symbols-rounded icon-sm">rate_review</span>`,
             send: `<span class="material-symbols-rounded icon-sm">send</span>`,
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
         const OVERPASS_SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
@@ -111,6 +118,9 @@
             black: '#1e293b',  // slate-800
             grey: '#94a3b8'    // slate-400
         };
+
+        // Global Cache to store addresses we've already fetched to avoid re-fetching on sort/filter
+        const ADDRESS_CACHE = {};
 
         function debounce(func, wait) {
             let timeout;
@@ -241,12 +251,22 @@
             const [imageUrl, setImageUrl] = useState(null);
 
             useEffect(() => {
+                // If we already have a cached address from list view, use it immediately
+                if (ADDRESS_CACHE[loc.id]) {
+                    setAddress(ADDRESS_CACHE[loc.id]);
+                    return;
+                }
+
                 const fetchAddr = async () => {
                     try {
                         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.lat}&lon=${loc.lon}&zoom=18&addressdetails=1`);
                         const data = await res.json();
                         const a = data.address || {};
-                        setAddress((a.road || a.pedestrian || '') + (a.house_number ? ', ' + a.house_number : '') + (a.suburb ? ' (' + a.suburb + ')' : '') || "No address found");
+                        const formatted = (a.road || a.pedestrian || '') + (a.house_number ? ', ' + a.house_number : '') + (a.suburb ? ' (' + a.suburb + ')' : '');
+                        const finalAddr = formatted || "Address unavailable";
+                        setAddress(finalAddr);
+                        // Cache it for the list view to see later
+                        ADDRESS_CACHE[loc.id] = finalAddr;
                     } catch (e) { setAddress("Address unavailable"); }
                 };
                 fetchAddr();
@@ -309,10 +329,10 @@
             `;
         };
         
-        const ListItem = ({ loc, onClick, userPos }) => {
+        const ListItem = ({ loc, onClick, userPos, index }) => {
             let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet;
             
-            // Pie Chart Logic for List Item
+            // Pie Chart Logic
             const types = [];
             if (loc.isToilet) types.push('toilet');
             if (loc.isWater) types.push('water');
@@ -337,13 +357,37 @@
                 backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`;
             }
 
+            // Local state for fetched address
+            const [fetchedAddr, setFetchedAddr] = useState(ADDRESS_CACHE[loc.id] || null);
+            const [displayName, setDisplayName] = useState(loc.name);
+
+            useEffect(() => {
+                // If we already have it in cache, ensure state is synced
+                if (ADDRESS_CACHE[loc.id]) {
+                    setFetchedAddr(ADDRESS_CACHE[loc.id]);
+                    return;
+                }
+
+                // Staggered Fetch only for top 15 items to respect API limits
+                // Renaming is visual only for now, can be improved later
+                if (index < 15 && !fetchedAddr) {
+                    // This block is removed for performance as per user request
+                    // We rely on initial fetch data now (loc.rawAddress)
+                }
+            }, [loc.id, index]);
+
+            const displayAddress = fetchedAddr || loc.rawAddress;
+
             return html`
                 <div onClick=${onClick} class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform">
-                    <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-4 overflow-hidden">
                         <div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm pie-icon" style=${{ cssText: backgroundStyle }} dangerouslySetInnerHTML=${{__html: iconHtml}}></div>
-                        <div><h4 class="font-semibold text-slate-700 font-brand text-base leading-tight">${loc.name}</h4><span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">${calculateDistance(userPos[0], userPos[1], loc.lat, loc.lon).text}</span></div>
+                        <div class="flex flex-col overflow-hidden">
+                            <h4 class="font-semibold text-slate-700 font-brand text-base leading-tight truncate">${displayName}</h4>
+                            ${displayAddress && html`<p class="text-xs text-slate-400 truncate mt-0.5">${displayAddress}</p>`}
+                        </div>
                     </div>
-                    <div class="text-slate-300 transform rotate-180 flex items-center justify-center" style=${{width:'20px', height:'20px'}} dangerouslySetInnerHTML=${{__html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>`}}></div>
+                    <span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full ml-2 shrink-0">${calculateDistance(userPos[0], userPos[1], loc.lat, loc.lon).text}</span>
                 </div>
             `;
         }
@@ -377,8 +421,17 @@
             const mapInstanceRef = useRef(null);
             const markersRef = useRef(null);
             const userMarkerRef = useRef(null);
+            const camperModeRef = useRef(isCamperMode); // Ref to hold current state
 
-            useEffect(() => { if (view === 'map' && mapInstanceRef.current) setTimeout(() => mapInstanceRef.current.invalidateSize(), 100); }, [view]);
+            useEffect(() => { 
+                if (view === 'map' && mapInstanceRef.current) setTimeout(() => mapInstanceRef.current.invalidateSize(), 100); 
+            }, [view]);
+
+            // Sync Ref with State
+            useEffect(() => {
+                camperModeRef.current = isCamperMode;
+            }, [isCamperMode]);
+
             const showToast = (msg) => { setToast({ msg, visible: true }); setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000); };
 
             const visibleLocations = useMemo(() => {
@@ -414,20 +467,78 @@
                 return [inArea, further];
             }, [visibleLocations, searchBounds]);
 
-            const fetchOverpass = async (bounds, isRetry = false) => {
-                const queryBounds = isRetry ? null : bounds.pad(0.5);
-                const area = isRetry ? `(around:5000,${bounds.getCenter().lat},${bounds.getCenter().lng})` : `(${queryBounds.getSouth()},${queryBounds.getWest()},${queryBounds.getNorth()},${queryBounds.getEast()})`;
-                const query = `[out:json][timeout:25];(nwr["amenity"="toilets"]${area};nwr["amenity"="drinking_water"]${area};nwr["amenity"="water_point"]${area};nwr["amenity"="sanitary_dump_station"]${area};nwr["amenity"="shower"]${area};nwr["diaper"]${area};nwr["changing_table"]${area};);out center;`;
+            // UPDATED: Radius-based Fetch Logic
+            const fetchOverpass = async (bounds, retryRadius = null) => {
+                const isVan = camperModeRef.current;
+                const center = bounds.getCenter();
+                
+                let radius;
+
+                if (retryRadius) {
+                    radius = retryRadius;
+                } else {
+                    // Calculate visible radius from center to NorthEast corner
+                    const ne = bounds.getNorthEast();
+                    const dist = calculateDistance(center.lat, center.lng, ne.lat, ne.lng);
+                    const visibleRadiusMeters = dist.km * 1000;
+
+                    // Set minimums to ensure "Further Afield" is populated
+                    // Standard: at least 2km or 1.5x view
+                    // Van: at least 15km or 1.5x view (Vans travel further)
+                    const minRadius = isVan ? 15000 : 2000; 
+                    radius = Math.max(visibleRadiusMeters * 1.5, minRadius);
+                }
+
+                // Construct Query using around:radius
+                const queryArea = `(around:${radius},${center.lat},${center.lng})`;
+                const query = `[out:json][timeout:25];(nwr["amenity"="toilets"]${queryArea};nwr["amenity"="drinking_water"]${queryArea};nwr["amenity"="water_point"]${queryArea};nwr["amenity"="sanitary_dump_station"]${queryArea};nwr["amenity"="shower"]${queryArea};nwr["diaper"]${queryArea};nwr["changing_table"]${queryArea};);out center;`;
+                
                 try {
                     const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query) });
                     const data = await res.json();
-                    if (data.elements.length === 0 && !isRetry) { showToast("Nothing nearby. Scanning 5km radius..."); fetchOverpass(bounds, true); return; }
+                    
+                    // Recursive Step: If empty, try next level
+                    if (data.elements.length === 0) {
+                         const nextRadius = radius * 2;
+                         if (nextRadius <= 50000) { // Cap at 50km
+                             showToast(`Scanning ${Math.round(nextRadius/1000)}km...`);
+                             fetchOverpass(bounds, nextRadius);
+                             return;
+                         }
+                         setLoading(false);
+                         return; // Give up
+                    }
                     
                     setAllLocations(data.elements.map(el => {
                         const lat = el.lat || (el.center && el.center.lat);
                         const lon = el.lon || (el.center && el.center.lon);
                         
                         if (!lat || !lon) return null;
+
+                        let baseName = "Service Point";
+                        if (el.tags.amenity === 'toilets') baseName = "Public Toilet";
+                        else if (el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point') baseName = "Water Point";
+                        else if (el.tags.amenity === 'shower') baseName = "Public Shower";
+                        else if (el.tags.amenity === 'sanitary_dump_station') baseName = "Chemical Disposal";
+                        else if (el.tags.diaper === 'yes') baseName = "Baby Change";
+
+                        const street = el.tags['addr:street'] || el.tags['addr:place'];
+                        const city = el.tags['addr:city'] || el.tags['addr:town'] || el.tags['addr:village'];
+                        const house = el.tags['addr:housenumber'];
+
+                        let rawAddress = '';
+                        if (house) rawAddress += house + ' ';
+                        if (street) rawAddress += street;
+                        if (city) rawAddress += (rawAddress ? ', ' : '') + city;
+
+                        let finalName = el.tags.name;
+                        if (!finalName) {
+                            if (street) {
+                                finalName = `${street} ${baseName}`;
+                            } else {
+                                finalName = baseName;
+                            }
+                        }
 
                         return {
                             id: el.id, lat: lat, lon: lon, tags: el.tags,
@@ -438,7 +549,8 @@
                             isBlack: (el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:chemical_toilet'] !== 'no') || (el.tags.amenity === 'toilets' && el.tags.sanitary_dump_station === 'yes'),
                             isGrey: el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:grey_water'] !== 'no',
                             baseType: el.tags.amenity === 'sanitary_dump_station' ? 'dump' : el.tags.amenity === 'shower' ? 'shower' : el.tags.amenity === 'drinking_water' ? 'water' : 'toilet',
-                            name: el.tags.name || (el.tags.amenity === 'sanitary_dump_station' ? "Dump Station" : "Service Point")
+                            name: finalName,
+                            rawAddress: rawAddress
                         };
                     }).filter(Boolean)); 
                     setLoading(false);
@@ -688,7 +800,7 @@
                         ${furtherLocs.length > 0 && html`
                             <div class="py-4 flex items-center gap-4">
                                 <div class="h-px bg-slate-200 flex-1"></div>
-                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Further Afield (Más allá)</span>
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Further Afield</span>
                                 <div class="h-px bg-slate-200 flex-1"></div>
                             </div>
                             ${furtherLocs.map(loc => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} onClick=${() => goToLoc(loc)} />`)}
