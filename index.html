@@ -10,10 +10,8 @@
     
     <title>Loocator</title>
 
-    <!-- Link to the Manifest File -->
     <link rel="manifest" href="manifest.json">
 
-    <!-- Fonts & Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://unpkg.com">
@@ -22,14 +20,12 @@
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
     
-    <!-- Google Material Symbols -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-    <!-- GOOGLE ANALYTICS START -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-C5W3F59SDX"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -38,8 +34,6 @@
 
         gtag('config', 'G-C5W3F59SDX');
     </script>
-    <!-- GOOGLE ANALYTICS END -->
-
     <style>
         body, html { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f8fafc; font-family: 'Fredoka', sans-serif; }
         #root { height: 100%; display: flex; flex-direction: column; }
@@ -80,7 +74,6 @@
         .animate-shake-wrapper { animation: shake 3s cubic-bezier(.36,.07,.19,.97) infinite; }
     </style>
 
-    <!-- Reliable React CDN -->
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
@@ -471,6 +464,7 @@
             const markersRef = useRef(null);
             const userMarkerRef = useRef(null);
             const camperModeRef = useRef(isCamperMode); // Ref to hold current state
+            const fetchController = useRef(null); // Ref for AbortController
 
             useEffect(() => { 
                 if (view === 'map' && mapInstanceRef.current) setTimeout(() => mapInstanceRef.current.invalidateSize(), 100); 
@@ -536,8 +530,16 @@
             // Calculate if we should show the "Nothing nearby" hint
             const showListHint = !loading && view === 'map' && visibleLocations.length > 0 && inAreaLocs.length === 0;
 
-            // UPDATED: Radius-based Fetch Logic
+            // UPDATED: Radius-based Fetch Logic with AbortController
             const fetchOverpass = async (bounds, retryRadius = null) => {
+                // Abort previous request
+                if (fetchController.current) {
+                    fetchController.current.abort();
+                }
+                // Create new controller
+                fetchController.current = new AbortController();
+                const signal = fetchController.current.signal;
+
                 const isVan = camperModeRef.current;
                 const center = bounds.getCenter();
                 
@@ -563,7 +565,11 @@
                 const query = `[out:json][timeout:25];(nwr["amenity"="toilets"]${queryArea};nwr["amenity"="drinking_water"]${queryArea};nwr["amenity"="water_point"]${queryArea};nwr["amenity"="sanitary_dump_station"]${queryArea};nwr["amenity"="shower"]${queryArea};nwr["diaper"]${queryArea};nwr["changing_table"]${queryArea};);out center;`;
                 
                 try {
-                    const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query) });
+                    const res = await fetch('https://overpass-api.de/api/interpreter', { 
+                        method: 'POST', 
+                        body: 'data=' + encodeURIComponent(query),
+                        signal: signal 
+                    });
                     const data = await res.json();
                     
                     // Recursive Step: If empty, try next level
@@ -602,8 +608,24 @@
 
                         let finalName = el.tags.name;
                         if (!finalName) {
+                            const operator = el.tags.operator;
                             if (street) {
                                 finalName = `${street} ${baseName}`;
+                            } else if (operator) {
+                                finalName = `${operator} ${baseName}`;
+                            } else if (el.tags.ref) {
+                                finalName = `${baseName} (${el.tags.ref})`;
+                            } else if (el.tags.fee) {
+                                const feeText = el.tags.fee === 'no' ? 'Free' : 'Paid';
+                                finalName = `${feeText} ${baseName}`;
+                            } else if (el.tags.description) {
+                                // Use first 4 words of description if available
+                                const descWords = el.tags.description.split(' ');
+                                if (descWords.length > 0) {
+                                    finalName = descWords.slice(0, 4).join(' ') + (descWords.length > 4 ? '...' : '');
+                                } else {
+                                    finalName = baseName;
+                                }
                             } else {
                                 finalName = baseName;
                             }
@@ -623,7 +645,11 @@
                         };
                     }).filter(Boolean)); 
                     setLoading(false);
-                } catch (e) { setLoading(false); }
+                } catch (e) { 
+                    if (e.name !== 'AbortError') {
+                        setLoading(false); 
+                    }
+                }
             };
 
             const debouncedFetch = useMemo(() => debounce((b) => fetchOverpass(b), 1000), []);
@@ -631,6 +657,12 @@
             const updateUserLocation = (coords, source) => {
                 setUserPos(coords);
                 setMapCenter(coords);
+                
+                // CRITICAL FIX: Clear old IP-based data if we are switching to GPS to avoid "Further Afield" artifact
+                if (source === 'GPS') {
+                    setAllLocations([]);
+                }
+
                 if (mapInstanceRef.current) {
                     const zoom = source === 'GPS' ? 17 : source === 'IP' ? 13 : 13;
                     mapInstanceRef.current.setView(coords, zoom);
@@ -850,7 +882,6 @@
                         ${loading && html`<${Loader} />`}
                         ${zoomWarning && !loading && html`<${AlertPill} msg="Zoom in to find spots" />`}
                         
-                        <!-- NEW LIST VIEW BUTTON -->
                         ${showListHint && html`
                             <div class="animate-shake-wrapper">
                                 <button 
