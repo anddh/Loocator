@@ -120,7 +120,7 @@
             note: `<span class="material-symbols-rounded icon-sm">rate_review</span>`,
             send: `<span class="material-symbols-rounded icon-sm">send</span>`,
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
         const OVERPASS_SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
@@ -162,32 +162,68 @@
         const AlertPill = ({ msg }) => html`<div class="px-4 py-2 rounded-full shadow-lg text-sm font-medium font-brand z-[1000] bg-orange-100 text-orange-800 border-2 border-white/50">${msg}</div>`;
         const Toast = ({ msg, visible }) => html`<div class=${'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-slate-800/95 backdrop-blur text-slate-100 px-6 py-3 rounded-full shadow-xl transition-all duration-300 z-[2000] flex items-center space-x-2 font-brand ' + (visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none')}><span>${msg}</span></div>`;
 
-        const FilterSheet = ({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, onClose }) => html`
+        const AboutModal = ({ onClose }) => html`
+            <div class="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick=${onClose}></div>
+                <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 relative transform transition-all scale-100">
+                    <button onClick=${onClose} class="absolute top-4 right-4 p-2 bg-slate-50 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
+                    
+                    <div class="text-center mb-6">
+                        <div class="inline-block p-4 rounded-3xl bg-indigo-50 mb-4 shadow-sm">
+                            <img src="icon.png" class="w-12 h-12 object-contain" alt="Loocator" />
+                        </div>
+                        <h2 class="text-2xl font-bold font-brand text-slate-800">Loocator</h2>
+                        <p class="text-slate-500 text-sm mt-1">v0.1</p>
+                    </div>
+
+                    <div class="space-y-4 text-center">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <p class="text-slate-600 font-medium text-sm">Made with love in England ❤️</p>
+                        </div>
+
+                        <div class="text-xs text-slate-400 space-y-2">
+                            <p>Map Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" class="underline hover:text-slate-600">OpenStreetMap</a> contributors</p>
+                            <p>Data available under ODbL.</p>
+                            <p class="mt-4">© ${new Date().getFullYear()} Loocator</p>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        const FilterSheet = ({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, onClose }) => {
+            const handleClose = () => { onClose(); };
+            const toggleFree = () => { setFreeOnly(!freeOnly); };
+            const toggleBottle = () => { setBottleOnly(!bottleOnly); };
+
+            return html`
             <div class="fixed inset-0 z-[1600] flex flex-col justify-end pointer-events-none">
-                <div class="absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity" onClick=${onClose}></div>
+                <div class="absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity" onClick=${handleClose}></div>
                 <div class="bg-white w-full rounded-t-3xl shadow-2xl p-6 pb-12 pointer-events-auto transform transition-transform duration-300">
                     <div class="flex justify-center mb-4"><div class="w-12 h-1.5 bg-slate-200 rounded-full"></div></div>
                     <div class="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-bold font-brand text-slate-800">Options</h2>
-                        <button onClick=${onClose} className="p-2 bg-slate-50 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
+                        <button onClick=${handleClose} className="p-2 bg-slate-50 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
                     </div>
                     <div class="space-y-4">
-                        <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100" onClick=${() => setFreeOnly(!freeOnly)}>
+                        <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100" onClick=${toggleFree}>
                             <span class="font-medium text-slate-700">Free use only</span>
                             <div class=${'w-12 h-7 rounded-full relative transition-colors duration-200 ' + (freeOnly ? 'bg-emerald-500' : 'bg-slate-300')}><div class=${'absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow transition-transform duration-200 ' + (freeOnly ? 'translate-x-5' : 'translate-x-0')}></div></div>
                         </label>
-                        <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100" onClick=${() => setBottleOnly(!bottleOnly)}>
+                        <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100" onClick=${toggleBottle}>
                             <div><span class="font-medium text-slate-700 block">Bottle refill only</span><span class="text-xs text-slate-400">Only affects water points</span></div>
                             <div class=${'w-12 h-7 rounded-full relative transition-colors duration-200 ' + (bottleOnly ? 'bg-emerald-500' : 'bg-slate-300')}><div class=${'absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow transition-transform duration-200 ' + (bottleOnly ? 'translate-x-5' : 'translate-x-0')}></div></div>
                         </label>
                     </div>
                 </div>
             </div>`;
+        }
 
         const ContributeSheet = ({ lat, lon, onClose, onShowToast }) => {
             const [text, setText] = useState('');
             const [sending, setSending] = useState(false);
             const [sent, setSent] = useState(false);
+
+            const handleClose = () => { onClose(); };
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -221,12 +257,12 @@
 
             return html`
             <div class="fixed inset-0 z-[1600] flex flex-col justify-end pointer-events-none">
-                <div class="absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity" onClick=${onClose}></div>
+                <div class="absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity" onClick=${handleClose}></div>
                 <div class="bg-white w-full rounded-t-3xl shadow-2xl p-6 pb-12 pointer-events-auto transform transition-transform duration-300">
                     <div class="flex justify-center mb-4"><div class="w-12 h-1.5 bg-slate-200 rounded-full"></div></div>
                     <div class="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-bold font-brand text-slate-800">Add Missing Spot</h2>
-                        <button onClick=${onClose} className="p-2 bg-slate-50 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
+                        <button onClick=${handleClose} className="p-2 bg-slate-50 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
                     </div>
                     
                     ${!sent ? html`
@@ -265,6 +301,9 @@
             if (!loc) return null;
             const [address, setAddress] = useState('Loading...');
             const [imageUrl, setImageUrl] = useState(null);
+
+            const handleClose = () => { onClose(); };
+            const handleAction = () => { };
 
             useEffect(() => {
                 // If we already have a cached address from list view, use it immediately
@@ -316,8 +355,8 @@
 
             return html`
                 <div class="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-[1500] sheet-transition transform translate-y-0 flex flex-col max-h-[85vh] safe-pb">
-                    <div class="w-full flex justify-center pt-3 pb-1" onClick=${onClose}><div class="w-12 h-1.5 bg-slate-200 rounded-full"></div></div>
-                    ${imageUrl ? html`<div class="w-full h-48 bg-slate-100 relative overflow-hidden"><img src=${imageUrl} class="w-full h-full object-cover img-fade-in"/><div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div><button onClick=${onClose} class="absolute top-4 right-4 p-2 bg-black/30 backdrop-blur rounded-full text-white"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>` : html`<div class="absolute top-2 right-4 z-10"><button onClick=${onClose} class="p-2 bg-slate-50 rounded-full text-slate-400 hover:bg-slate-100"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>`}
+                    <div class="w-full flex justify-center pt-3 pb-1" onClick=${handleClose}><div class="w-12 h-1.5 bg-slate-200 rounded-full"></div></div>
+                    ${imageUrl ? html`<div class="w-full h-48 bg-slate-100 relative overflow-hidden"><img src=${imageUrl} class="w-full h-full object-cover img-fade-in"/><div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div><button onClick=${handleClose} class="absolute top-4 right-4 p-2 bg-black/30 backdrop-blur rounded-full text-white"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>` : html`<div class="absolute top-2 right-4 z-10"><button onClick=${handleClose} class="p-2 bg-slate-50 rounded-full text-slate-400 hover:bg-slate-100"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>`}
                     <div class="p-6 pt-2 overflow-y-auto">
                         <div class="mb-4">
                             <div class="flex space-x-2 mb-2">
@@ -337,8 +376,8 @@
                             ${loc.isGrey && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-200 text-slate-700 border border-slate-300 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.drop}}></span> Grey Waste</div>`}
                         </div>
                         <div class="space-y-3 mb-4">
-                            <a href=${`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lon}`} target="_blank" class="w-full bg-slate-800 text-white font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.nav}}></div><span>Navigate Here</span></a>
-                            <a href=${`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${loc.lat},${loc.lon}`} target="_blank" class="w-full bg-indigo-50 text-indigo-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-indigo-100"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.eye}}></div><span>Street Preview</span></a>
+                            <a href=${`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lon}`} target="_blank" onClick=${handleAction} class="w-full bg-slate-800 text-white font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.nav}}></div><span>Navigate Here</span></a>
+                            <a href=${`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${loc.lat},${loc.lon}`} target="_blank" onClick=${handleAction} class="w-full bg-indigo-50 text-indigo-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-indigo-100"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.eye}}></div><span>Street Preview</span></a>
                         </div>
                     </div>
                 </div>
@@ -388,7 +427,7 @@
             const displayAddress = fetchedAddr || loc.rawAddress;
 
             return html`
-                <div onClick=${onClick} class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform">
+                <div onClick=${() => { onClick(); }} class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform">
                     <div class="flex items-center space-x-4 overflow-hidden">
                         <div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm pie-icon" style=${{ cssText: backgroundStyle }} dangerouslySetInnerHTML=${{__html: iconHtml}}></div>
                         <div class="flex flex-col overflow-hidden">
@@ -420,6 +459,7 @@
             const [deferredPrompt, setDeferredPrompt] = useState(null);
             const [searchBounds, setSearchBounds] = useState(null); 
             const [isInstalled, setIsInstalled] = useState(false);
+            const [showAbout, setShowAbout] = useState(false);
             
             // Contribution States
             const [showContribute, setShowContribute] = useState(false);
@@ -792,7 +832,7 @@
             return html`
                 <div class="bg-white/95 backdrop-blur z-[100] shadow-sm safe-pt">
                     <div class="flex items-center justify-between px-5 pt-4 pb-2">
-                        <h1 class="text-2xl font-brand font-semibold text-slate-700 tracking-tight">Loocator</h1>
+                        <h1 onClick=${() => setShowAbout(true)} class="text-2xl font-brand font-semibold text-slate-700 tracking-tight cursor-pointer hover:text-slate-900 transition-colors">Loocator</h1>
                         <div class="flex gap-2">
                             ${!isInstalled && html`<button onClick=${handleInstall} class="bg-indigo-100 text-indigo-600 px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2"><div class="flex items-center justify-center w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.download}}></div><span>Install</span></button>`}
                             <button onClick=${toggleMode} class=${'px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-colors ' + (isCamperMode ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500')}><div class="flex items-center justify-center w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.van}}></div><span>${isCamperMode ? 'Van On' : 'Van Mode'}</span></button>
@@ -864,6 +904,7 @@
                 `}
                 
                 ${showFilters && html`<${FilterSheet} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} onClose=${() => setShowFilters(false)} />`}
+                ${showAbout && html`<${AboutModal} onClose=${() => setShowAbout(false)} />`}
                 ${showContribute && contributeCoords && html`<${ContributeSheet} lat=${contributeCoords.lat} lon=${contributeCoords.lon} onClose=${() => setShowContribute(false)} onShowToast=${showToast} />`}
                 ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} userLoc=${userPos} onClose=${() => setSelectedLoc(null)} />`}
                 <${Toast} msg=${toast.msg} visible=${toast.visible} />
