@@ -181,6 +181,7 @@
 
                         <div class="text-xs text-slate-400 space-y-2">
                             <p>Map Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" class="underline hover:text-slate-600">OpenStreetMap</a> contributors</p>
+                            <p>Tiles courtesy of <a href="https://carto.com/attributions" target="_blank" class="underline hover:text-slate-600">CARTO</a></p>
                             <p>Data available under ODbL.</p>
                             <p class="mt-4">© ${new Date().getFullYear()} Loocator</p>
                         </div>
@@ -724,7 +725,7 @@
 
             useEffect(() => {
                 if (!mapRef.current || mapInstanceRef.current) return;
-                const map = L.map(mapRef.current, { zoomControl: false }).setView(mapCenter, 13);
+                const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(mapCenter, 13);
                 mapInstanceRef.current = map;
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
