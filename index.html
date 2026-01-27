@@ -10,10 +10,8 @@
     
     <title>Loocator</title>
 
-    <!-- Link to the Manifest File -->
     <link rel="manifest" href="manifest.json">
 
-    <!-- Fonts & Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://unpkg.com">
@@ -22,14 +20,12 @@
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
     
-    <!-- Google Material Symbols -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-    <!-- GOOGLE ANALYTICS START -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-C5W3F59SDX"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -38,8 +34,6 @@
 
         gtag('config', 'G-C5W3F59SDX');
     </script>
-    <!-- GOOGLE ANALYTICS END -->
-
     <style>
         body, html { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f8fafc; font-family: 'Fredoka', sans-serif; }
         #root { height: 100%; display: flex; flex-direction: column; }
@@ -64,7 +58,6 @@
         .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 
-    <!-- Reliable React CDN -->
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
@@ -317,10 +310,37 @@
         };
         
         const ListItem = ({ loc, onClick, userPos }) => {
+            let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet;
+            
+            // Pie Chart Logic for List Item
+            const types = [];
+            if (loc.isToilet) types.push('toilet');
+            if (loc.isWater) types.push('water');
+            if (loc.hasBaby) types.push('baby');
+            if (loc.hasShower) types.push('shower');
+            if (loc.isBlack) types.push('black');
+            if (loc.isGrey) types.push('grey');
+            
+            if (types.length === 0) types.push('toilet');
+
+            let backgroundStyle = '';
+            if (types.length === 1) {
+                 backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`;
+            } else {
+                const segmentSize = 100 / types.length;
+                const gradientParts = types.map((t, i) => {
+                    const color = TYPE_COLORS[t];
+                    const start = i * segmentSize;
+                    const end = (i + 1) * segmentSize;
+                    return `${color} ${start}% ${end}%`;
+                });
+                backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`;
+            }
+
             return html`
                 <div onClick=${onClick} class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform">
                     <div class="flex items-center space-x-4">
-                        <div class=${'w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 ' + (loc.displayType === 'black' ? 'bg-slate-800' : loc.displayType === 'grey' ? 'bg-slate-400' : loc.displayType === 'toilet' ? 'bg-slate-500' : loc.displayType === 'water' ? 'bg-teal-500' : loc.displayType === 'shower' ? 'bg-sky-500' : 'bg-rose-400')} dangerouslySetInnerHTML=${{__html: loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType]}}></div>
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm pie-icon" style=${{ cssText: backgroundStyle }} dangerouslySetInnerHTML=${{__html: iconHtml}}></div>
                         <div><h4 class="font-semibold text-slate-700 font-brand text-base leading-tight">${loc.name}</h4><span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">${calculateDistance(userPos[0], userPos[1], loc.lat, loc.lon).text}</span></div>
                     </div>
                     <div class="text-slate-300 transform rotate-180 flex items-center justify-center" style=${{width:'20px', height:'20px'}} dangerouslySetInnerHTML=${{__html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>`}}></div>
@@ -489,7 +509,7 @@
                 const map = L.map(mapRef.current, { zoomControl: false }).setView(mapCenter, 13);
                 mapInstanceRef.current = map;
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 }).addTo(map);
                 markersRef.current = L.layerGroup().addTo(map);
                 
@@ -694,5 +714,3 @@
     </script>
 </body>
 </html>
-
-
