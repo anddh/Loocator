@@ -1042,6 +1042,14 @@
                 }
 
                 try {
+                    // Determine URL based on Camper Mode setting
+                    // Standard OSRM demo: https://router.project-osrm.org/route/v1
+                    // FOSSGIS servers are often more reliable: https://routing.openstreetmap.de/routed-foot/route/v1
+                    
+                    const routerUrl = isCamperMode 
+                        ? 'https://routing.openstreetmap.de/routed-car/route/v1' 
+                        : 'https://routing.openstreetmap.de/routed-foot/route/v1';
+
                     // Add new route
                     const control = L.Routing.control({
                         waypoints: [
@@ -1049,7 +1057,7 @@
                             L.latLng(targetLoc.lat, targetLoc.lon)
                         ],
                         router: L.Routing.osrmv1({
-                            serviceUrl: 'https://router.project-osrm.org/route/v1'
+                            serviceUrl: routerUrl
                         }),
                         lineOptions: {
                             styles: [{color: '#3b82f6', opacity: 0.8, weight: 6}] // Tailwind blue-500
@@ -1057,16 +1065,29 @@
                         addWaypoints: false,
                         draggableWaypoints: false,
                         fitSelectedRoutes: true,
-                        show: false // Hide internal container
-                    }).addTo(mapInstanceRef.current);
+                        show: false, // Hide internal container
+                        createMarker: function() { return null; } // Don't create default markers
+                    });
 
+                    // Add event listeners for success and error
+                    control.on('routesfound', function(e) {
+                        setRouteActive(true);
+                        const mode = isCamperMode ? "Driving" : "Walking";
+                        showToast(`Route calculated (${mode})`);
+                        
+                        // Close details so they see the map
+                        setSelectedLoc(null);
+                        setView('map');
+                    });
+
+                    control.on('routingerror', function(e) {
+                        console.error('Routing error:', e);
+                        showToast("Routing failed. Try Google Maps link.");
+                    });
+
+                    control.addTo(mapInstanceRef.current);
                     routeControlRef.current = control;
-                    setRouteActive(true);
                     
-                    // Close details so they see the map
-                    setSelectedLoc(null);
-                    setView('map');
-                    showToast("Route calculated");
                 } catch(e) {
                     console.error(e);
                     showToast("Routing failed");
