@@ -151,6 +151,7 @@
             edit: `<span class="material-symbols-rounded icon-sm">edit</span>`,
             note: `<span class="material-symbols-rounded icon-sm">rate_review</span>`,
             send: `<span class="material-symbols-rounded icon-sm">send</span>`,
+            clock: `<span class="material-symbols-rounded icon-sm">history</span>`,
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
             drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
@@ -491,6 +492,10 @@
             const [isInstalled, setIsInstalled] = useState(false);
             const [showAbout, setShowAbout] = useState(false);
             
+            // Search History State
+            const [searchHistory, setSearchHistory] = useState([]);
+            const [showHistory, setShowHistory] = useState(false);
+
             // Contribution States
             const [showContribute, setShowContribute] = useState(false);
             const [isPickingLocation, setIsPickingLocation] = useState(false);
@@ -506,6 +511,21 @@
             const tileLayerRef = useRef(null); // New Ref for swapping tiles
             const camperModeRef = useRef(isCamperMode);
             const fetchController = useRef(null);
+
+            // Load Search History
+            useEffect(() => {
+                try {
+                    const saved = localStorage.getItem('loocator_history');
+                    if (saved) setSearchHistory(JSON.parse(saved));
+                } catch(e) {}
+            }, []);
+
+            const addToHistory = (term) => {
+                if (!term) return;
+                const newHist = [term, ...searchHistory.filter(h => h.toLowerCase() !== term.toLowerCase())].slice(0, 5);
+                setSearchHistory(newHist);
+                localStorage.setItem('loocator_history', JSON.stringify(newHist));
+            };
 
             useEffect(() => {
                 // Listen for system theme changes
@@ -786,7 +806,7 @@
                 markersRef.current = L.layerGroup().addTo(map);
                 
                 const handleMove = () => {
-                     if (map.getZoom() < 13) { 
+                      if (map.getZoom() < 13) { 
                         setZoomWarning(true); 
                         setAllLocations([]); 
                         markersRef.current.clearLayers(); 
@@ -869,7 +889,64 @@
                 });
             }, [visibleLocations, isDarkMode]); // Re-render markers if dark mode changes (borders)
 
-            const handleSearch = async (e) => { e.preventDefault(); if (!searchTerm) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); setSearchTerm(''); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else { showToast('Place not found.'); } } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
+            const handleSearch = async (e) => { 
+                e.preventDefault(); 
+                if (!searchTerm) return; 
+                setLoading(true); 
+                try { 
+                    const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm)); 
+                    const data = await res.json(); 
+                    if (data && data.length > 0) { 
+                        const result = data[0]; 
+                        mapInstanceRef.current.flyTo([result.lat, result.lon], 16); 
+                        addToHistory(searchTerm);
+                        setSearchTerm(''); 
+                        setShowHistory(false);
+                        showToast(`Welcome to ${result.display_name.split(',')[0]}`); 
+                    } else { 
+                        showToast('Place not found.'); 
+                    } 
+                } catch (err) { 
+                    showToast('Search failed.'); 
+                } finally { 
+                    setLoading(false); 
+                } 
+            };
+            
+            const handleHistoryClick = (term) => {
+                setSearchTerm(term);
+                // Trigger search immediately
+                setTimeout(() => {
+                    const fakeEvent = { preventDefault: () => {} };
+                    // We need to set state first, but handleSearch uses current state. 
+                    // Better to just call search logic directly with term
+                    searchWithTerm(term);
+                }, 0);
+            };
+
+            const searchWithTerm = async (term) => {
+                if (!term) return; 
+                setLoading(true); 
+                try { 
+                    const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(term)); 
+                    const data = await res.json(); 
+                    if (data && data.length > 0) { 
+                        const result = data[0]; 
+                        mapInstanceRef.current.flyTo([result.lat, result.lon], 16); 
+                        addToHistory(term); // Refresh position in history
+                        setSearchTerm(''); 
+                        setShowHistory(false);
+                        showToast(`Welcome to ${result.display_name.split(',')[0]}`); 
+                    } else { 
+                        showToast('Place not found.'); 
+                    } 
+                } catch (err) { 
+                    showToast('Search failed.'); 
+                } finally { 
+                    setLoading(false); 
+                } 
+            };
+
             const handleGPS = () => { if (!navigator.geolocation) { showToast('GPS not supported'); return; } showToast('Locating you...'); navigator.geolocation.getCurrentPosition((pos) => { const coords = [pos.coords.latitude, pos.coords.longitude]; updateUserLocation(coords, 'GPS'); }, (err) => showToast('GPS Access Denied'), { enableHighAccuracy: true }); };
 
             const startPickingLocation = () => {
@@ -935,7 +1012,35 @@
                             <button onClick=${handleViewToggle} class="bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 px-3 py-2 rounded-full text-xs font-bold"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: view === 'map' ? ICONS.list : ICONS.map}}></div></button>
                         </div>
                     </div>
-                    <div class="px-4 pb-2"><form onSubmit=${handleSearch} class="relative"><input type="text" placeholder="Search city..." class="w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl py-3 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-zinc-600 focus:bg-white dark:focus:bg-zinc-700 shadow-inner text-slate-600 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 transition-colors" value=${searchTerm} onInput=${e => setSearchTerm(e.target.value)} /><button type="submit" class="absolute left-3.5 top-3 text-slate-400 dark:text-zinc-500 w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></button></form></div>
+                    <div class="px-4 pb-2 relative z-[1001]">
+                        <form onSubmit=${handleSearch} class="relative z-[1001]">
+                            <input 
+                                type="text" 
+                                placeholder="Search city..." 
+                                class="w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl py-3 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-zinc-600 focus:bg-white dark:focus:bg-zinc-700 shadow-inner text-slate-600 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 transition-colors" 
+                                value=${searchTerm} 
+                                onInput=${e => { setSearchTerm(e.target.value); setShowHistory(true); }}
+                                onFocus=${() => setShowHistory(true)}
+                                onBlur=${() => setTimeout(() => setShowHistory(false), 200)}
+                            />
+                            <button type="submit" class="absolute left-3.5 top-3 text-slate-400 dark:text-zinc-500 w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></button>
+                        </form>
+                        ${showHistory && searchHistory.length > 0 && html`
+                            <div class="absolute top-full left-4 right-4 mt-2 bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-slate-100 dark:border-zinc-700 overflow-hidden z-[2000] animate-fade-in-down">
+                                <div class="px-4 py-2 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider bg-slate-50 dark:bg-zinc-900/50">Recent</div>
+                                ${searchHistory.map(term => html`
+                                    <div 
+                                        class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-zinc-700 cursor-pointer border-b border-slate-50 dark:border-zinc-700/50 last:border-0"
+                                        onMouseDown=${(e) => e.preventDefault()}
+                                        onClick=${() => handleHistoryClick(term)}
+                                    >
+                                        <div class="w-4 h-4 text-slate-400 dark:text-zinc-500 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.clock}}></div>
+                                        <span class="text-sm font-medium text-slate-700 dark:text-zinc-200">${term}</span>
+                                    </div>
+                                `)}
+                            </div>
+                        `}
+                    </div>
                     <div class="px-4 flex space-x-2 overflow-x-auto no-scrollbar pb-1">
                         ${!isCamperMode ? html`<${FilterBtn} type="toilet" label="Toilets" active=${stdFilters.toilet} onClick=${() => setStdFilters({...stdFilters, toilet: !stdFilters.toilet})} /><${FilterBtn} type="water" label="Water" active=${stdFilters.water} color="teal" onClick=${() => setStdFilters({...stdFilters, water: !stdFilters.water})} /><${FilterBtn} type="baby" label="Baby" active=${stdFilters.baby} color="rose" onClick=${() => setStdFilters({...stdFilters, baby: !stdFilters.baby})} />` : html`<${FilterBtn} type="trash" label="Black" active=${vanFilters.black} color="black" onClick=${() => setVanFilters({...vanFilters, black: !vanFilters.black})} /><${FilterBtn} type="drop" label="Grey" active=${vanFilters.grey} color="grey" onClick=${() => setVanFilters({...vanFilters, grey: !vanFilters.grey})} /><${FilterBtn} type="water" label="Tank" active=${vanFilters.water} color="teal" onClick=${() => setVanFilters({...vanFilters, water: !vanFilters.water})} /><${FilterBtn} type="shower" label="Shower" active=${vanFilters.shower} color="sky" onClick=${() => setVanFilters({...vanFilters, shower: !vanFilters.shower})} />`}
                     </div>
