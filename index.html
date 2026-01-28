@@ -115,8 +115,7 @@
     <!-- Reliable React CDN -->
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <!-- HTM via cdnjs -->
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/htm/3.1.1/htm.umd.min.js"></script>
+    <script crossorigin src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body class="bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 transition-colors duration-300">
@@ -631,8 +630,18 @@
                     });
                     const data = await res.json();
                     
-                    // Process locations first to ensure we have valid items
-                    const locations = data.elements.map(el => {
+                    if (data.elements.length === 0) {
+                         const nextRadius = radius * 2;
+                         if (nextRadius <= 50000) {
+                             showToast(`Scanning ${Math.round(nextRadius/1000)}km...`);
+                             fetchOverpass(bounds, nextRadius);
+                             return;
+                         }
+                         setLoading(false);
+                         return;
+                    }
+                    
+                    setAllLocations(data.elements.map(el => {
                         const lat = el.lat || (el.center && el.center.lat);
                         const lon = el.lon || (el.center && el.center.lon);
                         
@@ -690,36 +699,8 @@
                             name: finalName,
                             rawAddress: rawAddress
                         };
-                    }).filter(Boolean);
-
-                    // If no valid locations found, expand radius
-                    if (locations.length === 0) {
-                         const nextRadius = radius * 2;
-                         if (nextRadius <= 50000) {
-                             showToast(`Scanning ${Math.round(nextRadius/1000)}km...`);
-                             fetchOverpass(bounds, nextRadius);
-                             return;
-                         }
-                         setLoading(false);
-                         if (nextRadius > 50000) showToast("No locations found nearby.");
-                         return;
-                    }
-
-                    setAllLocations(locations); 
+                    }).filter(Boolean)); 
                     setLoading(false);
-
-                    // Auto-Zoom Logic
-                    // 1. Check if any of the found locations are actually inside the current visible map bounds
-                    const hasVisible = locations.some(l => bounds.contains([l.lat, l.lon]));
-
-                    // 2. If nothing is visible (all off-screen) OR we had to retry with a larger radius, ZOOM OUT.
-                    if ((!hasVisible || retryRadius) && mapInstanceRef.current) {
-                        const latLngs = locations.map(l => [l.lat, l.lon]);
-                        const locBounds = L.latLngBounds(latLngs);
-                        mapInstanceRef.current.fitBounds(locBounds.pad(0.1)); // 10% padding
-                        showToast("Zoomed to nearest locations");
-                    }
-
                 } catch (e) { 
                     if (e.name !== 'AbortError') {
                         setLoading(false); 
