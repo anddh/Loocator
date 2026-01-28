@@ -115,7 +115,8 @@
     <!-- Reliable React CDN -->
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+    <!-- Updated HTM CDN to cdnjs for better reliability -->
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/htm/3.1.1/htm.umd.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body class="bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 transition-colors duration-300">
@@ -641,7 +642,7 @@
                          return;
                     }
                     
-                    setAllLocations(data.elements.map(el => {
+                    const locations = data.elements.map(el => {
                         const lat = el.lat || (el.center && el.center.lat);
                         const lon = el.lon || (el.center && el.center.lon);
                         
@@ -699,8 +700,19 @@
                             name: finalName,
                             rawAddress: rawAddress
                         };
-                    }).filter(Boolean)); 
+                    }).filter(Boolean);
+
+                    setAllLocations(locations); 
                     setLoading(false);
+
+                    // Logic to Auto-Zoom if we expanded the search radius and found results
+                    if (retryRadius && mapInstanceRef.current && locations.length > 0) {
+                        const latLngs = locations.map(l => [l.lat, l.lon]);
+                        const bounds = L.latLngBounds(latLngs);
+                        mapInstanceRef.current.fitBounds(bounds.pad(0.1));
+                        showToast("Zoomed to nearest locations");
+                    }
+
                 } catch (e) { 
                     if (e.name !== 'AbortError') {
                         setLoading(false); 
@@ -1009,5 +1021,3 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(html`<${App} />`);
     </script>
-</body>
-</html>
