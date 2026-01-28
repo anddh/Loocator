@@ -44,6 +44,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
+    <!-- Fuse.js for Fuzzy Matching -->
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
+
     <!-- GOOGLE ANALYTICS START -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-C5W3F59SDX"></script>
     <script>
@@ -492,9 +495,11 @@
             const [isInstalled, setIsInstalled] = useState(false);
             const [showAbout, setShowAbout] = useState(false);
             
-            // Search History State
+            // Search History & Suggestions State
             const [searchHistory, setSearchHistory] = useState([]);
             const [showHistory, setShowHistory] = useState(false);
+            const [apiSuggestions, setApiSuggestions] = useState([]);
+            const [historyMatches, setHistoryMatches] = useState([]);
 
             // Contribution States
             const [showContribute, setShowContribute] = useState(false);
@@ -519,12 +524,50 @@
                     if (saved) setSearchHistory(JSON.parse(saved));
                 } catch(e) {}
             }, []);
+            
+            // Initialize Fuse.js
+            const fuse = useMemo(() => new Fuse(searchHistory, { 
+                threshold: 0.4,
+                distance: 100
+            }), [searchHistory]);
 
             const addToHistory = (term) => {
                 if (!term) return;
                 const newHist = [term, ...searchHistory.filter(h => h.toLowerCase() !== term.toLowerCase())].slice(0, 5);
                 setSearchHistory(newHist);
                 localStorage.setItem('loocator_history', JSON.stringify(newHist));
+            };
+
+            // Debounced Suggestions Fetcher
+            const fetchSuggestions = useMemo(() => debounce(async (term) => {
+                if (!term || term.length < 3) {
+                    setApiSuggestions([]);
+                    return;
+                }
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(term)}&addressdetails=1&limit=5`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        setApiSuggestions(data);
+                    }
+                } catch (e) { console.error(e); }
+            }, 500), []);
+
+            const handleInput = (e) => {
+                const val = e.target.value;
+                setSearchTerm(val);
+                setShowHistory(true);
+                
+                // 1. Fuzzy match history
+                if (val && fuse) {
+                    const results = fuse.search(val);
+                    setHistoryMatches(results.map(r => r.item));
+                } else {
+                    setHistoryMatches([]);
+                }
+                
+                // 2. Fetch API suggestions
+                fetchSuggestions(val);
             };
 
             useEffect(() => {
@@ -917,9 +960,6 @@
                 setSearchTerm(term);
                 // Trigger search immediately
                 setTimeout(() => {
-                    const fakeEvent = { preventDefault: () => {} };
-                    // We need to set state first, but handleSearch uses current state. 
-                    // Better to just call search logic directly with term
                     searchWithTerm(term);
                 }, 0);
             };
@@ -946,6 +986,14 @@
                     setLoading(false); 
                 } 
             };
+            
+            const selectSuggestion = (sugg) => {
+                mapInstanceRef.current.flyTo([sugg.lat, sugg.lon], 16);
+                addToHistory(sugg.display_name.split(',')[0]);
+                setSearchTerm('');
+                setShowHistory(false);
+                showToast(`Welcome to ${sugg.display_name.split(',')[0]}`);
+            }
 
             const handleGPS = () => { if (!navigator.geolocation) { showToast('GPS not supported'); return; } showToast('Locating you...'); navigator.geolocation.getCurrentPosition((pos) => { const coords = [pos.coords.latitude, pos.coords.longitude]; updateUserLocation(coords, 'GPS'); }, (err) => showToast('GPS Access Denied'), { enableHighAccuracy: true }); };
 
@@ -1002,7 +1050,7 @@
             }
 
             return html`
-                <div class="bg-white/95 dark:bg-zinc-900/95 backdrop-blur z-[100] shadow-sm safe-pt transition-colors duration-300">
+                <div class="bg-white/95 dark:bg-zinc-900/95 backdrop-blur z-[1700] shadow-sm safe-pt transition-colors duration-300">
                     <div class="flex items-center justify-between px-5 pt-4 pb-2">
                         <h1 onClick=${() => setShowAbout(true)} class="text-2xl font-brand font-semibold text-slate-700 dark:text-zinc-100 tracking-tight cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors">Loocator</h1>
                         <div class="flex gap-2">
@@ -1019,25 +1067,59 @@
                                 placeholder="Search city..." 
                                 class="w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl py-3 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-zinc-600 focus:bg-white dark:focus:bg-zinc-700 shadow-inner text-slate-600 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 transition-colors" 
                                 value=${searchTerm} 
-                                onInput=${e => { setSearchTerm(e.target.value); setShowHistory(true); }}
+                                onInput=${handleInput}
                                 onFocus=${() => setShowHistory(true)}
                                 onBlur=${() => setTimeout(() => setShowHistory(false), 200)}
+                                autocomplete="off"
                             />
                             <button type="submit" class="absolute left-3.5 top-3 text-slate-400 dark:text-zinc-500 w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></button>
                         </form>
-                        ${showHistory && searchHistory.length > 0 && html`
-                            <div class="absolute top-full left-4 right-4 mt-2 bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-slate-100 dark:border-zinc-700 overflow-hidden z-[2000] animate-fade-in-down">
-                                <div class="px-4 py-2 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider bg-slate-50 dark:bg-zinc-900/50">Recent</div>
-                                ${searchHistory.map(term => html`
-                                    <div 
-                                        class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-zinc-700 cursor-pointer border-b border-slate-50 dark:border-zinc-700/50 last:border-0"
-                                        onMouseDown=${(e) => e.preventDefault()}
-                                        onClick=${() => handleHistoryClick(term)}
-                                    >
-                                        <div class="w-4 h-4 text-slate-400 dark:text-zinc-500 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.clock}}></div>
-                                        <span class="text-sm font-medium text-slate-700 dark:text-zinc-200">${term}</span>
-                                    </div>
-                                `)}
+                        ${showHistory && (searchHistory.length > 0 || apiSuggestions.length > 0) && html`
+                            <div class="absolute top-full left-4 right-4 mt-2 bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-slate-100 dark:border-zinc-700 overflow-hidden z-[2000] animate-fade-in-down max-h-[60vh] overflow-y-auto">
+                                ${searchTerm && historyMatches.length > 0 && html`
+                                    <div class="px-4 py-2 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider bg-slate-50 dark:bg-zinc-900/50">History</div>
+                                    ${historyMatches.map(term => html`
+                                        <div 
+                                            class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-zinc-700 cursor-pointer border-b border-slate-50 dark:border-zinc-700/50 last:border-0"
+                                            onMouseDown=${(e) => e.preventDefault()}
+                                            onClick=${() => handleHistoryClick(term)}
+                                        >
+                                            <div class="w-4 h-4 text-slate-400 dark:text-zinc-500 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.clock}}></div>
+                                            <span class="text-sm font-medium text-slate-700 dark:text-zinc-200">${term}</span>
+                                        </div>
+                                    `)}
+                                `}
+                                
+                                ${!searchTerm && searchHistory.length > 0 && html`
+                                    <div class="px-4 py-2 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider bg-slate-50 dark:bg-zinc-900/50">Recent</div>
+                                    ${searchHistory.map(term => html`
+                                        <div 
+                                            class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-zinc-700 cursor-pointer border-b border-slate-50 dark:border-zinc-700/50 last:border-0"
+                                            onMouseDown=${(e) => e.preventDefault()}
+                                            onClick=${() => handleHistoryClick(term)}
+                                        >
+                                            <div class="w-4 h-4 text-slate-400 dark:text-zinc-500 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.clock}}></div>
+                                            <span class="text-sm font-medium text-slate-700 dark:text-zinc-200">${term}</span>
+                                        </div>
+                                    `)}
+                                `}
+
+                                ${apiSuggestions.length > 0 && html`
+                                    <div class="px-4 py-2 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider bg-slate-50 dark:bg-zinc-900/50">Suggestions</div>
+                                    ${apiSuggestions.map(sugg => html`
+                                        <div 
+                                            class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-zinc-700 cursor-pointer border-b border-slate-50 dark:border-zinc-700/50 last:border-0"
+                                            onMouseDown=${(e) => e.preventDefault()}
+                                            onClick=${() => selectSuggestion(sugg)}
+                                        >
+                                            <div class="w-4 h-4 text-slate-400 dark:text-zinc-500 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.pin}}></div>
+                                            <div class="flex flex-col">
+                                                <span class="text-sm font-medium text-slate-700 dark:text-zinc-200">${sugg.address.city || sugg.address.town || sugg.address.village || sugg.name}</span>
+                                                <span class="text-xs text-slate-400 dark:text-zinc-500 truncate max-w-[200px]">${sugg.display_name}</span>
+                                            </div>
+                                        </div>
+                                    `)}
+                                `}
                             </div>
                         `}
                     </div>
