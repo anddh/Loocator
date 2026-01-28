@@ -43,6 +43,10 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Leaflet Routing Machine -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
     <!-- Fuse.js for Fuzzy Matching -->
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
@@ -113,6 +117,9 @@
             50% { transform: translateX(0); }
         }
         .animate-shake-wrapper { animation: shake 3s cubic-bezier(.36,.07,.19,.97) infinite; }
+
+        /* Hide Leaflet Routing Machine container to keep UI clean */
+        .leaflet-routing-container { display: none !important; }
     </style>
 
     <!-- Reliable React CDN -->
@@ -334,7 +341,7 @@
             </div>`;
         }
 
-        const DetailsCard = ({ loc, userLoc, onClose }) => {
+        const DetailsCard = ({ loc, userLoc, onClose, onShowRoute }) => {
             if (!loc) return null;
             const [address, setAddress] = useState('Loading...');
             const [imageUrl, setImageUrl] = useState(null);
@@ -412,6 +419,10 @@
                             ${loc.isGrey && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-200 text-slate-700 border border-slate-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.drop}}></span> Grey Waste</div>`}
                         </div>
                         <div class="space-y-3 mb-4">
+                            <button onClick=${() => onShowRoute(loc)} class="w-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-blue-200 dark:border-blue-800">
+                                <div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.map}}></div>
+                                <span>Show Path</span>
+                            </button>
                             <a href=${`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lon}`} target="_blank" onClick=${handleAction} class="w-full bg-slate-800 text-white dark:bg-zinc-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.nav}}></div><span>Navigate Here</span></a>
                             <a href=${`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${loc.lat},${loc.lon}`} target="_blank" onClick=${handleAction} class="w-full bg-white text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-slate-200 dark:border-zinc-700"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.eye}}></div><span>Street Preview</span></a>
                         </div>
@@ -494,6 +505,7 @@
             const [searchBounds, setSearchBounds] = useState(null); 
             const [isInstalled, setIsInstalled] = useState(false);
             const [showAbout, setShowAbout] = useState(false);
+            const [routeActive, setRouteActive] = useState(false);
             
             // Search History & Suggestions State
             const [searchHistory, setSearchHistory] = useState([]);
@@ -514,6 +526,7 @@
             const markersRef = useRef(null);
             const userMarkerRef = useRef(null);
             const tileLayerRef = useRef(null); // New Ref for swapping tiles
+            const routeControlRef = useRef(null);
             const camperModeRef = useRef(isCamperMode);
             const fetchController = useRef(null);
 
@@ -1017,6 +1030,57 @@
                 setIsPickingLocation(false);
             };
 
+            const handleDrawRoute = (targetLoc) => {
+                if (!mapInstanceRef.current || !userPos) {
+                    showToast("Need location for routing");
+                    return;
+                }
+
+                // Remove old route
+                if (routeControlRef.current) {
+                    mapInstanceRef.current.removeControl(routeControlRef.current);
+                }
+
+                try {
+                    // Add new route
+                    const control = L.Routing.control({
+                        waypoints: [
+                            L.latLng(userPos[0], userPos[1]),
+                            L.latLng(targetLoc.lat, targetLoc.lon)
+                        ],
+                        router: L.Routing.osrmv1({
+                            serviceUrl: 'https://router.project-osrm.org/route/v1'
+                        }),
+                        lineOptions: {
+                            styles: [{color: '#3b82f6', opacity: 0.8, weight: 6}] // Tailwind blue-500
+                        },
+                        addWaypoints: false,
+                        draggableWaypoints: false,
+                        fitSelectedRoutes: true,
+                        show: false // Hide internal container
+                    }).addTo(mapInstanceRef.current);
+
+                    routeControlRef.current = control;
+                    setRouteActive(true);
+                    
+                    // Close details so they see the map
+                    setSelectedLoc(null);
+                    setView('map');
+                    showToast("Route calculated");
+                } catch(e) {
+                    console.error(e);
+                    showToast("Routing failed");
+                }
+            };
+
+            const clearRoute = () => {
+                if (routeControlRef.current && mapInstanceRef.current) {
+                    mapInstanceRef.current.removeControl(routeControlRef.current);
+                    routeControlRef.current = null;
+                    setRouteActive(false);
+                }
+            };
+
             const FilterBtn = ({ type, label, active, onClick, color = 'slate' }) => {
                 const colors = { 
                     slate: 'bg-slate-600 dark:bg-zinc-500', 
@@ -1179,6 +1243,12 @@
                     </div>`}
                 </div>
                 
+                ${routeActive && html`
+                    <button onClick=${clearRoute} class="absolute top-24 right-5 w-12 h-12 bg-white text-slate-800 dark:bg-zinc-800 dark:text-white rounded-full shadow-lg flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 animate-bounce">
+                        <span class="material-symbols-rounded">close</span>
+                    </button>
+                `}
+
                 ${!isPickingLocation && !selectedLoc && html`
                     <button onClick=${startPickingLocation} class="absolute right-5 w-14 h-14 bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-full shadow-lg flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 bottom-24" dangerouslySetInnerHTML=${{__html: ICONS.plus}}></button>
 
@@ -1188,7 +1258,7 @@
                 ${showFilters && html`<${FilterSheet} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} onClose=${() => setShowFilters(false)} />`}
                 ${showAbout && html`<${AboutModal} onClose=${() => setShowAbout(false)} />`}
                 ${showContribute && contributeCoords && html`<${ContributeSheet} lat=${contributeCoords.lat} lon=${contributeCoords.lon} onClose=${() => setShowContribute(false)} onShowToast=${showToast} />`}
-                ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} userLoc=${userPos} onClose=${() => setSelectedLoc(null)} />`}
+                ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} userLoc=${userPos} onClose=${() => setSelectedLoc(null)} onShowRoute=${handleDrawRoute} />`}
                 <${Toast} msg=${toast.msg} visible=${toast.visible} />
             `;
         }
