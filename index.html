@@ -1074,7 +1074,7 @@
                             />
                             <button type="submit" class="absolute left-3.5 top-3 text-slate-400 dark:text-zinc-500 w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></button>
                         </form>
-                        ${showHistory && (searchHistory.length > 0 || apiSuggestions.length > 0) && html`
+                        ${showHistory && ((searchTerm && historyMatches.length > 0) || (!searchTerm && searchHistory.length > 0) || apiSuggestions.length > 0) && html`
                             <div class="absolute top-full left-4 right-4 mt-2 bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-slate-100 dark:border-zinc-700 overflow-hidden z-[2000] animate-fade-in-down max-h-[60vh] overflow-y-auto">
                                 ${searchTerm && historyMatches.length > 0 && html`
                                     <div class="px-4 py-2 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider bg-slate-50 dark:bg-zinc-900/50">History</div>
