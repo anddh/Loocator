@@ -215,6 +215,7 @@
                         <div class="text-xs text-slate-400 dark:text-zinc-500 space-y-2">
                             <p>Map Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">OpenStreetMap</a> contributors</p>
                             <p>Tiles courtesy of <a href="https://carto.com/attributions" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">CARTO</a></p>
+                            <p>Powered by <a href="https://leafletjs.com" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">Leaflet</a> <span aria-label="Ukraine Flag">🇺🇦</span></p>
                             <p>Data available under ODbL.</p>
                             <p class="mt-4">© ${new Date().getFullYear()} Loocator</p>
                         </div>
@@ -768,7 +769,7 @@
 
             useEffect(() => {
                 if (!mapRef.current || mapInstanceRef.current) return;
-                const map = L.map(mapRef.current, { zoomControl: false }).setView(mapCenter, 13);
+                const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(mapCenter, 13);
                 mapInstanceRef.current = map;
                 
                 // Initial Tile Load based on initial isDarkMode state
