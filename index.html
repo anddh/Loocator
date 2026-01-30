@@ -128,16 +128,22 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Custom Shake Animation */
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            10% { transform: translateX(-2px); }
-            20% { transform: translateX(2px); }
-            30% { transform: translateX(-2px); }
-            40% { transform: translateX(2px); }
-            50% { transform: translateX(0); }
+        /* Custom Ripple Animation for "Nothing nearby" */
+        @keyframes ripple {
+            0% { box-shadow: 0 0 0 0 rgba(148, 163, 184, 0.4); } /* slate-400 opacity 0.4 */
+            70% { box-shadow: 0 0 0 15px rgba(148, 163, 184, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(148, 163, 184, 0); }
         }
-        .animate-shake-wrapper { animation: shake 3s cubic-bezier(.36,.07,.19,.97) infinite; }
+        
+        @media (prefers-color-scheme: dark) {
+            @keyframes ripple {
+                0% { box-shadow: 0 0 0 0 rgba(113, 113, 122, 0.4); } /* zinc-500 opacity 0.4 */
+                70% { box-shadow: 0 0 0 15px rgba(113, 113, 122, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(113, 113, 122, 0); }
+            }
+        }
+        
+        .animate-ripple { animation: ripple 2s infinite; }
 
         /* --- ANIMATIONS --- */
         
@@ -1461,15 +1467,13 @@
                         ${zoomWarning && !loading && html`<${AlertPill} msg="Zoom in to find spots" />`}
                         
                         ${showListHint && html`
-                            <div class="animate-shake-wrapper">
-                                <button 
-                                    onClick=${handleViewChange} 
-                                    class="bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-300 px-5 py-2.5 rounded-full shadow-lg text-sm font-bold font-brand z-[1000] pointer-events-auto active:scale-95 transition-transform flex items-center gap-2 mt-2"
-                                >
-                                    <span>Nothing nearby. View List</span>
-                                    <div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.list}}></div>
-                                </button>
-                            </div>
+                            <button 
+                                onClick=${handleViewChange} 
+                                class="bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-300 px-5 py-2.5 rounded-full shadow-lg text-sm font-bold font-brand z-[1000] pointer-events-auto active:scale-95 transition-transform flex items-center gap-2 mt-2 animate-ripple"
+                            >
+                                <span>Nothing nearby. View List</span>
+                                <div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.list}}></div>
+                            </button>
                         `}
                     </div>
                     
