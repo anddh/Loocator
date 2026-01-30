@@ -489,8 +489,10 @@
             const fetchController = useRef(null);
             const filterSheetRef = useRef(null);
             const selectedLocRef = useRef(null); 
+            const cardMinimizedRef = useRef(false); // Ref to track minimized state in event listener
 
             useEffect(() => { selectedLocRef.current = selectedLoc; }, [selectedLoc]);
+            useEffect(() => { cardMinimizedRef.current = cardMinimized; }, [cardMinimized]); // Sync Ref
 
             useEffect(() => {
                 try {
@@ -567,10 +569,10 @@
             
             const handleMove = () => { if (map.getZoom() < 13) { setZoomWarning(true); setAllLocations([]); markersRef.current.clearLayers(); } else { setZoomWarning(false); setLoading(true); const b = map.getBounds(); setSearchBounds(b); debouncedFetch(b); } }; 
             
-            // Handle Map Click for minimizing card
+            // Handle Map Click for minimizing/toggling card
             map.on('click', () => {
                 if (selectedLocRef.current) {
-                    setCardMinimized(true);
+                    setCardMinimized(!cardMinimizedRef.current);
                 }
             });
 
