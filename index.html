@@ -11,10 +11,8 @@
     
     <title>Loocator</title>
 
-    <!-- Link to the Manifest File -->
     <link rel="manifest" href="manifest.json">
 
-    <!-- Fonts & Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://unpkg.com">
@@ -23,7 +21,6 @@
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
     
-    <!-- Google Material Symbols -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -35,6 +32,11 @@
                     fontFamily: {
                         sans: ['Fredoka', 'sans-serif'],
                         brand: ['Fredoka', 'sans-serif'],
+                    },
+                    animation: {
+                        'scale-in': 'scaleIn 0.2s ease-out forwards',
+                        'slide-up-card': 'slideUpCard 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'stagger-fade': 'staggerFade 0.4s ease-out forwards'
                     }
                 }
             }
@@ -44,10 +46,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-    <!-- Fuse.js for Fuzzy Matching -->
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
 
-    <!-- GOOGLE ANALYTICS START -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-C5W3F59SDX"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -56,8 +56,6 @@
 
         gtag('config', 'G-C5W3F59SDX');
     </script>
-    <!-- GOOGLE ANALYTICS END -->
-
     <style>
         /* Base styles */
         body, html { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f8fafc; font-family: 'Fredoka', sans-serif; }
@@ -113,9 +111,28 @@
             50% { transform: translateX(0); }
         }
         .animate-shake-wrapper { animation: shake 3s cubic-bezier(.36,.07,.19,.97) infinite; }
+
+        /* --- NEW ANIMATIONS --- */
+        
+        /* Fade in scale for About Modal */
+        @keyframes scaleIn {
+            0% { opacity: 0; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Slide up for Details Card */
+        @keyframes slideUpCard {
+            0% { transform: translateY(100%); }
+            100% { transform: translateY(0); }
+        }
+
+        /* Staggered list items */
+        @keyframes staggerFade {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
     </style>
 
-    <!-- Reliable React CDN -->
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
@@ -200,7 +217,7 @@
         const AboutModal = ({ onClose }) => html`
             <div class="fixed inset-0 z-[2000] flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick=${onClose}></div>
-                <div class="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-3xl shadow-2xl p-6 relative transform transition-all scale-100">
+                <div class="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-3xl shadow-2xl p-6 relative animate-scale-in">
                     <button onClick=${onClose} class="absolute top-4 right-4 p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 transition-colors"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
                     
                     <div class="text-center mb-6">
@@ -389,8 +406,9 @@
             if (loc.displayType === 'black') headerBg = 'bg-slate-700 text-slate-100 dark:bg-zinc-950 dark:text-zinc-200';
             if (loc.displayType === 'shower') headerBg = 'bg-sky-50 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200';
 
+            // Changed: Removed manual translate-y-0 and sheet-transition to use animate-slide-up-card
             return html`
-                <div class="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl z-[1500] sheet-transition transform translate-y-0 flex flex-col max-h-[85vh] safe-pb">
+                <div class="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl z-[1500] flex flex-col max-h-[85vh] safe-pb animate-slide-up-card">
                     <div class="w-full flex justify-center pt-3 pb-1" onClick=${handleClose}><div class="w-12 h-1.5 bg-slate-200 dark:bg-zinc-700 rounded-full"></div></div>
                     ${imageUrl ? html`<div class="w-full h-48 bg-slate-100 dark:bg-zinc-800 relative overflow-hidden"><img src=${imageUrl} class="w-full h-full object-cover img-fade-in"/><div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div><button onClick=${handleClose} class="absolute top-4 right-4 p-2 bg-black/30 backdrop-blur rounded-full text-white"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>` : html`<div class="absolute top-2 right-4 z-10"><button onClick=${handleClose} class="p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-700"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>`}
                     <div class="p-6 pt-2 overflow-y-auto">
@@ -460,8 +478,13 @@
 
             const displayAddress = fetchedAddr || loc.rawAddress;
 
+            // Added: animate-stagger class and dynamic delay style
             return html`
-                <div onClick=${() => { onClick(); }} class="bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform">
+                <div 
+                    onClick=${() => { onClick(); }} 
+                    class="bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform animate-stagger-fade opacity-0"
+                    style=${{ animationDelay: `${index * 50}ms` }}
+                >
                     <div class="flex items-center space-x-4 overflow-hidden">
                         <div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm pie-icon" style=${{ cssText: backgroundStyle }} dangerouslySetInnerHTML=${{__html: iconHtml}}></div>
                         <div class="flex flex-col overflow-hidden">
@@ -613,15 +636,34 @@
 
             const showToast = (msg) => { setToast({ msg, visible: true }); setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000); };
             
+            // Helper to close all overlays/lists before opening a new one
+            const closeAllMenus = () => {
+                setShowFilters(false);
+                setShowAbout(false);
+                setShowContribute(false);
+                setSelectedLoc(null);
+                // Note: We don't reset 'view' here, as that depends on context
+            };
+
             const toggleMode = () => {
                 setIsCamperMode(!isCamperMode);
             };
             
             const handleFilterClick = () => {
+                // Exclusive logic
+                closeAllMenus();
                 setShowFilters(true);
+            };
+
+            const handleAboutClick = () => {
+                // Exclusive logic
+                closeAllMenus();
+                setShowAbout(true);
             };
             
             const handleViewToggle = () => {
+                // Exclusive logic
+                closeAllMenus();
                 setView(view === 'map' ? 'list' : 'map');
             };
 
@@ -928,7 +970,11 @@
                             iconSize: [36, 36], 
                             iconAnchor: [18, 36] 
                         }) 
-                    }).addTo(markersRef.current).on('click', () => { setSelectedLoc(loc); });
+                    }).addTo(markersRef.current).on('click', () => { 
+                        // Exclusive open logic
+                        closeAllMenus();
+                        setSelectedLoc(loc); 
+                    });
                 });
             }, [visibleLocations, isDarkMode]); // Re-render markers if dark mode changes (borders)
 
@@ -998,6 +1044,7 @@
             const handleGPS = () => { if (!navigator.geolocation) { showToast('GPS not supported'); return; } showToast('Locating you...'); navigator.geolocation.getCurrentPosition((pos) => { const coords = [pos.coords.latitude, pos.coords.longitude]; updateUserLocation(coords, 'GPS'); }, (err) => showToast('GPS Access Denied'), { enableHighAccuracy: true }); };
 
             const startPickingLocation = () => {
+                closeAllMenus();
                 setIsPickingLocation(true);
                 if (mapInstanceRef.current && mapInstanceRef.current.getZoom() < 18) {
                     mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18, { duration: 0.5 });
@@ -1030,6 +1077,7 @@
             };
 
             const goToLoc = (loc) => {
+                closeAllMenus();
                 setSelectedLoc(loc); 
                 setView('map'); 
                 
@@ -1046,13 +1094,14 @@
             }
             
             const handleViewChange = () => {
+                closeAllMenus();
                 setView('list');
             }
 
             return html`
                 <div class="bg-white/95 dark:bg-zinc-900/95 backdrop-blur z-[1700] shadow-sm safe-pt transition-colors duration-300">
                     <div class="flex items-center justify-between px-5 pt-4 pb-2">
-                        <h1 onClick=${() => setShowAbout(true)} class="text-2xl font-brand font-semibold text-slate-700 dark:text-zinc-100 tracking-tight cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors">Loocator</h1>
+                        <h1 onClick=${handleAboutClick} class="text-2xl font-brand font-semibold text-slate-700 dark:text-zinc-100 tracking-tight cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors">Loocator</h1>
                         <div class="flex gap-2">
                             ${!isInstalled && html`<button onClick=${handleInstall} class="bg-slate-200 dark:bg-zinc-700 text-slate-800 dark:text-zinc-200 px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2"><div class="flex items-center justify-center w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.download}}></div><span>Install</span></button>`}
                             <button onClick=${toggleMode} class=${'px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-colors ' + (isCamperMode ? 'bg-slate-800 text-white dark:bg-zinc-200 dark:text-zinc-900' : 'bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400')}><div class="flex items-center justify-center w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.van}}></div><span>${isCamperMode ? 'Van On' : 'Van Mode'}</span></button>
@@ -1132,7 +1181,6 @@
                         ${loading && html`<${Loader} />`}
                         ${zoomWarning && !loading && html`<${AlertPill} msg="Zoom in to find spots" />`}
                         
-                        <!-- NEW LIST VIEW BUTTON -->
                         ${showListHint && html`
                             <div class="animate-shake-wrapper">
                                 <button 
@@ -1166,15 +1214,15 @@
                     ${view === 'list' && html`<div class="list-wrapper p-4 pb-24 safe-pb bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">
                         ${inAreaLocs.length === 0 && furtherLocs.length === 0 && html`<div class="text-center text-slate-400 dark:text-zinc-600 mt-20"><div class="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-zinc-700 opacity-50 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div><p class="font-brand text-lg">No spots visible.</p></div>`}
                         
-                        ${inAreaLocs.map(loc => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} onClick=${() => goToLoc(loc)} />`)}
+                        ${inAreaLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i} onClick=${() => goToLoc(loc)} />`)}
 
                         ${furtherLocs.length > 0 && html`
-                            <div class="py-4 flex items-center gap-4">
+                            <div class="py-4 flex items-center gap-4 animate-stagger-fade" style=${{ animationDelay: '300ms' }}>
                                 <div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div>
                                 <span class="text-xs font-bold text-slate-400 dark:text-zinc-600 uppercase tracking-wider">Further Afield</span>
                                 <div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div>
                             </div>
-                            ${furtherLocs.map(loc => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} onClick=${() => goToLoc(loc)} />`)}
+                            ${furtherLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i + inAreaLocs.length} onClick=${() => goToLoc(loc)} />`)}
                         `}
                     </div>`}
                 </div>
