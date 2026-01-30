@@ -649,16 +649,24 @@
                 setIsCamperMode(!isCamperMode);
             };
             
+            // UPDATED: Logic to toggle filters properly
             const handleFilterClick = () => {
-                // Exclusive logic
-                closeAllMenus();
-                setShowFilters(true);
+                if (showFilters) {
+                    setShowFilters(false);
+                } else {
+                    closeAllMenus();
+                    setShowFilters(true);
+                }
             };
 
+            // UPDATED: Logic to toggle about properly
             const handleAboutClick = () => {
-                // Exclusive logic
-                closeAllMenus();
-                setShowAbout(true);
+                if (showAbout) {
+                    setShowAbout(false);
+                } else {
+                    closeAllMenus();
+                    setShowAbout(true);
+                }
             };
             
             const handleViewToggle = () => {
