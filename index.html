@@ -37,12 +37,17 @@
                         'scale-in': 'scaleIn 0.2s ease-out forwards',
                         'slide-up-card': 'slideUpCard 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
                         'stagger-fade': 'staggerFade 0.4s ease-out forwards',
-                        'pop-in': 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
+                        'pop-in': 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+                        'pulse-fast': 'pulseFast 1s cubic-bezier(0.4, 0, 0.6, 1) infinite'
                     },
                     keyframes: {
                         popIn: {
                             '0%': { opacity: '0', transform: 'scale(0.5)' },
                             '100%': { opacity: '1', transform: 'scale(1)' }
+                        },
+                        pulseFast: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0.4' }
                         }
                     }
                 }
@@ -1294,10 +1299,12 @@
                 ${!isPickingLocation && !selectedLoc && html`
                     ${(gpsStatus !== 'idle' || loading) && html`
                         <div class="absolute right-5 bottom-40 w-10 h-10 bg-white dark:bg-zinc-800 rounded-full shadow-lg z-[1000] flex items-center justify-center animate-pop-in border border-slate-100 dark:border-zinc-700">
-                            ${gpsStatus === 'success' 
-                                ? html`<div class="w-5 h-5 text-emerald-500 flex items-center justify-center animate-scale-in" dangerouslySetInnerHTML=${{__html: ICONS.check}}></div>`
-                                : html`<div class="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>`
-                            }
+                            ${(() => {
+                                if (gpsStatus === 'success') return html`<div class="w-5 h-5 text-emerald-500 flex items-center justify-center animate-scale-in" dangerouslySetInnerHTML=${{__html: ICONS.check}}></div>`;
+                                if (gpsStatus === 'searching') return html`<span class="material-symbols-rounded animate-pulse-fast text-sky-500 text-xl">my_location</span>`;
+                                if (loading) return html`<div class="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>`;
+                                return null;
+                            })()}
                         </div>
                     `}
 
