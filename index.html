@@ -202,7 +202,7 @@
             walk: `<span class="material-symbols-rounded icon-md">directions_walk</span>`,
             car: `<span class="material-symbols-rounded icon-md">directions_car</span>`,
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
         const OVERPASS_SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
@@ -309,7 +309,7 @@
             return html`
             <div class="fixed inset-0 z-[1600] flex flex-col justify-end pointer-events-none">
                 <div class="absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity" onClick=${handleClose}></div>
-                <div class="bg-white dark:bg-zinc-900 w-full rounded-t-3xl shadow-2xl p-6 pb-10 pointer-events-auto transform transition-transform duration-300 max-h-[85vh] overflow-y-auto">
+                <div class="bg-white dark:bg-zinc-900 w-full rounded-t-3xl shadow-2xl p-6 pb-10 pointer-events-auto animate-slide-up-card max-h-[85vh] overflow-y-auto">
                     <div class="flex justify-center mb-4"><div class="w-12 h-1.5 bg-slate-200 dark:bg-zinc-700 rounded-full"></div></div>
                     <div class="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-bold font-brand text-slate-800 dark:text-zinc-100">Options</h2>
@@ -424,7 +424,7 @@
             return html`
             <div class="fixed inset-0 z-[1600] flex flex-col justify-end pointer-events-none">
                 <div class="absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity" onClick=${handleClose}></div>
-                <div class="bg-white dark:bg-zinc-900 w-full rounded-t-3xl shadow-2xl p-6 pb-12 pointer-events-auto transform transition-transform duration-300">
+                <div class="bg-white dark:bg-zinc-900 w-full rounded-t-3xl shadow-2xl p-6 pb-12 pointer-events-auto animate-slide-up-card">
                     <div class="flex justify-center mb-4"><div class="w-12 h-1.5 bg-slate-200 dark:bg-zinc-700 rounded-full"></div></div>
                     <div class="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-bold font-brand text-slate-800 dark:text-zinc-100">Add Missing Spot</h2>
