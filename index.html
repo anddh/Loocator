@@ -26,13 +26,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
-            darkMode: 'media', // Automatic based on system preference
+            darkMode: 'media', 
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Fredoka', 'sans-serif'],
-                        brand: ['Fredoka', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['Fredoka', 'sans-serif'], brand: ['Fredoka', 'sans-serif'] },
                     animation: {
                         'scale-in': 'scaleIn 0.2s ease-out forwards',
                         'scale-out': 'scaleOut 0.2s ease-in forwards',
@@ -45,43 +42,15 @@
                         'ripple': 'ripple 2s infinite'
                     },
                     keyframes: {
-                        scaleIn: {
-                            '0%': { opacity: '0', transform: 'scale(0.95)' },
-                            '100%': { opacity: '1', transform: 'scale(1)' }
-                        },
-                        scaleOut: {
-                            '0%': { opacity: '1', transform: 'scale(1)' },
-                            '100%': { opacity: '0', transform: 'scale(0.95)' }
-                        },
-                        slideUpCard: {
-                            '0%': { transform: 'translateY(100%)' },
-                            '100%': { transform: 'translateY(0)' }
-                        },
-                        slideDownCard: {
-                            '0%': { transform: 'translateY(0)' },
-                            '100%': { transform: 'translateY(100%)' }
-                        },
-                        staggerFade: {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' }
-                        },
-                        staggerFadeOut: {
-                            '0%': { opacity: '1', transform: 'translateY(0)' },
-                            '100%': { opacity: '0', transform: 'translateY(20px)' }
-                        },
-                        popIn: {
-                            '0%': { opacity: '0', transform: 'scale(0.5)' },
-                            '100%': { opacity: '1', transform: 'scale(1)' }
-                        },
-                        pulseFast: {
-                            '0%, 100%': { opacity: '1' },
-                            '50%': { opacity: '0.4' }
-                        },
-                        ripple: {
-                            '0%': { boxShadow: '0 0 0 0 rgba(148, 163, 184, 0.4)' },
-                            '70%': { boxShadow: '0 0 0 15px rgba(148, 163, 184, 0)' },
-                            '100%': { boxShadow: '0 0 0 0 rgba(148, 163, 184, 0)' }
-                        }
+                        scaleIn: { '0%': { opacity: '0', transform: 'scale(0.95)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
+                        scaleOut: { '0%': { opacity: '1', transform: 'scale(1)' }, '100%': { opacity: '0', transform: 'scale(0.95)' } },
+                        slideUpCard: { '0%': { transform: 'translateY(100%)' }, '100%': { transform: 'translateY(0)' } },
+                        slideDownCard: { '0%': { transform: 'translateY(0)' }, '100%': { transform: 'translateY(100%)' } },
+                        staggerFade: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+                        staggerFadeOut: { '0%': { opacity: '1', transform: 'translateY(0)' }, '100%': { opacity: '0', transform: 'translateY(20px)' } },
+                        popIn: { '0%': { opacity: '0', transform: 'scale(0.5)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
+                        pulseFast: { '0%, 100%': { opacity: '1' }, '50%': { opacity: '0.4' } },
+                        ripple: { '0%': { boxShadow: '0 0 0 0 rgba(148, 163, 184, 0.4)' }, '70%': { boxShadow: '0 0 0 15px rgba(148, 163, 184, 0)' }, '100%': { boxShadow: '0 0 0 0 rgba(148, 163, 184, 0)' } }
                     }
                 }
             }
@@ -98,19 +67,15 @@
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
-
         gtag('config', 'G-C5W3F59SDX');
     </script>
     <style>
-        /* Base styles */
         body, html { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f8fafc; font-family: 'Fredoka', sans-serif; }
         * { -webkit-tap-highlight-color: transparent; }
-
         @media (prefers-color-scheme: dark) {
             body, html { background-color: #09090b; }
             .leaflet-container { background: #09090b !important; }
         }
-
         #root { height: 100%; display: flex; flex-direction: column; }
         .map-wrapper { position: relative; flex-grow: 1; width: 100%; height: 100%; overflow: hidden; }
         #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; background: transparent; }
@@ -119,25 +84,13 @@
         .pie-icon { text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
         .user-pin-ring { position: absolute; width: 20px; height: 20px; border-radius: 50%; background-color: #475569; opacity: 0.7; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
         .user-pin-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background-color: white; border: 2px solid #475569; top: 5px; left: 5px; animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.4s infinite; }
-        @media (prefers-color-scheme: dark) {
-            .user-pin-ring { background-color: #a1a1aa; }
-            .user-pin-dot { border-color: #a1a1aa; }
-        }
+        @media (prefers-color-scheme: dark) { .user-pin-ring { background-color: #a1a1aa; } .user-pin-dot { border-color: #a1a1aa; } }
         @keyframes pulse-ring { 0% { transform: scale(0.33); opacity: 1; } 80%, 100% { opacity: 0; } }
         @keyframes pulse-dot { 0% { transform: scale(0.8); } 50% { transform: scale(1); } 100% { transform: scale(0.8); } }
         .safe-pt { padding-top: env(safe-area-inset-top); }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
-        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        @media (prefers-color-scheme: dark) {
-            @keyframes ripple {
-                0% { box-shadow: 0 0 0 0 rgba(113, 113, 122, 0.4); }
-                70% { box-shadow: 0 0 0 15px rgba(113, 113, 122, 0); }
-                100% { box-shadow: 0 0 0 0 rgba(113, 113, 122, 0); }
-            }
-        }
     </style>
 
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -181,14 +134,12 @@
             clock: `<span class="material-symbols-rounded icon-sm">history</span>`,
             walk: `<span class="material-symbols-rounded icon-md">directions_walk</span>`,
             car: `<span class="material-symbols-rounded icon-md">directions_car</span>`,
+            report: `<span class="material-symbols-rounded icon-sm">flag</span>`,
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
             drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
-        const TYPE_COLORS = {
-            toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8'
-        };
-
+        const TYPE_COLORS = { toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8' };
         const ADDRESS_CACHE = {};
 
         function debounce(func, wait) {
@@ -207,8 +158,7 @@
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2); 
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-            const d = R * c; 
-            return { text: d < 1 ? Math.round(d * 1000) + 'm' : d.toFixed(1) + 'km', km: d };
+            return { text: (R * c) < 1 ? Math.round(R * c * 1000) + 'm' : (R * c).toFixed(1) + 'km', km: R * c };
         }
 
         const AlertPill = ({ msg }) => html`<div class="px-4 py-2 rounded-full shadow-lg text-sm font-medium font-brand z-[1000] bg-orange-100 text-orange-800 border-2 border-white/50 dark:bg-orange-900/80 dark:text-orange-200 dark:border-orange-800/50">${msg}</div>`;
@@ -259,7 +209,6 @@
             const triggerClose = () => { setIsClosing(true); setTimeout(onClose, 300); };
             useImperativeHandle(ref, () => ({ triggerClose }));
             const handleClearHistory = () => { if (confirm('Clear all search history?')) { clearHistory(); } };
-
             return html`
             <div class="fixed inset-0 z-[1600] flex flex-col justify-end pointer-events-none">
                 <div class=${`absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${triggerClose}></div>
@@ -298,93 +247,69 @@
             </div>`;
         });
 
-        const ContributeSheet = ({ lat, lon, onClose, onShowToast }) => {
+        const ContributeSheet = ({ lat, lon, onClose, onShowToast, isCorrection = false, correctionId = null, correctionName = '' }) => {
             const [text, setText] = useState('');
             const [sending, setSending] = useState(false);
             const [sent, setSent] = useState(false);
             const [isClosing, setIsClosing] = useState(false);
-
             const handleClose = () => { setIsClosing(true); setTimeout(onClose, 300); };
-
             const handleSubmit = async (e) => {
                 e.preventDefault(); if (!text.trim()) return; setSending(true);
                 try {
                     const formData = new FormData();
-                    formData.append('lat', lat); formData.append('lon', lon); formData.append('text', text + ' #LoocatorApp');
+                    formData.append('lat', lat); formData.append('lon', lon);
+                    let noteText = text + ' #LoocatorApp';
+                    if (isCorrection) noteText = `Correction for ${correctionName} (ID: ${correctionId}): ` + noteText;
+                    formData.append('text', noteText);
                     const res = await fetch('https://api.openstreetmap.org/api/0.6/notes.json', { method: 'POST', body: formData });
-                    if (res.ok) { setSent(true); onShowToast("Note sent to map editors!"); setTimeout(handleClose, 2000); } else { throw new Error("Failed"); }
+                    if (res.ok) { setSent(true); onShowToast(isCorrection ? "Report sent! Thank you." : "Note sent to map editors!"); setTimeout(handleClose, 2000); } else { throw new Error("Failed"); }
                 } catch (err) { onShowToast("Failed to send note. Try again."); setSending(false); }
             };
-
             return html`
             <div class="fixed inset-0 z-[1600] flex flex-col justify-end pointer-events-none">
                 <div class=${`absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${handleClose}></div>
                 <div class=${`bg-white dark:bg-zinc-900 w-full rounded-t-3xl shadow-2xl p-6 pb-12 pointer-events-auto ${isClosing ? 'animate-slide-down-card' : 'animate-slide-up-card'}`}>
                     <div class="flex justify-center mb-4"><div class="w-12 h-1.5 bg-slate-200 dark:bg-zinc-700 rounded-full"></div></div>
                     <div class="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold font-brand text-slate-800 dark:text-zinc-100">Add Missing Spot</h2>
+                        <h2 className="text-xl font-bold font-brand text-slate-800 dark:text-zinc-100">${isCorrection ? 'Report Issue' : 'Add Missing Spot'}</h2>
                         <button onClick=${handleClose} className="p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
                     </div>
                     ${!sent ? html`
                         <div class="space-y-4">
-                            <p class="text-slate-500 dark:text-zinc-400 text-sm">Describe what is here (e.g. "Public toilet, 50p fee"). This will be sent anonymously to OpenStreetMap volunteers.</p>
+                            <p class="text-slate-500 dark:text-zinc-400 text-sm">${isCorrection ? `What is wrong with "${correctionName}"? (e.g. wrong price, closed, doesn't exist)` : 'Describe what is here (e.g. "Public toilet, 50p fee"). This will be sent anonymously to OpenStreetMap volunteers.'}</p>
                             <textarea class="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl p-3 text-slate-700 dark:text-zinc-200 font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 min-h-[100px]" placeholder="Type description here..." value=${text} onInput=${(e) => setText(e.target.value)} disabled=${sending}></textarea>
-                            <button onClick=${handleSubmit} disabled=${sending || !text.trim()} class=${'w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-md transition-all ' + (sending || !text.trim() ? 'bg-slate-200 dark:bg-zinc-800 text-slate-400 dark:text-zinc-600 cursor-not-allowed' : 'bg-slate-800 text-white active:scale-95 dark:bg-zinc-700')}>${sending ? html`<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>` : html`<div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.send}}></div>`}<span>${sending ? 'Sending...' : 'Send Note'}</span></button>
+                            <button onClick=${handleSubmit} disabled=${sending || !text.trim()} class=${'w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-md transition-all ' + (sending || !text.trim() ? 'bg-slate-200 dark:bg-zinc-800 text-slate-400 dark:text-zinc-600 cursor-not-allowed' : 'bg-slate-800 text-white active:scale-95 dark:bg-zinc-700')}>${sending ? html`<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>` : html`<div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.send}}></div>`}<span>${sending ? 'Sending...' : (isCorrection ? 'Send Report' : 'Send Note')}</span></button>
                         </div>` : html`
                         <div class="flex flex-col items-center justify-center py-8 text-center animate-pulse"><div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4"><span class="material-symbols-rounded text-3xl">check</span></div><h3 class="text-xl font-bold text-slate-800 dark:text-zinc-100">Thank you!</h3><p class="text-slate-500 dark:text-zinc-400">Your contribution helps everyone.</p></div>`}
                 </div>
             </div>`;
         }
 
-        const DetailsCard = ({ loc, userLoc, navAppDrive, navAppWalk, onClose, minimized, setMinimized }) => {
+        const DetailsCard = ({ loc, userLoc, navAppDrive, navAppWalk, onClose, minimized, setMinimized, onReport }) => {
             if (!loc) return null;
             const [address, setAddress] = useState('Loading...');
             const [imageUrl, setImageUrl] = useState(null);
             const [isClosing, setIsClosing] = useState(false);
             const [animationFinished, setAnimationFinished] = useState(false);
-
             useEffect(() => {
                 const timer = setTimeout(() => setAnimationFinished(true), 500);
                 return () => clearTimeout(timer);
             }, []);
-
-            const handleClose = () => {
-                setIsClosing(true);
-                setTimeout(onClose, 300);
-            };
-            
-            const handleContainerClick = (e) => {
-                if (minimized) {
-                    setMinimized(false);
-                }
-            };
-
-            const handleDrive = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const lat = loc.lat; const lon = loc.lon; if (navAppDrive === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`; else if (navAppDrive === 'waze') url = `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`; window.open(url, '_blank'); };
-            const handleWalk = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const lat = loc.lat; const lon = loc.lon; if (navAppWalk === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=w`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=walking`; window.open(url, '_blank'); };
-
+            const handleClose = () => { setIsClosing(true); setTimeout(onClose, 300); };
+            const handleContainerClick = () => { if (minimized) setMinimized(false); };
+            const handleDrive = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const {lat, lon} = loc; if (navAppDrive === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`; else if (navAppDrive === 'waze') url = `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`; window.open(url, '_blank'); };
+            const handleWalk = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const {lat, lon} = loc; if (navAppWalk === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=w`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=walking`; window.open(url, '_blank'); };
             useEffect(() => { if (ADDRESS_CACHE[loc.id]) { setAddress(ADDRESS_CACHE[loc.id]); return; } const fetchAddr = async () => { try { const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.lat}&lon=${loc.lon}&zoom=18&addressdetails=1`); const data = await res.json(); const a = data.address || {}; const formatted = (a.road || a.pedestrian || '') + (a.house_number ? ', ' + a.house_number : '') + (a.suburb ? ' (' + a.suburb + ')' : ''); setAddress(formatted || "Address unavailable"); ADDRESS_CACHE[loc.id] = formatted || "Address unavailable"; } catch (e) { setAddress("Address unavailable"); } }; fetchAddr(); }, [loc]);
             useEffect(() => { setImageUrl(null); const fetchImage = async () => { if (loc.tags.image) { setImageUrl(loc.tags.image); return; } if (loc.tags.wikidata) { try { const res = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P18&entity=${loc.tags.wikidata}&format=json&origin=*`); const data = await res.json(); const claims = data.claims.P18; if (claims && claims.length) setImageUrl(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(claims[0].mainsnak.datavalue.value)}?width=600`); } catch (e) {} } }; fetchImage(); }, [loc]);
-
             const distObj = userLoc ? calculateDistance(userLoc[0], userLoc[1], loc.lat, loc.lon) : null;
             const isPaid = loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no');
-            
-            let headerBg = 'bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-300';
-            if (loc.displayType === 'water') headerBg = 'bg-teal-50 text-teal-700 dark:bg-teal-900/50 dark:text-teal-200';
-            if (loc.displayType === 'baby') headerBg = 'bg-rose-50 text-rose-700 dark:bg-rose-900/50 dark:text-rose-200';
-            if (loc.displayType === 'grey') headerBg = 'bg-slate-200 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300';
-            if (loc.displayType === 'black') headerBg = 'bg-slate-700 text-slate-100 dark:bg-zinc-950 dark:text-zinc-200';
-            if (loc.displayType === 'shower') headerBg = 'bg-sky-50 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200';
-
+            let headerBg = loc.displayType === 'water' ? 'bg-teal-50 text-teal-700 dark:bg-teal-900/50 dark:text-teal-200' : loc.displayType === 'baby' ? 'bg-rose-50 text-rose-700 dark:bg-rose-900/50 dark:text-rose-200' : loc.displayType === 'shower' ? 'bg-sky-50 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200' : 'bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-300';
             const contentClass = `transition-opacity duration-300 ${minimized ? 'opacity-0 pointer-events-none' : 'opacity-100 delay-100'}`;
-
             return html`
-                <div 
-                    onClick=${handleContainerClick} 
-                    style=${{ transform: minimized ? 'translateY(calc(100% - 160px))' : 'translateY(0)' }} 
-                    class=${`fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl z-[1500] flex flex-col max-h-[85vh] safe-pb transition-transform duration-300 ease-in-out ${isClosing ? 'animate-slide-down-card' : (animationFinished ? '' : 'animate-slide-up-card')} ${minimized ? 'cursor-pointer' : ''}`}
-                >
+                <div onClick=${handleContainerClick} style=${{ transform: minimized ? 'translateY(calc(100% - 160px))' : 'translateY(0)' }} 
+                    class=${`fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl z-[1500] flex flex-col max-h-[85vh] safe-pb transition-transform duration-300 ease-in-out ${isClosing ? 'animate-slide-down-card' : (animationFinished ? '' : 'animate-slide-up-card')} ${minimized ? 'cursor-pointer' : ''}`}>
                     <div class="w-full flex justify-center pt-3 pb-1" onClick=${(e) => { e.stopPropagation(); if (!minimized) handleClose(); else setMinimized(false); }}><div class="w-12 h-1.5 bg-slate-200 dark:bg-zinc-700 rounded-full"></div></div>
-                    ${imageUrl ? html`<div class="w-full h-48 bg-slate-100 dark:bg-zinc-800 relative overflow-hidden shrink-0"><img src=${imageUrl} class="w-full h-full object-cover img-fade-in"/><div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div><button onClick=${(e) => { e.stopPropagation(); handleClose(); }} class="absolute top-4 right-4 p-2 bg-black/30 backdrop-blur rounded-full text-white"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>` : html`<div class="absolute top-2 right-4 z-10"><button onClick=${(e) => { e.stopPropagation(); handleClose(); }} class="p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-700"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>`}
+                    ${imageUrl ? html`<div class="w-full h-48 bg-slate-100 dark:bg-zinc-800 relative overflow-hidden shrink-0"><img src=${imageUrl} class="w-full h-full object-cover"/><div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div><button onClick=${(e) => { e.stopPropagation(); handleClose(); }} class="absolute top-4 right-4 p-2 bg-black/30 backdrop-blur rounded-full text-white"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>` : html`<div class="absolute top-2 right-4 z-10"><button onClick=${(e) => { e.stopPropagation(); handleClose(); }} class="p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-700"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>`}
                     <div class="p-6 pt-2 overflow-y-auto">
                         <div class="mb-4">
                             <div class="flex space-x-2 mb-2">
@@ -401,37 +326,21 @@
                                 ${loc.isWater && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-teal-50 text-teal-700 border border-teal-100 dark:bg-teal-900/30 dark:text-teal-200 dark:border-teal-900/50 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.water}}></span> Water</div>`}
                                 ${loc.hasBaby && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-rose-50 text-rose-700 border border-rose-100 dark:bg-rose-900/30 dark:text-rose-200 dark:border-rose-900/50 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.baby}}></span> Baby Change</div>`}
                                 ${loc.hasShower && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-sky-50 text-sky-700 border border-sky-100 dark:bg-sky-900/30 dark:text-sky-200 dark:border-sky-900/50 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.shower}}></span> Shower</div>`}
-                                ${loc.isBlack && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-slate-100 border border-slate-700 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.trash}}></span> Black Waste</div>`}
-                                ${loc.isGrey && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-200 text-slate-700 border border-slate-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.drop}}></span> Grey Waste</div>`}
                             </div>
                             <div class="space-y-3 mb-4">
                                 <div class="flex gap-2">
                                     <button onClick=${handleDrive} class="flex-1 bg-slate-800 text-white dark:bg-zinc-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.car}}></div><span>Drive</span></button>
                                     <button onClick=${handleWalk} class="flex-1 bg-emerald-600 text-white dark:bg-emerald-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.walk}}></div><span>Walk</span></button>
                                 </div>
-                                <a href=${`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${loc.lat},${loc.lon}`} target="_blank" class="w-full bg-white text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-slate-200 dark:border-zinc-700"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.eye}}></div><span>Street Preview</span></a>
+                                <div class="flex gap-2">
+                                    <a href=${`https://www.google.com/maps/@?api=1&map_action=streetview&location=${loc.lat},${loc.lon}`} target="_blank" class="flex-[3] bg-white text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-slate-200 dark:border-zinc-700"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.eye}}></div><span>Street Preview</span></a>
+                                    <button onClick=${(e) => { e.stopPropagation(); onReport(loc); }} class="flex-1 bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-300 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-rose-100 dark:border-rose-900/50"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.report}}></div></button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>`;
         };
-        
-        const ListItem = ({ loc, onClick, userPos, index, isExiting }) => {
-            let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet;
-            const types = [];
-            if (loc.isToilet) types.push('toilet'); if (loc.isWater) types.push('water'); if (loc.hasBaby) types.push('baby'); if (loc.hasShower) types.push('shower'); if (loc.isBlack) types.push('black'); if (loc.isGrey) types.push('grey'); if (types.length === 0) types.push('toilet');
-            let backgroundStyle = '';
-            if (types.length === 1) { backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`; } else { const segmentSize = 100 / types.length; const gradientParts = types.map((t, i) => { const color = TYPE_COLORS[t]; const start = i * segmentSize; const end = (i + 1) * segmentSize; return `${color} ${start}% ${end}%`; }); backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`; }
-            const [fetchedAddr, setFetchedAddr] = useState(ADDRESS_CACHE[loc.id] || null);
-            const [displayName, setDisplayName] = useState(loc.name);
-            useEffect(() => { if (ADDRESS_CACHE[loc.id]) { setFetchedAddr(ADDRESS_CACHE[loc.id]); return; } }, [loc.id, index]);
-            const displayAddress = fetchedAddr || loc.rawAddress;
-            return html`
-                <div onClick=${() => { onClick(); }} class=${`bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform ${isExiting ? 'animate-stagger-fade-out pointer-events-none' : 'animate-stagger-fade opacity-0'}`} style=${{ animationDelay: isExiting ? `${index * 30}ms` : `${index * 50}ms` }}>
-                    <div class="flex items-center space-x-4 overflow-hidden"><div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm pie-icon" style=${{ cssText: backgroundStyle }} dangerouslySetInnerHTML=${{__html: iconHtml}}></div><div class="flex flex-col overflow-hidden"><h4 class="font-semibold text-slate-700 dark:text-zinc-200 font-brand text-base leading-tight truncate">${displayName}</h4>${displayAddress && html`<p class="text-xs text-slate-400 dark:text-zinc-500 truncate mt-0.5">${displayAddress}</p>`}</div></div>
-                    <span class="text-[10px] font-bold bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400 px-2 py-0.5 rounded-full ml-2 shrink-0">${calculateDistance(userPos[0], userPos[1], loc.lat, loc.lon).text}</span>
-                </div>`;
-        }
 
         const FilterBtn = ({ type, label, active, onClick, color = 'slate' }) => {
             const colors = { slate: 'bg-slate-800 dark:bg-zinc-600 border-slate-800 dark:border-zinc-600', teal: 'bg-teal-500 dark:bg-teal-600 border-teal-500 dark:border-teal-600', rose: 'bg-rose-400 dark:bg-rose-500 border-rose-400 dark:border-rose-500', black: 'bg-slate-800 dark:bg-zinc-700 border-slate-800 dark:border-zinc-700', grey: 'bg-slate-400 dark:bg-zinc-500 border-slate-400 dark:border-zinc-500', sky: 'bg-sky-500 dark:bg-sky-600 border-sky-500 dark:border-sky-600' };
@@ -443,6 +352,21 @@
                     <div class="flex items-center justify-center w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS[type]}}></div><span>${label}</span>
                 </div>`;
         };
+
+        const ListItem = ({ loc, onClick, userPos, index, isExiting }) => {
+            let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet;
+            const types = [];
+            if (loc.isToilet) types.push('toilet'); if (loc.isWater) types.push('water'); if (loc.hasBaby) types.push('baby'); if (loc.hasShower) types.push('shower'); if (loc.isBlack) types.push('black'); if (loc.isGrey) types.push('grey'); if (types.length === 0) types.push('toilet');
+            let backgroundStyle = '';
+            if (types.length === 1) { backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`; } else { const segmentSize = 100 / types.length; const gradientParts = types.map((t, i) => { const color = TYPE_COLORS[t]; const start = i * segmentSize; const end = (i + 1) * segmentSize; return `${color} ${start}% ${end}%`; }); backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`; }
+            const [fetchedAddr, setFetchedAddr] = useState(ADDRESS_CACHE[loc.id] || null);
+            const displayAddress = fetchedAddr || loc.rawAddress;
+            return html`
+                <div onClick=${() => { onClick(); }} class=${`bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform ${isExiting ? 'animate-stagger-fade-out pointer-events-none' : 'animate-stagger-fade opacity-0'}`} style=${{ animationDelay: isExiting ? `${index * 30}ms` : `${index * 50}ms` }}>
+                    <div class="flex items-center space-x-4 overflow-hidden"><div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm pie-icon" style=${{ cssText: backgroundStyle }} dangerouslySetInnerHTML=${{__html: iconHtml}}></div><div class="flex flex-col overflow-hidden"><h4 class="font-semibold text-slate-700 dark:text-zinc-200 font-brand text-base leading-tight truncate">${loc.name}</h4>${displayAddress && html`<p class="text-xs text-slate-400 dark:text-zinc-500 truncate mt-0.5">${displayAddress}</p>`}</div></div>
+                    <span class="text-[10px] font-bold bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400 px-2 py-0.5 rounded-full ml-2 shrink-0">${calculateDistance(userPos[0], userPos[1], loc.lat, loc.lon).text}</span>
+                </div>`;
+        }
 
         function App() {
             const [view, setView] = useState('map');
@@ -477,6 +401,11 @@
             const [showContribute, setShowContribute] = useState(false);
             const [isPickingLocation, setIsPickingLocation] = useState(false);
             const [contributeCoords, setContributeCoords] = useState(null);
+            
+            // Correction State
+            const [showCorrection, setShowCorrection] = useState(false);
+            const [correctionData, setCorrectionData] = useState(null);
+
             const [gpsStatus, setGpsStatus] = useState('idle');
             const [isDarkMode, setIsDarkMode] = useState(window.matchMedia('(prefers-color-scheme: dark)').matches);
 
@@ -489,10 +418,10 @@
             const fetchController = useRef(null);
             const filterSheetRef = useRef(null);
             const selectedLocRef = useRef(null); 
-            const cardMinimizedRef = useRef(false); // Ref to track minimized state in event listener
+            const cardMinimizedRef = useRef(false);
 
             useEffect(() => { selectedLocRef.current = selectedLoc; }, [selectedLoc]);
-            useEffect(() => { cardMinimizedRef.current = cardMinimized; }, [cardMinimized]); // Sync Ref
+            useEffect(() => { cardMinimizedRef.current = cardMinimized; }, [cardMinimized]);
 
             useEffect(() => {
                 try {
@@ -517,7 +446,6 @@
             
             useEffect(() => { camperModeRef.current = isCamperMode; if (mapInstanceRef.current) { setLoading(true); debouncedFetch(mapInstanceRef.current.getBounds()); } }, [isCamperMode]);
             
-            // Re-added robust tile layer logic here
             useEffect(() => { 
                 if (!mapInstanceRef.current) return; 
                 if (tileLayerRef.current) { mapInstanceRef.current.removeLayer(tileLayerRef.current); } 
@@ -531,35 +459,17 @@
                 setShowFilters(false);
                 setShowAbout(false);
                 setShowContribute(false);
+                setShowCorrection(false);
                 setSelectedLoc(null);
                 setCardMinimized(false);
             };
 
             const toggleMode = () => { setIsCamperMode(!isCamperMode); };
             
-            const handleFilterClick = () => { 
-                if (showFilters) { 
-                    if (filterSheetRef.current) {
-                        filterSheetRef.current.triggerClose();
-                    }
-                } else { 
-                    closeAllMenus(); 
-                    setShowFilters(true); 
-                } 
-            };
-            
+            const handleFilterClick = () => { if (showFilters) { if (filterSheetRef.current) { filterSheetRef.current.triggerClose(); } } else { closeAllMenus(); setShowFilters(true); } };
             const handleAboutClick = () => { if (showAbout) { setShowAbout(false); } else { closeAllMenus(); setShowAbout(true); } };
             
-            const handleViewToggle = () => {
-                if (view === 'list') {
-                    setIsListExiting(true);
-                    setTimeout(() => { setIsListExiting(false); setView('map'); }, 300);
-                } else {
-                    closeAllMenus();
-                    setView('list');
-                }
-            };
-            
+            const handleViewToggle = () => { if (view === 'list') { setIsListExiting(true); setTimeout(() => { setIsListExiting(false); setView('map'); }, 300); } else { closeAllMenus(); setView('list'); } };
             const handleViewChange = () => { closeAllMenus(); setView('list'); }
 
             const visibleLocations = useMemo(() => { return allLocations.filter(loc => { if (freeOnly && (loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no'))) return false; if (bottleOnly && loc.isWater && !loc.isToilet && !loc.hasBaby) { if (loc.tags.amenity !== 'drinking_water' && loc.tags.bottle !== 'yes') return false; } if (accessOnly) { const w = loc.tags.wheelchair; if (w !== 'yes' && w !== 'limited' && w !== 'designated') return false; } if (keyOnly) { const radar = loc.tags.radar_key; const central = loc.tags.centralkey; if (radar !== 'yes' && !central) return false; } return isCamperMode ? (vanFilters.black && loc.isBlack) || (vanFilters.grey && loc.isGrey) || (vanFilters.water && loc.isWater) || (vanFilters.shower && loc.hasShower) : (stdFilters.toilet && loc.isToilet) || (stdFilters.water && loc.isWater) || (stdFilters.baby && loc.hasBaby); }).map(loc => { let displayType = loc.baseType; if (isCamperMode) { if (vanFilters.black && loc.isBlack) displayType = 'black'; else if (vanFilters.grey && loc.isGrey) displayType = 'grey'; else if (vanFilters.shower && loc.hasShower) displayType = 'shower'; else if (vanFilters.water && loc.isWater) displayType = 'water'; } else if (stdFilters.baby && loc.hasBaby && !stdFilters.toilet) displayType = 'baby'; return { ...loc, displayType }; }).sort((a, b) => calculateDistance(userPos[0], userPos[1], a.lat, a.lon).km - calculateDistance(userPos[0], userPos[1], b.lat, b.lon).km); }, [allLocations, isCamperMode, stdFilters, vanFilters, userPos, freeOnly, bottleOnly, accessOnly, keyOnly]);
@@ -573,7 +483,7 @@
             const handleInstall = () => { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') { setDeferredPrompt(null); setIsInstalled(true); } }); } else { const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; if (isIOS) { showToast("Tap 'Share' then 'Add to Home Screen'"); } else { showToast("Use browser menu to Install App"); } } };
             useEffect(() => { if (!mapRef.current || mapInstanceRef.current) return; const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(mapCenter, 13); mapInstanceRef.current = map; 
             
-            // TILE LOADING FIXED HERE: Immediate load
+            // Initial tile load (Fix for race condition)
             const tileUrl = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'; 
             tileLayerRef.current = L.tileLayer(tileUrl, { attribution: '', subdomains: 'abcd', maxZoom: 20 }).addTo(map);
 
@@ -581,14 +491,9 @@
             
             const handleMove = () => { if (map.getZoom() < 13) { setZoomWarning(true); setAllLocations([]); markersRef.current.clearLayers(); } else { setZoomWarning(false); setLoading(true); const b = map.getBounds(); setSearchBounds(b); debouncedFetch(b); } }; 
             
-            // Handle Map Click for minimizing/toggling card
-            map.on('click', () => {
-                if (selectedLocRef.current) {
-                    setCardMinimized(!cardMinimizedRef.current);
-                }
-            });
-
+            map.on('click', () => { if (selectedLocRef.current) { setCardMinimized(!cardMinimizedRef.current); } });
             map.on('moveend', handleMove); setLoading(true); const findLocation = async () => { let gpsResolved = false; try { const res = await fetch('https://ipapi.co/json/'); if (res.ok) { const data = await res.json(); if (!gpsResolved && data.latitude && data.longitude) { updateUserLocation([data.latitude, data.longitude], 'IP'); } } } catch (e) { console.log('IP Loc failed'); } navigator.geolocation.getCurrentPosition( (pos) => { gpsResolved = true; updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => { console.log('GPS denied'); }, { enableHighAccuracy: true, timeout: 10000 } ); }; findLocation(); }, []);
+            
             useEffect(() => { if (!markersRef.current) return; markersRef.current.clearLayers(); visibleLocations.forEach(loc => { let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet; const types = []; if (loc.isToilet) types.push('toilet'); if (loc.isWater) types.push('water'); if (loc.hasBaby) types.push('baby'); if (loc.hasShower) types.push('shower'); if (loc.isBlack) types.push('black'); if (loc.isGrey) types.push('grey'); if (types.length === 0) types.push('toilet'); let backgroundStyle = ''; if (types.length === 1) { backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`; } else { const segmentSize = 100 / types.length; const gradientParts = types.map((t, i) => { const color = TYPE_COLORS[t]; const start = i * segmentSize; const end = (i + 1) * segmentSize; return `${color} ${start}% ${end}%`; }); backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`; } L.marker([loc.lat, loc.lon], { icon: L.divIcon({ className: '', html: `<div class="relative w-9 h-9"><div class="w-9 h-9 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-700 text-white z-10 relative shadow-sm" style="${backgroundStyle}"><div class="pie-icon flex items-center justify-center">${iconHtml}</div></div></div>`, iconSize: [36, 36], iconAnchor: [18, 36] }) }).addTo(markersRef.current).on('click', () => { closeAllMenus(); setCardMinimized(false); setSelectedLoc(loc); }); }); }, [visibleLocations, isDarkMode]);
             
             const handleSearch = async (e) => { e.preventDefault(); if (!searchTerm) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); addToHistory(searchTerm); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else { showToast('Place not found.'); } } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
@@ -600,6 +505,11 @@
             const confirmLocation = () => { if (mapInstanceRef.current) { const center = mapInstanceRef.current.getCenter(); setContributeCoords({ lat: center.lat, lon: center.lng }); setIsPickingLocation(false); setShowContribute(true); } };
             const cancelPicking = () => { setIsPickingLocation(false); };
             const goToLoc = (loc) => { closeAllMenus(); setCardMinimized(false); setSelectedLoc(loc); setView('map'); const map = mapInstanceRef.current; if (map) { const targetZoom = 17; const point = map.project([loc.lat, loc.lon], targetZoom); const offsetY = map.getSize().y * 0.25; const targetPoint = L.point(point.x, point.y + offsetY); const newCenter = map.unproject(targetPoint, targetZoom); map.flyTo(newCenter, targetZoom); } }
+
+            const openReport = (loc) => {
+                setCorrectionData(loc);
+                setShowCorrection(true);
+            };
 
             return html`
                 <div class="bg-white/95 dark:bg-zinc-900/95 backdrop-blur z-[1700] shadow-sm safe-pt transition-colors duration-300">
@@ -614,19 +524,7 @@
                     </div>
                     <div class="px-4 pb-2 relative z-[1001]">
                         <form onSubmit=${handleSearch} class="relative z-[1001]">
-                            <input 
-                                type="search" 
-                                name="q"
-                                id="search-input"
-                                inputmode="search"
-                                placeholder="Search city..." 
-                                class="w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl py-3 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-zinc-600 focus:bg-white dark:focus:bg-zinc-700 shadow-inner text-slate-600 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 transition-colors" 
-                                value=${searchTerm} 
-                                onInput=${handleInput} 
-                                onFocus=${() => setShowHistory(true)} 
-                                onBlur=${() => setTimeout(() => setShowHistory(false), 200)} 
-                                autocomplete="off"
-                            />
+                            <input type="search" name="q" id="search-input" inputmode="search" placeholder="Search city..." class="w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl py-3 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-zinc-600 focus:bg-white dark:focus:bg-zinc-700 shadow-inner text-slate-600 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 transition-colors" value=${searchTerm} onInput=${handleInput} onFocus=${() => setShowHistory(true)} onBlur=${() => setTimeout(() => setShowHistory(false), 200)} autocomplete="off"/>
                             <button type="submit" class="absolute left-3.5 top-3 text-slate-400 dark:text-zinc-500 w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></button>
                         </form>
                         ${showHistory && ((searchTerm && historyMatches.length > 0) || (!searchTerm && searchHistory.length > 0) || apiSuggestions.length > 0) && html`
@@ -700,7 +598,8 @@
                 ${showFilters && html`<${FilterSheet} ref=${filterSheetRef} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navAppDrive=${navAppDrive} setNavAppDrive=${setNavAppDrive} navAppWalk=${navAppWalk} setNavAppWalk=${setNavAppWalk} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} />`}
                 ${showAbout && html`<${AboutModal} onClose=${() => setShowAbout(false)} />`}
                 ${showContribute && contributeCoords && html`<${ContributeSheet} lat=${contributeCoords.lat} lon=${contributeCoords.lon} onClose=${() => setShowContribute(false)} onShowToast=${showToast} />`}
-                ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} userLoc=${userPos} navAppDrive=${navAppDrive} navAppWalk=${navAppWalk} onClose=${() => setSelectedLoc(null)} minimized=${cardMinimized} setMinimized=${setCardMinimized} />`}
+                ${showCorrection && correctionData && html`<${ContributeSheet} lat=${correctionData.lat} lon=${correctionData.lon} isCorrection=${true} correctionId=${correctionData.id} correctionName=${correctionData.name} onClose=${() => setShowCorrection(false)} onShowToast=${showToast} />`}
+                ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} userLoc=${userPos} navAppDrive=${navAppDrive} navAppWalk=${navAppWalk} onClose=${() => setSelectedLoc(null)} minimized=${cardMinimized} setMinimized=${setCardMinimized} onReport=${openReport} />`}
                 <${Toast} msg=${toast.msg} visible=${toast.visible} />
             `;
         }
