@@ -199,8 +199,10 @@
             note: `<span class="material-symbols-rounded icon-sm">rate_review</span>`,
             send: `<span class="material-symbols-rounded icon-sm">send</span>`,
             clock: `<span class="material-symbols-rounded icon-sm">history</span>`,
+            walk: `<span class="material-symbols-rounded icon-md">directions_walk</span>`,
+            car: `<span class="material-symbols-rounded icon-md">directions_car</span>`,
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
         const OVERPASS_SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
@@ -270,7 +272,6 @@
                 </div>
             </div>`;
 
-        // Updated Toggle Card Component for Filter Sheet
         const ToggleCard = ({ label, subtext, icon, active, onClick, color }) => {
             const activeClass = active 
                 ? 'bg-slate-800 text-white border-slate-800 dark:bg-zinc-600 dark:border-zinc-500 transform' 
@@ -296,7 +297,7 @@
             `;
         }
 
-        const FilterSheet = ({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, accessOnly, setAccessOnly, keyOnly, setKeyOnly, navApp, setNavApp, clearHistory, onClose }) => {
+        const FilterSheet = ({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, accessOnly, setAccessOnly, keyOnly, setKeyOnly, navAppDrive, setNavAppDrive, navAppWalk, setNavAppWalk, clearHistory, onClose }) => {
             const handleClose = () => { onClose(); };
             
             const handleClearHistory = () => {
@@ -346,17 +347,29 @@
                         />
                     </div>
 
-                    <div class="mb-8">
-                        <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">Navigation App</h3>
+                    <div class="mb-6">
+                        <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">Driving App</h3>
                         <div class="bg-slate-100 dark:bg-zinc-800 p-1.5 rounded-xl flex gap-1">
-                            <button onClick=${() => setNavApp('google')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navApp === 'google' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>
+                            <button onClick=${() => setNavAppDrive('google')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppDrive === 'google' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>
                                 <span>Google</span>
                             </button>
-                            <button onClick=${() => setNavApp('apple')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navApp === 'apple' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>
+                            <button onClick=${() => setNavAppDrive('apple')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppDrive === 'apple' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>
                                 <span>Apple</span>
                             </button>
-                            <button onClick=${() => setNavApp('waze')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navApp === 'waze' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>
+                            <button onClick=${() => setNavAppDrive('waze')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppDrive === 'waze' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>
                                 <span>Waze</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-8">
+                        <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">Walking App</h3>
+                        <div class="bg-slate-100 dark:bg-zinc-800 p-1.5 rounded-xl flex gap-1">
+                            <button onClick=${() => setNavAppWalk('google')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppWalk === 'google' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>
+                                <span>Google</span>
+                            </button>
+                            <button onClick=${() => setNavAppWalk('apple')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppWalk === 'apple' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>
+                                <span>Apple</span>
                             </button>
                         </div>
                     </div>
@@ -450,7 +463,7 @@
             </div>`;
         }
 
-        const DetailsCard = ({ loc, userLoc, navApp, onClose }) => {
+        const DetailsCard = ({ loc, userLoc, navAppDrive, navAppWalk, onClose }) => {
             if (!loc) return null;
             const [address, setAddress] = useState('Loading...');
             const [imageUrl, setImageUrl] = useState(null);
@@ -458,19 +471,34 @@
             const handleClose = () => { onClose(); };
             
             // NAVIGATION LOGIC
-            const handleAction = (e) => {
+            const handleDrive = (e) => {
                 e.preventDefault();
                 let url = '';
                 const lat = loc.lat;
                 const lon = loc.lon;
 
-                if (navApp === 'apple') {
+                if (navAppDrive === 'apple') {
                     url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`;
-                } else if (navApp === 'waze') {
+                } else if (navAppDrive === 'waze') {
                     url = `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`;
                 } else {
                     // Default Google
-                    url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+                    url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`;
+                }
+                window.open(url, '_blank');
+            };
+
+            const handleWalk = (e) => {
+                e.preventDefault();
+                let url = '';
+                const lat = loc.lat;
+                const lon = loc.lon;
+
+                if (navAppWalk === 'apple') {
+                    url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=w`;
+                } else {
+                    // Default Google
+                    url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=walking`;
                 }
                 window.open(url, '_blank');
             };
@@ -545,7 +573,16 @@
                             ${loc.isGrey && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-200 text-slate-700 border border-slate-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.drop}}></span> Grey Waste</div>`}
                         </div>
                         <div class="space-y-3 mb-4">
-                            <button onClick=${handleAction} class="w-full bg-slate-800 text-white dark:bg-zinc-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.nav}}></div><span>Navigate (${navApp.charAt(0).toUpperCase() + navApp.slice(1)})</span></button>
+                            <div class="flex gap-2">
+                                <button onClick=${handleDrive} class="flex-1 bg-slate-800 text-white dark:bg-zinc-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+                                    <div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.car}}></div>
+                                    <span>Drive</span>
+                                </button>
+                                <button onClick=${handleWalk} class="flex-1 bg-emerald-600 text-white dark:bg-emerald-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+                                    <div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.walk}}></div>
+                                    <span>Walk</span>
+                                </button>
+                            </div>
                             <a href=${`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${loc.lat},${loc.lon}`} target="_blank" class="w-full bg-white text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-slate-200 dark:border-zinc-700"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.eye}}></div><span>Street Preview</span></a>
                         </div>
                     </div>
@@ -630,7 +667,8 @@
             const [keyOnly, setKeyOnly] = useState(false);
             
             // Preferences
-            const [navApp, setNavAppState] = useState('google');
+            const [navAppDrive, setNavAppDriveState] = useState('google');
+            const [navAppWalk, setNavAppWalkState] = useState('google');
 
             const [searchTerm, setSearchTerm] = useState('');
             const [mapCenter, setMapCenter] = useState([51.505, -0.09]); 
@@ -671,15 +709,23 @@
                     const savedHistory = localStorage.getItem('loocator_history');
                     if (savedHistory) setSearchHistory(JSON.parse(savedHistory));
                     
-                    const savedNav = localStorage.getItem('loocator_nav');
-                    if (savedNav) setNavAppState(savedNav);
+                    const savedNavDrive = localStorage.getItem('loocator_nav_drive');
+                    if (savedNavDrive) setNavAppDriveState(savedNavDrive);
+
+                    const savedNavWalk = localStorage.getItem('loocator_nav_walk');
+                    if (savedNavWalk) setNavAppWalkState(savedNavWalk);
                 } catch(e) {}
             }, []);
             
-            // Custom setter for navApp to save to localStorage
-            const setNavApp = (app) => {
-                setNavAppState(app);
-                localStorage.setItem('loocator_nav', app);
+            // Custom setters to save to localStorage
+            const setNavAppDrive = (app) => {
+                setNavAppDriveState(app);
+                localStorage.setItem('loocator_nav_drive', app);
+            };
+
+            const setNavAppWalk = (app) => {
+                setNavAppWalkState(app);
+                localStorage.setItem('loocator_nav_walk', app);
             };
 
             const clearHistory = () => {
@@ -1473,10 +1519,10 @@
                     <button onClick=${handleGPS} class="absolute right-5 w-14 h-14 bg-slate-800 dark:bg-zinc-700 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 bottom-8" dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>
                 `}
                 
-                ${showFilters && html`<${FilterSheet} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navApp=${navApp} setNavApp=${setNavApp} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} />`}
+                ${showFilters && html`<${FilterSheet} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navAppDrive=${navAppDrive} setNavAppDrive=${setNavAppDrive} navAppWalk=${navAppWalk} setNavAppWalk=${setNavAppWalk} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} />`}
                 ${showAbout && html`<${AboutModal} onClose=${() => setShowAbout(false)} />`}
                 ${showContribute && contributeCoords && html`<${ContributeSheet} lat=${contributeCoords.lat} lon=${contributeCoords.lon} onClose=${() => setShowContribute(false)} onShowToast=${showToast} />`}
-                ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} userLoc=${userPos} navApp=${navApp} onClose=${() => setSelectedLoc(null)} />`}
+                ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} userLoc=${userPos} navAppDrive=${navAppDrive} navAppWalk=${navAppWalk} onClose=${() => setSelectedLoc(null)} />`}
                 <${Toast} msg=${toast.msg} visible=${toast.visible} />
             `;
         }
