@@ -1041,7 +1041,46 @@
                 showToast(`Welcome to ${sugg.display_name.split(',')[0]}`);
             }
 
-            const handleGPS = () => { if (!navigator.geolocation) { showToast('GPS not supported'); return; } showToast('Locating you...'); navigator.geolocation.getCurrentPosition((pos) => { const coords = [pos.coords.latitude, pos.coords.longitude]; updateUserLocation(coords, 'GPS'); }, (err) => showToast('GPS Access Denied'), { enableHighAccuracy: true }); };
+            // Updated Smart GPS Handler
+            const handleGPS = () => { 
+                const map = mapInstanceRef.current;
+                
+                // 1. Check if we have a valid map and user position
+                if (!map || !userPos) return;
+
+                // 2. Calculate distance between Map Center and User Position
+                const center = map.getCenter();
+                const distInfo = calculateDistance(center.lat, center.lng, userPos[0], userPos[1]);
+
+                // 3. Smart Logic:
+                // If map is more than 50 meters away from user, just fly back (Fast)
+                if (distInfo.km > 0.05) {
+                    map.flyTo(userPos, 17);
+                    // Optional: silently try to update GPS in background without blocking UI
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => { updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); },
+                        (err) => { /* ignore background error */ },
+                        { enableHighAccuracy: true, timeout: 10000 }
+                    );
+                    return;
+                }
+
+                // 4. If we are already centered, force a hardware refresh (Slow but accurate)
+                if (!navigator.geolocation) { 
+                    showToast('GPS not supported'); 
+                    return; 
+                } 
+                
+                showToast('Updating location...'); 
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => { 
+                        const coords = [pos.coords.latitude, pos.coords.longitude]; 
+                        updateUserLocation(coords, 'GPS'); 
+                    }, 
+                    (err) => showToast('GPS Access Denied'), 
+                    { enableHighAccuracy: true }
+                ); 
+            };
 
             const startPickingLocation = () => {
                 closeAllMenus();
