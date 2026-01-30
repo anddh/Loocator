@@ -35,23 +35,39 @@
                     },
                     animation: {
                         'scale-in': 'scaleIn 0.2s ease-out forwards',
+                        'scale-out': 'scaleOut 0.2s ease-in forwards',
                         'slide-up-card': 'slideUpCard 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'slide-down-card': 'slideDownCard 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
                         'stagger-fade': 'staggerFade 0.4s ease-out forwards',
+                        'stagger-fade-out': 'staggerFadeOut 0.3s ease-in forwards',
                         'pop-in': 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
-                        'pulse-fast': 'pulseFast 1s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                        'pulse-fast': 'pulseFast 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'ripple': 'ripple 2s infinite'
                     },
                     keyframes: {
                         scaleIn: {
                             '0%': { opacity: '0', transform: 'scale(0.95)' },
                             '100%': { opacity: '1', transform: 'scale(1)' }
                         },
+                        scaleOut: {
+                            '0%': { opacity: '1', transform: 'scale(1)' },
+                            '100%': { opacity: '0', transform: 'scale(0.95)' }
+                        },
                         slideUpCard: {
                             '0%': { transform: 'translateY(100%)' },
                             '100%': { transform: 'translateY(0)' }
                         },
+                        slideDownCard: {
+                            '0%': { transform: 'translateY(0)' },
+                            '100%': { transform: 'translateY(100%)' }
+                        },
                         staggerFade: {
                             '0%': { opacity: '0', transform: 'translateY(20px)' },
                             '100%': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        staggerFadeOut: {
+                            '0%': { opacity: '1', transform: 'translateY(0)' },
+                            '100%': { opacity: '0', transform: 'translateY(20px)' }
                         },
                         popIn: {
                             '0%': { opacity: '0', transform: 'scale(0.5)' },
@@ -60,6 +76,11 @@
                         pulseFast: {
                             '0%, 100%': { opacity: '1' },
                             '50%': { opacity: '0.4' }
+                        },
+                        ripple: {
+                            '0%': { boxShadow: '0 0 0 0 rgba(148, 163, 184, 0.4)' },
+                            '70%': { boxShadow: '0 0 0 15px rgba(148, 163, 184, 0)' },
+                            '100%': { boxShadow: '0 0 0 0 rgba(148, 163, 184, 0)' }
                         }
                     }
                 }
@@ -83,87 +104,33 @@
     <style>
         /* Base styles */
         body, html { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f8fafc; font-family: 'Fredoka', sans-serif; }
-        
-        /* FIX FOR MOBILE TAPS: Removes the grey highlight box */
         * { -webkit-tap-highlight-color: transparent; }
 
-        /* Dark mode base overrides via media query for things outside Tailwind's reach */
         @media (prefers-color-scheme: dark) {
-            body, html { background-color: #09090b; } /* Zinc-950 */
+            body, html { background-color: #09090b; }
             .leaflet-container { background: #09090b !important; }
+            /* Update Ripple for dark mode in CSS to override Tailwind default if needed */
         }
 
         #root { height: 100%; display: flex; flex-direction: column; }
-        
         .map-wrapper { position: relative; flex-grow: 1; width: 100%; height: 100%; overflow: hidden; }
         #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; background: transparent; }
-        
-        /* List Wrapper - adapts to dark mode via Tailwind classes in JS, but basic fallback here */
         .list-wrapper { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 50; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        
-        .leaflet-container { background: #d4dadc; } /* Light mode default */
-
+        .leaflet-container { background: #d4dadc; }
         .pie-icon { text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
-
         .user-pin-ring { position: absolute; width: 20px; height: 20px; border-radius: 50%; background-color: #475569; opacity: 0.7; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
         .user-pin-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background-color: white; border: 2px solid #475569; top: 5px; left: 5px; animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.4s infinite; }
-        
-        /* Dark mode user pin adjustments */
         @media (prefers-color-scheme: dark) {
-            .user-pin-ring { background-color: #a1a1aa; } /* Zinc-400 */
+            .user-pin-ring { background-color: #a1a1aa; }
             .user-pin-dot { border-color: #a1a1aa; }
         }
-
         @keyframes pulse-ring { 0% { transform: scale(0.33); opacity: 1; } 80%, 100% { opacity: 0; } }
         @keyframes pulse-dot { 0% { transform: scale(0.8); } 50% { transform: scale(1); } 100% { transform: scale(0.8); } }
-
         .safe-pt { padding-top: env(safe-area-inset-top); }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
-        
-        /* Hide scrollbar for inputs */
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        
-        /* Hide scrollbar for list but allow scroll */
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* Custom Ripple Animation for "Nothing nearby" */
-        @keyframes ripple {
-            0% { box-shadow: 0 0 0 0 rgba(148, 163, 184, 0.4); } /* slate-400 opacity 0.4 */
-            70% { box-shadow: 0 0 0 15px rgba(148, 163, 184, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(148, 163, 184, 0); }
-        }
-        
-        @media (prefers-color-scheme: dark) {
-            @keyframes ripple {
-                0% { box-shadow: 0 0 0 0 rgba(113, 113, 122, 0.4); } /* zinc-500 opacity 0.4 */
-                70% { box-shadow: 0 0 0 15px rgba(113, 113, 122, 0); }
-                100% { box-shadow: 0 0 0 0 rgba(113, 113, 122, 0); }
-            }
-        }
-        
-        .animate-ripple { animation: ripple 2s infinite; }
-
-        /* --- ANIMATIONS --- */
-        
-        /* Fade in scale for About Modal */
-        @keyframes scaleIn {
-            0% { opacity: 0; transform: scale(0.95); }
-            100% { opacity: 1; transform: scale(1); }
-        }
-
-        /* Slide up for Details Card */
-        @keyframes slideUpCard {
-            0% { transform: translateY(100%); }
-            100% { transform: translateY(0); }
-        }
-
-        /* Staggered list items */
-        @keyframes staggerFade {
-            0% { opacity: 0; transform: translateY(20px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
     </style>
 
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -211,8 +178,6 @@
             drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
-        const OVERPASS_SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
-        
         // Colors mapping for the pie chart
         const TYPE_COLORS = {
             toilet: '#64748b', // slate-500
@@ -248,11 +213,20 @@
         const AlertPill = ({ msg }) => html`<div class="px-4 py-2 rounded-full shadow-lg text-sm font-medium font-brand z-[1000] bg-orange-100 text-orange-800 border-2 border-white/50 dark:bg-orange-900/80 dark:text-orange-200 dark:border-orange-800/50">${msg}</div>`;
         const Toast = ({ msg, visible }) => html`<div class=${'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-slate-800/95 dark:bg-zinc-800/95 backdrop-blur text-slate-100 px-6 py-3 rounded-full shadow-xl transition-all duration-300 z-[2000] flex items-center space-x-2 font-brand ' + (visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none')}><span>${msg}</span></div>`;
 
-        const AboutModal = ({ onClose }) => html`
+        // --- COMPONENTS WITH CLOSING ANIMATIONS ---
+
+        const AboutModal = ({ onClose }) => {
+            const [isClosing, setIsClosing] = useState(false);
+            const handleClose = () => {
+                setIsClosing(true);
+                setTimeout(onClose, 200); // 200ms matches scaleOut
+            };
+
+            return html`
             <div class="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-                <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick=${onClose}></div>
-                <div class="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-3xl shadow-2xl p-6 relative animate-scale-in">
-                    <button onClick=${onClose} class="absolute top-4 right-4 p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 transition-colors"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
+                <div class=${`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${handleClose}></div>
+                <div class=${`bg-white dark:bg-zinc-900 w-full max-w-sm rounded-3xl shadow-2xl p-6 relative ${isClosing ? 'animate-scale-out' : 'animate-scale-in'}`}>
+                    <button onClick=${handleClose} class="absolute top-4 right-4 p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 transition-colors"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
                     
                     <div class="text-center mb-6">
                         <div class="inline-block w-24 h-24 rounded-3xl bg-slate-100 dark:bg-zinc-800 mb-4 shadow-sm overflow-hidden">
@@ -277,6 +251,7 @@
                     </div>
                 </div>
             </div>`;
+        }
 
         const ToggleCard = ({ label, subtext, icon, active, onClick, color }) => {
             const activeClass = active 
@@ -304,7 +279,12 @@
         }
 
         const FilterSheet = ({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, accessOnly, setAccessOnly, keyOnly, setKeyOnly, navAppDrive, setNavAppDrive, navAppWalk, setNavAppWalk, clearHistory, onClose }) => {
-            const handleClose = () => { onClose(); };
+            const [isClosing, setIsClosing] = useState(false);
+            
+            const handleClose = () => {
+                setIsClosing(true);
+                setTimeout(onClose, 300);
+            };
             
             const handleClearHistory = () => {
                 if (confirm('Clear all search history?')) {
@@ -314,8 +294,8 @@
 
             return html`
             <div class="fixed inset-0 z-[1600] flex flex-col justify-end pointer-events-none">
-                <div class="absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity" onClick=${handleClose}></div>
-                <div class="bg-white dark:bg-zinc-900 w-full rounded-t-3xl shadow-2xl p-6 pb-10 pointer-events-auto animate-slide-up-card max-h-[85vh] overflow-y-auto">
+                <div class=${`absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${handleClose}></div>
+                <div class=${`bg-white dark:bg-zinc-900 w-full rounded-t-3xl shadow-2xl p-6 pb-10 pointer-events-auto max-h-[85vh] overflow-y-auto ${isClosing ? 'animate-slide-down-card' : 'animate-slide-up-card'}`}>
                     <div class="flex justify-center mb-4"><div class="w-12 h-1.5 bg-slate-200 dark:bg-zinc-700 rounded-full"></div></div>
                     <div class="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-bold font-brand text-slate-800 dark:text-zinc-100">Options</h2>
@@ -324,59 +304,26 @@
                     
                     <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">Map Filters</h3>
                     <div class="grid grid-cols-2 gap-3 mb-8">
-                        <${ToggleCard} 
-                            label="Free Use" 
-                            icon="savings" 
-                            active=${freeOnly} 
-                            onClick=${() => setFreeOnly(!freeOnly)} 
-                        />
-                        <${ToggleCard} 
-                            label="Accessible" 
-                            subtext="Wheelchair friendly"
-                            icon="accessible" 
-                            active=${accessOnly} 
-                            onClick=${() => setAccessOnly(!accessOnly)} 
-                        />
-                        <${ToggleCard} 
-                            label="Bottle Refill" 
-                            subtext="Water points only"
-                            icon="water_bottle" 
-                            active=${bottleOnly} 
-                            onClick=${() => setBottleOnly(!bottleOnly)} 
-                        />
-                        <${ToggleCard} 
-                            label="Key Access" 
-                            subtext="Radar / Eurokey"
-                            icon="key" 
-                            active=${keyOnly} 
-                            onClick=${() => setKeyOnly(!keyOnly)} 
-                        />
+                        <${ToggleCard} label="Free Use" icon="savings" active=${freeOnly} onClick=${() => setFreeOnly(!freeOnly)} />
+                        <${ToggleCard} label="Accessible" subtext="Wheelchair friendly" icon="accessible" active=${accessOnly} onClick=${() => setAccessOnly(!accessOnly)} />
+                        <${ToggleCard} label="Bottle Refill" subtext="Water points only" icon="water_bottle" active=${bottleOnly} onClick=${() => setBottleOnly(!bottleOnly)} />
+                        <${ToggleCard} label="Key Access" subtext="Radar / Eurokey" icon="key" active=${keyOnly} onClick=${() => setKeyOnly(!keyOnly)} />
                     </div>
 
                     <div class="mb-6">
                         <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">Driving App</h3>
                         <div class="bg-slate-100 dark:bg-zinc-800 p-1.5 rounded-xl flex gap-1">
-                            <button onClick=${() => setNavAppDrive('google')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppDrive === 'google' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>
-                                <span>Google</span>
-                            </button>
-                            <button onClick=${() => setNavAppDrive('apple')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppDrive === 'apple' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>
-                                <span>Apple</span>
-                            </button>
-                            <button onClick=${() => setNavAppDrive('waze')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppDrive === 'waze' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>
-                                <span>Waze</span>
-                            </button>
+                            <button onClick=${() => setNavAppDrive('google')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppDrive === 'google' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}><span>Google</span></button>
+                            <button onClick=${() => setNavAppDrive('apple')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppDrive === 'apple' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}><span>Apple</span></button>
+                            <button onClick=${() => setNavAppDrive('waze')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppDrive === 'waze' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}><span>Waze</span></button>
                         </div>
                     </div>
 
                     <div class="mb-8">
                         <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">Walking App</h3>
                         <div class="bg-slate-100 dark:bg-zinc-800 p-1.5 rounded-xl flex gap-1">
-                            <button onClick=${() => setNavAppWalk('google')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppWalk === 'google' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>
-                                <span>Google</span>
-                            </button>
-                            <button onClick=${() => setNavAppWalk('apple')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppWalk === 'apple' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>
-                                <span>Apple</span>
-                            </button>
+                            <button onClick=${() => setNavAppWalk('google')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppWalk === 'google' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}><span>Google</span></button>
+                            <button onClick=${() => setNavAppWalk('apple')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppWalk === 'apple' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}><span>Apple</span></button>
                         </div>
                     </div>
 
@@ -394,8 +341,12 @@
             const [text, setText] = useState('');
             const [sending, setSending] = useState(false);
             const [sent, setSent] = useState(false);
+            const [isClosing, setIsClosing] = useState(false);
 
-            const handleClose = () => { onClose(); };
+            const handleClose = () => {
+                setIsClosing(true);
+                setTimeout(onClose, 300);
+            };
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -408,19 +359,13 @@
                     formData.append('lon', lon);
                     formData.append('text', text + ' #LoocatorApp');
 
-                    // Post to OSM API (Anonymous note)
-                    const res = await fetch('https://api.openstreetmap.org/api/0.6/notes.json', {
-                        method: 'POST',
-                        body: formData
-                    });
+                    const res = await fetch('https://api.openstreetmap.org/api/0.6/notes.json', { method: 'POST', body: formData });
 
                     if (res.ok) {
                         setSent(true);
                         onShowToast("Note sent to map editors!");
-                        setTimeout(onClose, 2000);
-                    } else {
-                        throw new Error("Failed");
-                    }
+                        setTimeout(handleClose, 2000);
+                    } else { throw new Error("Failed"); }
                 } catch (err) {
                     onShowToast("Failed to send note. Try again.");
                     setSending(false);
@@ -429,8 +374,8 @@
 
             return html`
             <div class="fixed inset-0 z-[1600] flex flex-col justify-end pointer-events-none">
-                <div class="absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity" onClick=${handleClose}></div>
-                <div class="bg-white dark:bg-zinc-900 w-full rounded-t-3xl shadow-2xl p-6 pb-12 pointer-events-auto animate-slide-up-card">
+                <div class=${`absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${handleClose}></div>
+                <div class=${`bg-white dark:bg-zinc-900 w-full rounded-t-3xl shadow-2xl p-6 pb-12 pointer-events-auto ${isClosing ? 'animate-slide-down-card' : 'animate-slide-up-card'}`}>
                     <div class="flex justify-center mb-4"><div class="w-12 h-1.5 bg-slate-200 dark:bg-zinc-700 rounded-full"></div></div>
                     <div class="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-bold font-brand text-slate-800 dark:text-zinc-100">Add Missing Spot</h2>
@@ -473,57 +418,46 @@
             if (!loc) return null;
             const [address, setAddress] = useState('Loading...');
             const [imageUrl, setImageUrl] = useState(null);
+            const [isClosing, setIsClosing] = useState(false);
 
-            const handleClose = () => { onClose(); };
+            const handleClose = () => {
+                setIsClosing(true);
+                setTimeout(onClose, 300);
+            };
             
-            // NAVIGATION LOGIC
+            // ... (Rest of logic same as before, just update render class)
+            // For brevity, skipping repeated fetch logic, it's identical to previous, just wrap render.
+            
+            // Re-adding fetch logic for completeness in copy-paste
             const handleDrive = (e) => {
                 e.preventDefault();
                 let url = '';
-                const lat = loc.lat;
-                const lon = loc.lon;
-
-                if (navAppDrive === 'apple') {
-                    url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`;
-                } else if (navAppDrive === 'waze') {
-                    url = `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`;
-                } else {
-                    // Default Google
-                    url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`;
-                }
+                const lat = loc.lat; const lon = loc.lon;
+                if (navAppDrive === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`;
+                else if (navAppDrive === 'waze') url = `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`;
+                else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`;
                 window.open(url, '_blank');
             };
 
             const handleWalk = (e) => {
                 e.preventDefault();
                 let url = '';
-                const lat = loc.lat;
-                const lon = loc.lon;
-
-                if (navAppWalk === 'apple') {
-                    url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=w`;
-                } else {
-                    // Default Google
-                    url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=walking`;
-                }
+                const lat = loc.lat; const lon = loc.lon;
+                if (navAppWalk === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=w`;
+                else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=walking`;
                 window.open(url, '_blank');
             };
 
             useEffect(() => {
-                if (ADDRESS_CACHE[loc.id]) {
-                    setAddress(ADDRESS_CACHE[loc.id]);
-                    return;
-                }
-
+                if (ADDRESS_CACHE[loc.id]) { setAddress(ADDRESS_CACHE[loc.id]); return; }
                 const fetchAddr = async () => {
                     try {
                         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.lat}&lon=${loc.lon}&zoom=18&addressdetails=1`);
                         const data = await res.json();
                         const a = data.address || {};
                         const formatted = (a.road || a.pedestrian || '') + (a.house_number ? ', ' + a.house_number : '') + (a.suburb ? ' (' + a.suburb + ')' : '');
-                        const finalAddr = formatted || "Address unavailable";
-                        setAddress(finalAddr);
-                        ADDRESS_CACHE[loc.id] = finalAddr;
+                        setAddress(formatted || "Address unavailable");
+                        ADDRESS_CACHE[loc.id] = formatted || "Address unavailable";
                     } catch (e) { setAddress("Address unavailable"); }
                 };
                 fetchAddr();
@@ -548,7 +482,6 @@
             const distObj = userLoc ? calculateDistance(userLoc[0], userLoc[1], loc.lat, loc.lon) : null;
             const isPaid = loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no');
             
-            // Dynamic colors for dark/light mode
             let headerBg = 'bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-300';
             if (loc.displayType === 'water') headerBg = 'bg-teal-50 text-teal-700 dark:bg-teal-900/50 dark:text-teal-200';
             if (loc.displayType === 'baby') headerBg = 'bg-rose-50 text-rose-700 dark:bg-rose-900/50 dark:text-rose-200';
@@ -557,7 +490,7 @@
             if (loc.displayType === 'shower') headerBg = 'bg-sky-50 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200';
 
             return html`
-                <div class="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl z-[1500] flex flex-col max-h-[85vh] safe-pb animate-slide-up-card">
+                <div class=${`fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl z-[1500] flex flex-col max-h-[85vh] safe-pb ${isClosing ? 'animate-slide-down-card' : 'animate-slide-up-card'}`}>
                     <div class="w-full flex justify-center pt-3 pb-1" onClick=${handleClose}><div class="w-12 h-1.5 bg-slate-200 dark:bg-zinc-700 rounded-full"></div></div>
                     ${imageUrl ? html`<div class="w-full h-48 bg-slate-100 dark:bg-zinc-800 relative overflow-hidden"><img src=${imageUrl} class="w-full h-full object-cover img-fade-in"/><div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div><button onClick=${handleClose} class="absolute top-4 right-4 p-2 bg-black/30 backdrop-blur rounded-full text-white"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>` : html`<div class="absolute top-2 right-4 z-10"><button onClick=${handleClose} class="p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-700"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>`}
                     <div class="p-6 pt-2 overflow-y-auto">
@@ -596,10 +529,9 @@
             `;
         };
         
-        const ListItem = ({ loc, onClick, userPos, index }) => {
+        const ListItem = ({ loc, onClick, userPos, index, isExiting }) => {
             let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet;
             
-            // Pie Chart Logic
             const types = [];
             if (loc.isToilet) types.push('toilet');
             if (loc.isWater) types.push('water');
@@ -607,7 +539,6 @@
             if (loc.hasShower) types.push('shower');
             if (loc.isBlack) types.push('black');
             if (loc.isGrey) types.push('grey');
-            
             if (types.length === 0) types.push('toilet');
 
             let backgroundStyle = '';
@@ -628,10 +559,7 @@
             const [displayName, setDisplayName] = useState(loc.name);
 
             useEffect(() => {
-                if (ADDRESS_CACHE[loc.id]) {
-                    setFetchedAddr(ADDRESS_CACHE[loc.id]);
-                    return;
-                }
+                if (ADDRESS_CACHE[loc.id]) { setFetchedAddr(ADDRESS_CACHE[loc.id]); return; }
             }, [loc.id, index]);
 
             const displayAddress = fetchedAddr || loc.rawAddress;
@@ -639,8 +567,8 @@
             return html`
                 <div 
                     onClick=${() => { onClick(); }} 
-                    class="bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform animate-stagger-fade opacity-0"
-                    style=${{ animationDelay: `${index * 50}ms` }}
+                    class=${`bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform ${isExiting ? 'animate-stagger-fade-out pointer-events-none' : 'animate-stagger-fade opacity-0'}`}
+                    style=${{ animationDelay: isExiting ? `${index * 30}ms` : `${index * 50}ms` }}
                 >
                     <div class="flex items-center space-x-4 overflow-hidden">
                         <div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm pie-icon" style=${{ cssText: backgroundStyle }} dangerouslySetInnerHTML=${{__html: iconHtml}}></div>
@@ -654,8 +582,34 @@
             `;
         }
 
+        // FilterBtn - Using div for button logic to fix CSS issues and add custom styles
+        const FilterBtn = ({ type, label, active, onClick, color = 'slate' }) => {
+            const colors = { 
+                slate: 'bg-slate-800 dark:bg-zinc-600 border-slate-800 dark:border-zinc-600', 
+                teal: 'bg-teal-500 dark:bg-teal-600 border-teal-500 dark:border-teal-600', 
+                rose: 'bg-rose-400 dark:bg-rose-500 border-rose-400 dark:border-rose-500', 
+                black: 'bg-slate-800 dark:bg-zinc-700 border-slate-800 dark:border-zinc-700', 
+                grey: 'bg-slate-400 dark:bg-zinc-500 border-slate-400 dark:border-zinc-500', 
+                sky: 'bg-sky-500 dark:bg-sky-600 border-sky-500 dark:border-sky-600' 
+            };
+            
+            const baseClass = "flex items-center space-x-2 px-4 py-3 rounded-full text-xs font-bold shrink-0 transition-all duration-200 ease-out active:scale-90 border transform-gpu cursor-pointer select-none touch-manipulation";
+            const inactiveClass = "bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700 shadow-sm hover:border-slate-300 dark:hover:border-zinc-600";
+            const activeClass = `${colors[color]} text-white shadow-md`;
+
+            return html`
+                <div onClick=${onClick} onTouchStart=${() => {}} class=${`${baseClass} ${active ? activeClass : inactiveClass}`}>
+                    <div class="flex items-center justify-center w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS[type]}}></div>
+                    <span>${label}</span>
+                </div>
+            `;
+        };
+
         function App() {
             const [view, setView] = useState('map');
+            const [isListExiting, setIsListExiting] = useState(false); // Track list exit animation state
+            
+            // ... (All other state variables remain the same)
             const [allLocations, setAllLocations] = useState([]);
             const [selectedLoc, setSelectedLoc] = useState(null);
             const [loading, setLoading] = useState(false);
@@ -665,17 +619,12 @@
             const [isCamperMode, setIsCamperMode] = useState(false);
             const [stdFilters, setStdFilters] = useState({ toilet: true, water: true, baby: true });
             const [vanFilters, setVanFilters] = useState({ black: true, grey: true, water: true, shower: true });
-            
-            // Filter States
             const [freeOnly, setFreeOnly] = useState(false);
             const [bottleOnly, setBottleOnly] = useState(false);
             const [accessOnly, setAccessOnly] = useState(false);
             const [keyOnly, setKeyOnly] = useState(false);
-            
-            // Preferences
             const [navAppDrive, setNavAppDriveState] = useState('google');
             const [navAppWalk, setNavAppWalkState] = useState('google');
-
             const [searchTerm, setSearchTerm] = useState('');
             const [mapCenter, setMapCenter] = useState([51.505, -0.09]); 
             const [userPos, setUserPos] = useState([51.505, -0.09]); 
@@ -683,29 +632,21 @@
             const [searchBounds, setSearchBounds] = useState(null); 
             const [isInstalled, setIsInstalled] = useState(false);
             const [showAbout, setShowAbout] = useState(false);
-            
-            // Search History & Suggestions State
             const [searchHistory, setSearchHistory] = useState([]);
             const [showHistory, setShowHistory] = useState(false);
             const [apiSuggestions, setApiSuggestions] = useState([]);
             const [historyMatches, setHistoryMatches] = useState([]);
-
-            // Contribution States
             const [showContribute, setShowContribute] = useState(false);
             const [isPickingLocation, setIsPickingLocation] = useState(false);
             const [contributeCoords, setContributeCoords] = useState(null);
-            
-            // GPS Status State: 'idle', 'searching', 'success'
             const [gpsStatus, setGpsStatus] = useState('idle');
-
-            // Dark Mode State for Map Tiles
             const [isDarkMode, setIsDarkMode] = useState(window.matchMedia('(prefers-color-scheme: dark)').matches);
 
             const mapRef = useRef(null);
             const mapInstanceRef = useRef(null);
             const markersRef = useRef(null);
             const userMarkerRef = useRef(null);
-            const tileLayerRef = useRef(null); // New Ref for swapping tiles
+            const tileLayerRef = useRef(null);
             const camperModeRef = useRef(isCamperMode);
             const fetchController = useRef(null);
 
@@ -714,675 +655,82 @@
                 try {
                     const savedHistory = localStorage.getItem('loocator_history');
                     if (savedHistory) setSearchHistory(JSON.parse(savedHistory));
-                    
                     const savedNavDrive = localStorage.getItem('loocator_nav_drive');
                     if (savedNavDrive) setNavAppDriveState(savedNavDrive);
-
                     const savedNavWalk = localStorage.getItem('loocator_nav_walk');
                     if (savedNavWalk) setNavAppWalkState(savedNavWalk);
                 } catch(e) {}
             }, []);
             
-            // Custom setters to save to localStorage
-            const setNavAppDrive = (app) => {
-                setNavAppDriveState(app);
-                localStorage.setItem('loocator_nav_drive', app);
-            };
-
-            const setNavAppWalk = (app) => {
-                setNavAppWalkState(app);
-                localStorage.setItem('loocator_nav_walk', app);
-            };
-
-            const clearHistory = () => {
-                setSearchHistory([]);
-                localStorage.removeItem('loocator_history');
-                showToast("History cleared");
-            };
+            const setNavAppDrive = (app) => { setNavAppDriveState(app); localStorage.setItem('loocator_nav_drive', app); };
+            const setNavAppWalk = (app) => { setNavAppWalkState(app); localStorage.setItem('loocator_nav_walk', app); };
+            const clearHistory = () => { setSearchHistory([]); localStorage.removeItem('loocator_history'); showToast("History cleared"); };
+            const fuse = useMemo(() => new Fuse(searchHistory, { threshold: 0.4, distance: 100 }), [searchHistory]);
+            const addToHistory = (term) => { if (!term) return; const newHist = [term, ...searchHistory.filter(h => h.toLowerCase() !== term.toLowerCase())].slice(0, 5); setSearchHistory(newHist); localStorage.setItem('loocator_history', JSON.stringify(newHist)); };
+            const fetchSuggestions = useMemo(() => debounce(async (term) => { if (!term || term.length < 3) { setApiSuggestions([]); return; } try { const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(term)}&addressdetails=1&limit=5`); if (res.ok) { const data = await res.json(); setApiSuggestions(data); } } catch (e) { console.error(e); } }, 500), []);
+            const handleInput = (e) => { const val = e.target.value; setSearchTerm(val); setShowHistory(true); if (val && fuse) { const results = fuse.search(val); setHistoryMatches(results.map(r => r.item)); } else { setHistoryMatches([]); } fetchSuggestions(val); };
+            useEffect(() => { const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)'); const handleChange = (e) => setIsDarkMode(e.matches); mediaQuery.addEventListener('change', handleChange); return () => mediaQuery.removeEventListener('change', handleChange); }, []);
+            useEffect(() => { if (view === 'map' && mapInstanceRef.current) setTimeout(() => mapInstanceRef.current.invalidateSize(), 100); }, [view]);
             
-            // Initialize Fuse.js
-            const fuse = useMemo(() => new Fuse(searchHistory, { 
-                threshold: 0.4,
-                distance: 100
-            }), [searchHistory]);
-
-            const addToHistory = (term) => {
-                if (!term) return;
-                const newHist = [term, ...searchHistory.filter(h => h.toLowerCase() !== term.toLowerCase())].slice(0, 5);
-                setSearchHistory(newHist);
-                localStorage.setItem('loocator_history', JSON.stringify(newHist));
-            };
-
-            // Debounced Suggestions Fetcher
-            const fetchSuggestions = useMemo(() => debounce(async (term) => {
-                if (!term || term.length < 3) {
-                    setApiSuggestions([]);
-                    return;
-                }
-                try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(term)}&addressdetails=1&limit=5`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        setApiSuggestions(data);
-                    }
-                } catch (e) { console.error(e); }
-            }, 500), []);
-
-            const handleInput = (e) => {
-                const val = e.target.value;
-                setSearchTerm(val);
-                setShowHistory(true);
-                
-                // 1. Fuzzy match history
-                if (val && fuse) {
-                    const results = fuse.search(val);
-                    setHistoryMatches(results.map(r => r.item));
-                } else {
-                    setHistoryMatches([]);
-                }
-                
-                // 2. Fetch API suggestions
-                fetchSuggestions(val);
-            };
-
-            useEffect(() => {
-                // Listen for system theme changes
-                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-                const handleChange = (e) => setIsDarkMode(e.matches);
-                mediaQuery.addEventListener('change', handleChange);
-                return () => mediaQuery.removeEventListener('change', handleChange);
-            }, []);
-
-            useEffect(() => {
-                if (view === 'map' && mapInstanceRef.current) setTimeout(() => mapInstanceRef.current.invalidateSize(), 100); 
-            }, [view]);
-
-            useEffect(() => {
-                camperModeRef.current = isCamperMode;
-                if (mapInstanceRef.current) {
-                    setLoading(true);
-                    debouncedFetch(mapInstanceRef.current.getBounds());
-                }
-            }, [isCamperMode]);
-
-            // Swap Map Tiles on Theme Change
-            useEffect(() => {
-                if (!mapInstanceRef.current) return;
-                
-                // Remove old layer if exists
-                if (tileLayerRef.current) {
-                    mapInstanceRef.current.removeLayer(tileLayerRef.current);
-                }
-
-                const tileUrl = isDarkMode 
-                    ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png'
-                    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-
-                tileLayerRef.current = L.tileLayer(tileUrl, {
-                    attribution: '',
-                    subdomains: 'abcd',
-                    maxZoom: 20
-                }).addTo(mapInstanceRef.current);
-
-            }, [isDarkMode]);
+            useEffect(() => { camperModeRef.current = isCamperMode; if (mapInstanceRef.current) { setLoading(true); debouncedFetch(mapInstanceRef.current.getBounds()); } }, [isCamperMode]);
+            
+            useEffect(() => { if (!mapInstanceRef.current) return; if (tileLayerRef.current) { mapInstanceRef.current.removeLayer(tileLayerRef.current); } const tileUrl = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'; tileLayerRef.current = L.tileLayer(tileUrl, { attribution: '', subdomains: 'abcd', maxZoom: 20 }).addTo(mapInstanceRef.current); }, [isDarkMode]);
 
             const showToast = (msg) => { setToast({ msg, visible: true }); setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000); };
             
-            // Helper to close all overlays/lists before opening a new one
             const closeAllMenus = () => {
                 setShowFilters(false);
                 setShowAbout(false);
                 setShowContribute(false);
                 setSelectedLoc(null);
-                // Note: We don't reset 'view' here, as that depends on context
             };
 
-            const toggleMode = () => {
-                setIsCamperMode(!isCamperMode);
-            };
+            const toggleMode = () => { setIsCamperMode(!isCamperMode); };
+            const handleFilterClick = () => { if (showFilters) { setShowFilters(false); } else { closeAllMenus(); setShowFilters(true); } };
+            const handleAboutClick = () => { if (showAbout) { setShowAbout(false); } else { closeAllMenus(); setShowAbout(true); } };
             
-            // UPDATED: Logic to toggle filters properly
-            const handleFilterClick = () => {
-                if (showFilters) {
-                    setShowFilters(false);
-                } else {
-                    closeAllMenus();
-                    setShowFilters(true);
-                }
-            };
-
-            // UPDATED: Logic to toggle about properly
-            const handleAboutClick = () => {
-                if (showAbout) {
-                    setShowAbout(false);
-                } else {
-                    closeAllMenus();
-                    setShowAbout(true);
-                }
-            };
-            
+            // UPDATED: View Toggle with Exit Animation Logic
             const handleViewToggle = () => {
-                // Exclusive logic
-                closeAllMenus();
-                setView(view === 'map' ? 'list' : 'map');
-            };
-
-            const visibleLocations = useMemo(() => {
-                return allLocations.filter(loc => {
-                    // Paid Filter
-                    if (freeOnly && (loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no'))) return false;
-                    
-                    // Bottle Filter
-                    if (bottleOnly && loc.isWater && !loc.isToilet && !loc.hasBaby) {
-                        if (loc.tags.amenity !== 'drinking_water' && loc.tags.bottle !== 'yes') return false;
-                    }
-
-                    // Access Filter (Wheelchair)
-                    if (accessOnly) {
-                        // Logic: Explicit yes/limited, or designated accessible toilets
-                        const w = loc.tags.wheelchair;
-                        if (w !== 'yes' && w !== 'limited' && w !== 'designated') return false;
-                    }
-
-                    // Key Filter (Radar / Eurokey)
-                    if (keyOnly) {
-                        // Logic: must have a key tag
-                        const radar = loc.tags.radar_key;
-                        const central = loc.tags.centralkey;
-                        if (radar !== 'yes' && !central) return false;
-                    }
-
-                    return isCamperMode ? (vanFilters.black && loc.isBlack) || (vanFilters.grey && loc.isGrey) || (vanFilters.water && loc.isWater) || (vanFilters.shower && loc.hasShower) : (stdFilters.toilet && loc.isToilet) || (stdFilters.water && loc.isWater) || (stdFilters.baby && loc.hasBaby);
-                }).map(loc => {
-                    let displayType = loc.baseType;
-                    if (isCamperMode) {
-                        if (vanFilters.black && loc.isBlack) displayType = 'black';
-                        else if (vanFilters.grey && loc.isGrey) displayType = 'grey';
-                        else if (vanFilters.shower && loc.hasShower) displayType = 'shower';
-                        else if (vanFilters.water && loc.isWater) displayType = 'water';
-                    } else if (stdFilters.baby && loc.hasBaby && !stdFilters.toilet) displayType = 'baby';
-                    return { ...loc, displayType };
-                }).sort((a, b) => calculateDistance(userPos[0], userPos[1], a.lat, a.lon).km - calculateDistance(userPos[0], userPos[1], b.lat, b.lon).km);
-            }, [allLocations, isCamperMode, stdFilters, vanFilters, userPos, freeOnly, bottleOnly, accessOnly, keyOnly]);
-            
-            const [inAreaLocs, furtherLocs] = useMemo(() => {
-                if (!searchBounds) return [visibleLocations, []];
-                const inArea = [];
-                const further = [];
-                visibleLocations.forEach(loc => {
-                    if (searchBounds.contains([loc.lat, loc.lon])) {
-                        inArea.push(loc);
-                    } else {
-                        further.push(loc);
-                    }
-                });
-                return [inArea, further];
-            }, [visibleLocations, searchBounds]);
-            
-            const showListHint = !loading && view === 'map' && visibleLocations.length > 0 && inAreaLocs.length === 0;
-
-            const fetchOverpass = async (bounds, retryRadius = null) => {
-                if (fetchController.current) {
-                    fetchController.current.abort();
-                }
-                fetchController.current = new AbortController();
-                const signal = fetchController.current.signal;
-
-                const isVan = camperModeRef.current;
-                const center = bounds.getCenter();
-                
-                let radius;
-
-                if (retryRadius) {
-                    radius = retryRadius;
+                if (view === 'list') {
+                    // Start exit animation
+                    setIsListExiting(true);
+                    setTimeout(() => {
+                        setIsListExiting(false);
+                        setView('map');
+                    }, 300); // Wait for stagger fade out
                 } else {
-                    const ne = bounds.getNorthEast();
-                    const dist = calculateDistance(center.lat, center.lng, ne.lat, ne.lng);
-                    const visibleRadiusMeters = dist.km * 1000;
-                    const minRadius = isVan ? 15000 : 2000; 
-                    radius = Math.max(visibleRadiusMeters * 1.5, minRadius);
-                }
-
-                const queryArea = `(around:${radius},${center.lat},${center.lng})`;
-                // Note: We fetch nwr (nodes/ways/relations) with all tags, so we don't need to change query for wheelchair/keys
-                // as those are just tags on the same objects we are already fetching.
-                const query = `[out:json][timeout:25];(nwr["amenity"="toilets"]${queryArea};nwr["amenity"="drinking_water"]${queryArea};nwr["amenity"="water_point"]${queryArea};nwr["amenity"="sanitary_dump_station"]${queryArea};nwr["amenity"="shower"]${queryArea};nwr["diaper"]${queryArea};nwr["changing_table"]${queryArea};);out center;`;
-                
-                try {
-                    const res = await fetch('https://overpass-api.de/api/interpreter', { 
-                        method: 'POST', 
-                        body: 'data=' + encodeURIComponent(query),
-                        signal: signal 
-                    });
-                    const data = await res.json();
-                    
-                    if (data.elements.length === 0) {
-                         const nextRadius = radius * 2;
-                         if (nextRadius <= 50000) {
-                             showToast(`Scanning ${Math.round(nextRadius/1000)}km...`);
-                             fetchOverpass(bounds, nextRadius);
-                             return;
-                         }
-                         setLoading(false);
-                         return;
-                    }
-                    
-                    setAllLocations(data.elements.map(el => {
-                        const lat = el.lat || (el.center && el.center.lat);
-                        const lon = el.lon || (el.center && el.center.lon);
-                        
-                        if (!lat || !lon) return null;
-
-                        let baseName = "Service Point";
-                        if (el.tags.amenity === 'toilets') baseName = "Public Toilet";
-                        else if (el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point') baseName = "Water Point";
-                        else if (el.tags.amenity === 'shower') baseName = "Public Shower";
-                        else if (el.tags.amenity === 'sanitary_dump_station') baseName = "Chemical Disposal";
-                        else if (el.tags.diaper === 'yes') baseName = "Baby Change";
-
-                        const street = el.tags['addr:street'] || el.tags['addr:place'];
-                        const city = el.tags['addr:city'] || el.tags['addr:town'] || el.tags['addr:village'];
-                        const house = el.tags['addr:housenumber'];
-
-                        let rawAddress = '';
-                        if (house) rawAddress += house + ' ';
-                        if (street) rawAddress += street;
-                        if (city) rawAddress += (rawAddress ? ', ' : '') + city;
-
-                        let finalName = el.tags.name;
-                        if (!finalName) {
-                            const operator = el.tags.operator;
-                            if (street) {
-                                finalName = `${street} ${baseName}`;
-                            } else if (operator) {
-                                finalName = `${operator} ${baseName}`;
-                            } else if (el.tags.ref) {
-                                finalName = `${baseName} (${el.tags.ref})`;
-                            } else if (el.tags.fee) {
-                                const feeText = el.tags.fee === 'no' ? 'Free' : 'Paid';
-                                finalName = `${feeText} ${baseName}`;
-                            } else if (el.tags.description) {
-                                const descWords = el.tags.description.split(' ');
-                                if (descWords.length > 0) {
-                                    finalName = descWords.slice(0, 4).join(' ') + (descWords.length > 4 ? '...' : '');
-                                } else {
-                                    finalName = baseName;
-                                }
-                            } else {
-                                finalName = baseName;
-                            }
-                        }
-
-                        return {
-                            id: el.id, lat: lat, lon: lon, tags: el.tags,
-                            isToilet: el.tags.amenity === 'toilets',
-                            isWater: el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point',
-                            hasBaby: el.tags.diaper === 'yes' || el.tags.changing_table === 'yes',
-                            hasShower: el.tags.amenity === 'shower' || el.tags.shower === 'yes',
-                            isBlack: (el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:chemical_toilet'] !== 'no') || (el.tags.amenity === 'toilets' && el.tags.sanitary_dump_station === 'yes'),
-                            isGrey: el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:grey_water'] !== 'no',
-                            baseType: el.tags.amenity === 'sanitary_dump_station' ? 'dump' : el.tags.amenity === 'shower' ? 'shower' : el.tags.amenity === 'drinking_water' ? 'water' : 'toilet',
-                            name: finalName,
-                            rawAddress: rawAddress
-                        };
-                    }).filter(Boolean)); 
-                    setLoading(false);
-                } catch (e) { 
-                    if (e.name !== 'AbortError') {
-                        setLoading(false); 
-                    }
+                    // Open list normally
+                    closeAllMenus();
+                    setView('list');
                 }
             };
-
-            const debouncedFetch = useMemo(() => debounce((b) => fetchOverpass(b), 1000), []);
-
-            const updateUserLocation = (coords, source) => {
-                setUserPos(coords);
-                setMapCenter(coords);
-                
-                // Set GPS Status to Success and reset after delay
-                setGpsStatus('success');
-                setTimeout(() => setGpsStatus('idle'), 2500);
-                
-                if (source === 'GPS') {
-                    setAllLocations([]);
-                }
-
-                if (mapInstanceRef.current) {
-                    const zoom = source === 'GPS' ? 17 : source === 'IP' ? 13 : 13;
-                    mapInstanceRef.current.setView(coords, zoom);
-                    if (!userMarkerRef.current) {
-                        userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current);
-                    } else {
-                        userMarkerRef.current.setLatLng(coords);
-                    }
-                    setSearchBounds(mapInstanceRef.current.getBounds());
-                    debouncedFetch(mapInstanceRef.current.getBounds());
-                }
-            };
-
-            useEffect(() => {
-                if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-                    setIsInstalled(true);
-                }
-                const handler = (e) => {
-                    e.preventDefault();
-                    setDeferredPrompt(e);
-                };
-                window.addEventListener('beforeinstallprompt', handler);
-                window.addEventListener('appinstalled', () => setIsInstalled(true));
-                return () => {
-                    window.removeEventListener('beforeinstallprompt', handler);
-                    window.removeEventListener('appinstalled', () => setIsInstalled(true));
-                }
-            }, []);
-
-            const handleInstall = () => {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    deferredPrompt.userChoice.then((choiceResult) => {
-                        if (choiceResult.outcome === 'accepted') {
-                            setDeferredPrompt(null);
-                            setIsInstalled(true);
-                        }
-                    });
-                } else {
-                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-                    if (isIOS) {
-                        showToast("Tap 'Share' then 'Add to Home Screen'");
-                    } else {
-                        showToast("Use browser menu to Install App");
-                    }
-                }
-            };
-
-            useEffect(() => {
-                if (!mapRef.current || mapInstanceRef.current) return;
-                const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(mapCenter, 13);
-                mapInstanceRef.current = map;
-                
-                // Initial Tile Load based on initial isDarkMode state
-                const tileUrl = isDarkMode 
-                    ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png'
-                    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-                
-                tileLayerRef.current = L.tileLayer(tileUrl, {
-                    attribution: '',
-                    subdomains: 'abcd',
-                    maxZoom: 20
-                }).addTo(map);
-
-                markersRef.current = L.layerGroup().addTo(map);
-                
-                const handleMove = () => {
-                      if (map.getZoom() < 13) { 
-                        setZoomWarning(true); 
-                        setAllLocations([]); 
-                        markersRef.current.clearLayers(); 
-                    } else { 
-                        setZoomWarning(false); 
-                        setLoading(true); 
-                        const b = map.getBounds();
-                        setSearchBounds(b);
-                        debouncedFetch(b); 
-                    }
-                };
-
-                map.on('moveend', handleMove);
-                setLoading(true);
-
-                const findLocation = async () => {
-                    let gpsResolved = false;
-                    try {
-                        const res = await fetch('https://ipapi.co/json/');
-                        if (res.ok) {
-                            const data = await res.json();
-                            if (!gpsResolved && data.latitude && data.longitude) {
-                                updateUserLocation([data.latitude, data.longitude], 'IP');
-                            }
-                        }
-                    } catch (e) { console.log('IP Loc failed'); }
-
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => {
-                            gpsResolved = true;
-                            updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS');
-                        },
-                        (err) => { console.log('GPS denied'); },
-                        { enableHighAccuracy: true, timeout: 10000 }
-                    );
-                };
-
-                findLocation();
-
-            }, []); // Effect runs once on mount. Tiles updated via separate effect.
-
-            useEffect(() => {
-                if (!markersRef.current) return;
-                markersRef.current.clearLayers();
-                visibleLocations.forEach(loc => {
-                    let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet;
-                    
-                    const types = [];
-                    if (loc.isToilet) types.push('toilet');
-                    if (loc.isWater) types.push('water');
-                    if (loc.hasBaby) types.push('baby');
-                    if (loc.hasShower) types.push('shower');
-                    if (loc.isBlack) types.push('black');
-                    if (loc.isGrey) types.push('grey');
-                    
-                    if (types.length === 0) types.push('toilet');
-
-                    let backgroundStyle = '';
-                    if (types.length === 1) {
-                         backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`;
-                    } else {
-                        const segmentSize = 100 / types.length;
-                        const gradientParts = types.map((t, i) => {
-                            const color = TYPE_COLORS[t];
-                            const start = i * segmentSize;
-                            const end = (i + 1) * segmentSize;
-                            return `${color} ${start}% ${end}%`;
-                        });
-                        backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`;
-                    }
-
-                    L.marker([loc.lat, loc.lon], { 
-                        icon: L.divIcon({ 
-                            className: '', 
-                            html: `<div class="relative w-9 h-9"><div class="w-9 h-9 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-700 text-white z-10 relative shadow-sm" style="${backgroundStyle}"><div class="pie-icon flex items-center justify-center">${iconHtml}</div></div></div>`, 
-                            iconSize: [36, 36], 
-                            iconAnchor: [18, 36] 
-                        }) 
-                    }).addTo(markersRef.current).on('click', () => { 
-                        // Exclusive open logic
-                        closeAllMenus();
-                        setSelectedLoc(loc); 
-                    });
-                });
-            }, [visibleLocations, isDarkMode]); // Re-render markers if dark mode changes (borders)
-
-            const handleSearch = async (e) => { 
-                e.preventDefault(); 
-                if (!searchTerm) return; 
-                setLoading(true); 
-                try { 
-                    const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm)); 
-                    const data = await res.json(); 
-                    if (data && data.length > 0) { 
-                        const result = data[0]; 
-                        mapInstanceRef.current.flyTo([result.lat, result.lon], 16); 
-                        addToHistory(searchTerm);
-                        setSearchTerm(''); 
-                        setShowHistory(false);
-                        showToast(`Welcome to ${result.display_name.split(',')[0]}`); 
-                    } else { 
-                        showToast('Place not found.'); 
-                    } 
-                } catch (err) { 
-                    showToast('Search failed.'); 
-                } finally { 
-                    setLoading(false); 
-                } 
-            };
-            
-            const handleHistoryClick = (term) => {
-                setSearchTerm(term);
-                // Trigger search immediately
-                setTimeout(() => {
-                    searchWithTerm(term);
-                }, 0);
-            };
-
-            const searchWithTerm = async (term) => {
-                if (!term) return; 
-                setLoading(true); 
-                try { 
-                    const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(term)); 
-                    const data = await res.json(); 
-                    if (data && data.length > 0) { 
-                        const result = data[0]; 
-                        mapInstanceRef.current.flyTo([result.lat, result.lon], 16); 
-                        addToHistory(term); // Refresh position in history
-                        setSearchTerm(''); 
-                        setShowHistory(false);
-                        showToast(`Welcome to ${result.display_name.split(',')[0]}`); 
-                    } else { 
-                        showToast('Place not found.'); 
-                    } 
-                } catch (err) { 
-                    showToast('Search failed.'); 
-                } finally { 
-                    setLoading(false); 
-                } 
-            };
-            
-            const selectSuggestion = (sugg) => {
-                mapInstanceRef.current.flyTo([sugg.lat, sugg.lon], 16);
-                addToHistory(sugg.display_name.split(',')[0]);
-                setSearchTerm('');
-                setShowHistory(false);
-                showToast(`Welcome to ${sugg.display_name.split(',')[0]}`);
-            }
-
-            // Updated Smart GPS Handler with Icon Status
-            const handleGPS = () => { 
-                const map = mapInstanceRef.current;
-                
-                // 1. Check if we have a valid map and user position
-                if (!map || !userPos) return;
-
-                // 2. Calculate distance between Map Center and User Position
-                const center = map.getCenter();
-                const distInfo = calculateDistance(center.lat, center.lng, userPos[0], userPos[1]);
-
-                // 3. Smart Logic:
-                // If map is more than 50 meters away from user, just fly back (Fast)
-                if (distInfo.km > 0.05) {
-                    map.flyTo(userPos, 17);
-                    // Optional: silently try to update GPS in background without blocking UI
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => { updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); },
-                        (err) => { /* ignore background error */ },
-                        { enableHighAccuracy: true, timeout: 10000 }
-                    );
-                    return;
-                }
-
-                // 4. If we are already centered, force a hardware refresh (Slow but accurate)
-                if (!navigator.geolocation) { 
-                    showToast('GPS not supported'); 
-                    return; 
-                } 
-                
-                // Set Status to Searching, remove toast
-                setGpsStatus('searching'); 
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => { 
-                        const coords = [pos.coords.latitude, pos.coords.longitude]; 
-                        updateUserLocation(coords, 'GPS'); 
-                    }, 
-                    (err) => {
-                        setGpsStatus('idle');
-                        showToast('GPS Access Denied');
-                    }, 
-                    { enableHighAccuracy: true }
-                ); 
-            };
-
-            const startPickingLocation = () => {
-                closeAllMenus();
-                setIsPickingLocation(true);
-                if (mapInstanceRef.current && mapInstanceRef.current.getZoom() < 18) {
-                    mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18, { duration: 0.5 });
-                }
-            };
-
-            const confirmLocation = () => {
-                if (mapInstanceRef.current) {
-                    const center = mapInstanceRef.current.getCenter();
-                    setContributeCoords({ lat: center.lat, lon: center.lng });
-                    setIsPickingLocation(false);
-                    setShowContribute(true);
-                }
-            };
-
-            const cancelPicking = () => {
-                setIsPickingLocation(false);
-            };
-
-            // UPDATED FILTER BUTTON TO DIV
-            const FilterBtn = ({ type, label, active, onClick, color = 'slate' }) => {
-                const colors = { 
-                    slate: 'bg-slate-800 dark:bg-zinc-600 border-slate-800 dark:border-zinc-600', 
-                    teal: 'bg-teal-500 dark:bg-teal-600 border-teal-500 dark:border-teal-600', 
-                    rose: 'bg-rose-400 dark:bg-rose-500 border-rose-400 dark:border-rose-500', 
-                    black: 'bg-slate-800 dark:bg-zinc-700 border-slate-800 dark:border-zinc-700', 
-                    grey: 'bg-slate-400 dark:bg-zinc-500 border-slate-400 dark:border-zinc-500', 
-                    sky: 'bg-sky-500 dark:bg-sky-600 border-sky-500 dark:border-sky-600' 
-                };
-                
-                // Base styles with transform - Using DIV now
-                const baseClass = "flex items-center space-x-2 px-4 py-3 rounded-full text-xs font-bold shrink-0 transition-all duration-200 ease-out active:scale-90 border transform-gpu cursor-pointer select-none touch-manipulation";
-                
-                // Inactive: Match ToggleCard (Slate-50)
-                const inactiveClass = "bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700 shadow-sm hover:border-slate-300 dark:hover:border-zinc-600";
-                
-                const activeClass = `${colors[color]} text-white shadow-md`;
-
-                return html`
-                    <div 
-                        onClick=${onClick} 
-                        onTouchStart=${() => {}} 
-                        class=${`${baseClass} ${active ? activeClass : inactiveClass}`}
-                    >
-                        <div class="flex items-center justify-center w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS[type]}}></div>
-                        <span>${label}</span>
-                    </div>
-                `;
-            };
-
-            const goToLoc = (loc) => {
-                closeAllMenus();
-                setSelectedLoc(loc); 
-                setView('map'); 
-                
-                const map = mapInstanceRef.current;
-                if (map) {
-                    const targetZoom = 17;
-                    const point = map.project([loc.lat, loc.lon], targetZoom);
-                    const offsetY = map.getSize().y * 0.25; 
-                    const targetPoint = L.point(point.x, point.y + offsetY);
-                    const newCenter = map.unproject(targetPoint, targetZoom);
-                    
-                    map.flyTo(newCenter, targetZoom);
-                }
-            }
             
             const handleViewChange = () => {
                 closeAllMenus();
                 setView('list');
             }
+
+            const visibleLocations = useMemo(() => { return allLocations.filter(loc => { if (freeOnly && (loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no'))) return false; if (bottleOnly && loc.isWater && !loc.isToilet && !loc.hasBaby) { if (loc.tags.amenity !== 'drinking_water' && loc.tags.bottle !== 'yes') return false; } if (accessOnly) { const w = loc.tags.wheelchair; if (w !== 'yes' && w !== 'limited' && w !== 'designated') return false; } if (keyOnly) { const radar = loc.tags.radar_key; const central = loc.tags.centralkey; if (radar !== 'yes' && !central) return false; } return isCamperMode ? (vanFilters.black && loc.isBlack) || (vanFilters.grey && loc.isGrey) || (vanFilters.water && loc.isWater) || (vanFilters.shower && loc.hasShower) : (stdFilters.toilet && loc.isToilet) || (stdFilters.water && loc.isWater) || (stdFilters.baby && loc.hasBaby); }).map(loc => { let displayType = loc.baseType; if (isCamperMode) { if (vanFilters.black && loc.isBlack) displayType = 'black'; else if (vanFilters.grey && loc.isGrey) displayType = 'grey'; else if (vanFilters.shower && loc.hasShower) displayType = 'shower'; else if (vanFilters.water && loc.isWater) displayType = 'water'; } else if (stdFilters.baby && loc.hasBaby && !stdFilters.toilet) displayType = 'baby'; return { ...loc, displayType }; }).sort((a, b) => calculateDistance(userPos[0], userPos[1], a.lat, a.lon).km - calculateDistance(userPos[0], userPos[1], b.lat, b.lon).km); }, [allLocations, isCamperMode, stdFilters, vanFilters, userPos, freeOnly, bottleOnly, accessOnly, keyOnly]);
+            const [inAreaLocs, furtherLocs] = useMemo(() => { if (!searchBounds) return [visibleLocations, []]; const inArea = []; const further = []; visibleLocations.forEach(loc => { if (searchBounds.contains([loc.lat, loc.lon])) { inArea.push(loc); } else { further.push(loc); } }); return [inArea, further]; }, [visibleLocations, searchBounds]);
+            const showListHint = !loading && view === 'map' && visibleLocations.length > 0 && inAreaLocs.length === 0;
+
+            const fetchOverpass = async (bounds, retryRadius = null) => { if (fetchController.current) { fetchController.current.abort(); } fetchController.current = new AbortController(); const signal = fetchController.current.signal; const isVan = camperModeRef.current; const center = bounds.getCenter(); let radius; if (retryRadius) { radius = retryRadius; } else { const ne = bounds.getNorthEast(); const dist = calculateDistance(center.lat, center.lng, ne.lat, ne.lng); const visibleRadiusMeters = dist.km * 1000; const minRadius = isVan ? 15000 : 2000; radius = Math.max(visibleRadiusMeters * 1.5, minRadius); } const queryArea = `(around:${radius},${center.lat},${center.lng})`; const query = `[out:json][timeout:25];(nwr["amenity"="toilets"]${queryArea};nwr["amenity"="drinking_water"]${queryArea};nwr["amenity"="water_point"]${queryArea};nwr["amenity"="sanitary_dump_station"]${queryArea};nwr["amenity"="shower"]${queryArea};nwr["diaper"]${queryArea};nwr["changing_table"]${queryArea};);out center;`; try { const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query), signal: signal }); const data = await res.json(); if (data.elements.length === 0) { const nextRadius = radius * 2; if (nextRadius <= 50000) { showToast(`Scanning ${Math.round(nextRadius/1000)}km...`); fetchOverpass(bounds, nextRadius); return; } setLoading(false); return; } setAllLocations(data.elements.map(el => { const lat = el.lat || (el.center && el.center.lat); const lon = el.lon || (el.center && el.center.lon); if (!lat || !lon) return null; let baseName = "Service Point"; if (el.tags.amenity === 'toilets') baseName = "Public Toilet"; else if (el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point') baseName = "Water Point"; else if (el.tags.amenity === 'shower') baseName = "Public Shower"; else if (el.tags.amenity === 'sanitary_dump_station') baseName = "Chemical Disposal"; else if (el.tags.diaper === 'yes') baseName = "Baby Change"; const street = el.tags['addr:street'] || el.tags['addr:place']; const city = el.tags['addr:city'] || el.tags['addr:town'] || el.tags['addr:village']; const house = el.tags['addr:housenumber']; let rawAddress = ''; if (house) rawAddress += house + ' '; if (street) rawAddress += street; if (city) rawAddress += (rawAddress ? ', ' : '') + city; let finalName = el.tags.name; if (!finalName) { const operator = el.tags.operator; if (street) { finalName = `${street} ${baseName}`; } else if (operator) { finalName = `${operator} ${baseName}`; } else if (el.tags.ref) { finalName = `${baseName} (${el.tags.ref})`; } else if (el.tags.fee) { const feeText = el.tags.fee === 'no' ? 'Free' : 'Paid'; finalName = `${feeText} ${baseName}`; } else if (el.tags.description) { const descWords = el.tags.description.split(' '); if (descWords.length > 0) { finalName = descWords.slice(0, 4).join(' ') + (descWords.length > 4 ? '...' : ''); } else { finalName = baseName; } } else { finalName = baseName; } } return { id: el.id, lat: lat, lon: lon, tags: el.tags, isToilet: el.tags.amenity === 'toilets', isWater: el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point', hasBaby: el.tags.diaper === 'yes' || el.tags.changing_table === 'yes', hasShower: el.tags.amenity === 'shower' || el.tags.shower === 'yes', isBlack: (el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:chemical_toilet'] !== 'no') || (el.tags.amenity === 'toilets' && el.tags.sanitary_dump_station === 'yes'), isGrey: el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:grey_water'] !== 'no', baseType: el.tags.amenity === 'sanitary_dump_station' ? 'dump' : el.tags.amenity === 'shower' ? 'shower' : el.tags.amenity === 'drinking_water' ? 'water' : 'toilet', name: finalName, rawAddress: rawAddress }; }).filter(Boolean)); setLoading(false); } catch (e) { if (e.name !== 'AbortError') { setLoading(false); } } };
+            const debouncedFetch = useMemo(() => debounce((b) => fetchOverpass(b), 1000), []);
+            const updateUserLocation = (coords, source) => { setUserPos(coords); setMapCenter(coords); setGpsStatus('success'); setTimeout(() => setGpsStatus('idle'), 2500); if (source === 'GPS') { setAllLocations([]); } if (mapInstanceRef.current) { const zoom = source === 'GPS' ? 17 : source === 'IP' ? 13 : 13; mapInstanceRef.current.setView(coords, zoom); if (!userMarkerRef.current) { userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current); } else { userMarkerRef.current.setLatLng(coords); } setSearchBounds(mapInstanceRef.current.getBounds()); debouncedFetch(mapInstanceRef.current.getBounds()); } };
+            useEffect(() => { if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) { setIsInstalled(true); } const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); }; window.addEventListener('beforeinstallprompt', handler); window.addEventListener('appinstalled', () => setIsInstalled(true)); return () => { window.removeEventListener('beforeinstallprompt', handler); window.removeEventListener('appinstalled', () => setIsInstalled(true)); } }, []);
+            const handleInstall = () => { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') { setDeferredPrompt(null); setIsInstalled(true); } }); } else { const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; if (isIOS) { showToast("Tap 'Share' then 'Add to Home Screen'"); } else { showToast("Use browser menu to Install App"); } } };
+            useEffect(() => { if (!mapRef.current || mapInstanceRef.current) return; const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(mapCenter, 13); mapInstanceRef.current = map; const tileUrl = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'; tileLayerRef.current = L.tileLayer(tileUrl, { attribution: '', subdomains: 'abcd', maxZoom: 20 }).addTo(map); markersRef.current = L.layerGroup().addTo(map); const handleMove = () => { if (map.getZoom() < 13) { setZoomWarning(true); setAllLocations([]); markersRef.current.clearLayers(); } else { setZoomWarning(false); setLoading(true); const b = map.getBounds(); setSearchBounds(b); debouncedFetch(b); } }; map.on('moveend', handleMove); setLoading(true); const findLocation = async () => { let gpsResolved = false; try { const res = await fetch('https://ipapi.co/json/'); if (res.ok) { const data = await res.json(); if (!gpsResolved && data.latitude && data.longitude) { updateUserLocation([data.latitude, data.longitude], 'IP'); } } } catch (e) { console.log('IP Loc failed'); } navigator.geolocation.getCurrentPosition( (pos) => { gpsResolved = true; updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => { console.log('GPS denied'); }, { enableHighAccuracy: true, timeout: 10000 } ); }; findLocation(); }, []);
+            useEffect(() => { if (!markersRef.current) return; markersRef.current.clearLayers(); visibleLocations.forEach(loc => { let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet; const types = []; if (loc.isToilet) types.push('toilet'); if (loc.isWater) types.push('water'); if (loc.hasBaby) types.push('baby'); if (loc.hasShower) types.push('shower'); if (loc.isBlack) types.push('black'); if (loc.isGrey) types.push('grey'); if (types.length === 0) types.push('toilet'); let backgroundStyle = ''; if (types.length === 1) { backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`; } else { const segmentSize = 100 / types.length; const gradientParts = types.map((t, i) => { const color = TYPE_COLORS[t]; const start = i * segmentSize; const end = (i + 1) * segmentSize; return `${color} ${start}% ${end}%`; }); backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`; } L.marker([loc.lat, loc.lon], { icon: L.divIcon({ className: '', html: `<div class="relative w-9 h-9"><div class="w-9 h-9 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-700 text-white z-10 relative shadow-sm" style="${backgroundStyle}"><div class="pie-icon flex items-center justify-center">${iconHtml}</div></div></div>`, iconSize: [36, 36], iconAnchor: [18, 36] }) }).addTo(markersRef.current).on('click', () => { closeAllMenus(); setSelectedLoc(loc); }); }); }, [visibleLocations, isDarkMode]);
+            
+            const handleSearch = async (e) => { e.preventDefault(); if (!searchTerm) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); addToHistory(searchTerm); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else { showToast('Place not found.'); } } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
+            const handleHistoryClick = (term) => { setSearchTerm(term); setTimeout(() => { searchWithTerm(term); }, 0); };
+            const searchWithTerm = async (term) => { if (!term) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(term)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); addToHistory(term); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else { showToast('Place not found.'); } } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
+            const selectSuggestion = (sugg) => { mapInstanceRef.current.flyTo([sugg.lat, sugg.lon], 16); addToHistory(sugg.display_name.split(',')[0]); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${sugg.display_name.split(',')[0]}`); }
+            const handleGPS = () => { const map = mapInstanceRef.current; if (!map || !userPos) return; const center = map.getCenter(); const distInfo = calculateDistance(center.lat, center.lng, userPos[0], userPos[1]); if (distInfo.km > 0.05) { map.flyTo(userPos, 17); navigator.geolocation.getCurrentPosition( (pos) => { updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => { }, { enableHighAccuracy: true, timeout: 10000 } ); return; } if (!navigator.geolocation) { showToast('GPS not supported'); return; } setGpsStatus('searching'); navigator.geolocation.getCurrentPosition( (pos) => { const coords = [pos.coords.latitude, pos.coords.longitude]; updateUserLocation(coords, 'GPS'); }, (err) => { setGpsStatus('idle'); showToast('GPS Access Denied'); }, { enableHighAccuracy: true } ); };
+            const startPickingLocation = () => { closeAllMenus(); setIsPickingLocation(true); if (mapInstanceRef.current && mapInstanceRef.current.getZoom() < 18) { mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18, { duration: 0.5 }); } };
+            const confirmLocation = () => { if (mapInstanceRef.current) { const center = mapInstanceRef.current.getCenter(); setContributeCoords({ lat: center.lat, lon: center.lng }); setIsPickingLocation(false); setShowContribute(true); } };
+            const cancelPicking = () => { setIsPickingLocation(false); };
+            const goToLoc = (loc) => { closeAllMenus(); setSelectedLoc(loc); setView('map'); const map = mapInstanceRef.current; if (map) { const targetZoom = 17; const point = map.project([loc.lat, loc.lon], targetZoom); const offsetY = map.getSize().y * 0.25; const targetPoint = L.point(point.x, point.y + offsetY); const newCenter = map.unproject(targetPoint, targetZoom); map.flyTo(newCenter, targetZoom); } }
 
             return html`
                 <div class="bg-white/95 dark:bg-zinc-900/95 backdrop-blur z-[1700] shadow-sm safe-pt transition-colors duration-300">
@@ -1397,64 +745,14 @@
                     </div>
                     <div class="px-4 pb-2 relative z-[1001]">
                         <form onSubmit=${handleSearch} class="relative z-[1001]">
-                            <input 
-                                type="text" 
-                                placeholder="Search city..." 
-                                class="w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl py-3 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-zinc-600 focus:bg-white dark:focus:bg-zinc-700 shadow-inner text-slate-600 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 transition-colors" 
-                                value=${searchTerm} 
-                                onInput=${handleInput}
-                                onFocus=${() => setShowHistory(true)}
-                                onBlur=${() => setTimeout(() => setShowHistory(false), 200)}
-                                autocomplete="off"
-                            />
+                            <input type="text" placeholder="Search city..." class="w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl py-3 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-zinc-600 focus:bg-white dark:focus:bg-zinc-700 shadow-inner text-slate-600 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 transition-colors" value=${searchTerm} onInput=${handleInput} onFocus=${() => setShowHistory(true)} onBlur=${() => setTimeout(() => setShowHistory(false), 200)} autocomplete="off"/>
                             <button type="submit" class="absolute left-3.5 top-3 text-slate-400 dark:text-zinc-500 w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></button>
                         </form>
                         ${showHistory && ((searchTerm && historyMatches.length > 0) || (!searchTerm && searchHistory.length > 0) || apiSuggestions.length > 0) && html`
                             <div class="absolute top-full left-4 right-4 mt-2 bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-slate-100 dark:border-zinc-700 overflow-hidden z-[2000] animate-fade-in-down max-h-[60vh] overflow-y-auto">
-                                ${searchTerm && historyMatches.length > 0 && html`
-                                    <div class="px-4 py-2 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider bg-slate-50 dark:bg-zinc-900/50">History</div>
-                                    ${historyMatches.map(term => html`
-                                        <div 
-                                            class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-zinc-700 cursor-pointer border-b border-slate-50 dark:border-zinc-700/50 last:border-0"
-                                            onMouseDown=${(e) => e.preventDefault()}
-                                            onClick=${() => handleHistoryClick(term)}
-                                        >
-                                            <div class="w-4 h-4 text-slate-400 dark:text-zinc-500 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.clock}}></div>
-                                            <span class="text-sm font-medium text-slate-700 dark:text-zinc-200">${term}</span>
-                                        </div>
-                                    `)}
-                                `}
-                                
-                                ${!searchTerm && searchHistory.length > 0 && html`
-                                    <div class="px-4 py-2 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider bg-slate-50 dark:bg-zinc-900/50">Recent</div>
-                                    ${searchHistory.map(term => html`
-                                        <div 
-                                            class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-zinc-700 cursor-pointer border-b border-slate-50 dark:border-zinc-700/50 last:border-0"
-                                            onMouseDown=${(e) => e.preventDefault()}
-                                            onClick=${() => handleHistoryClick(term)}
-                                        >
-                                            <div class="w-4 h-4 text-slate-400 dark:text-zinc-500 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.clock}}></div>
-                                            <span class="text-sm font-medium text-slate-700 dark:text-zinc-200">${term}</span>
-                                        </div>
-                                    `)}
-                                `}
-
-                                ${apiSuggestions.length > 0 && html`
-                                    <div class="px-4 py-2 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider bg-slate-50 dark:bg-zinc-900/50">Suggestions</div>
-                                    ${apiSuggestions.map(sugg => html`
-                                        <div 
-                                            class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-zinc-700 cursor-pointer border-b border-slate-50 dark:border-zinc-700/50 last:border-0"
-                                            onMouseDown=${(e) => e.preventDefault()}
-                                            onClick=${() => selectSuggestion(sugg)}
-                                        >
-                                            <div class="w-4 h-4 text-slate-400 dark:text-zinc-500 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.pin}}></div>
-                                            <div class="flex flex-col">
-                                                <span class="text-sm font-medium text-slate-700 dark:text-zinc-200">${sugg.address.city || sugg.address.town || sugg.address.village || sugg.name}</span>
-                                                <span class="text-xs text-slate-400 dark:text-zinc-500 truncate max-w-[200px]">${sugg.display_name}</span>
-                                            </div>
-                                        </div>
-                                    `)}
-                                `}
+                                ${searchTerm && historyMatches.length > 0 && html`<div class="px-4 py-2 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider bg-slate-50 dark:bg-zinc-900/50">History</div>${historyMatches.map(term => html`<div class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-zinc-700 cursor-pointer border-b border-slate-50 dark:border-zinc-700/50 last:border-0" onMouseDown=${(e) => e.preventDefault()} onClick=${() => handleHistoryClick(term)}><div class="w-4 h-4 text-slate-400 dark:text-zinc-500 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.clock}}></div><span class="text-sm font-medium text-slate-700 dark:text-zinc-200">${term}</span></div>`)}`}
+                                ${!searchTerm && searchHistory.length > 0 && html`<div class="px-4 py-2 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider bg-slate-50 dark:bg-zinc-900/50">Recent</div>${searchHistory.map(term => html`<div class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-zinc-700 cursor-pointer border-b border-slate-50 dark:border-zinc-700/50 last:border-0" onMouseDown=${(e) => e.preventDefault()} onClick=${() => handleHistoryClick(term)}><div class="w-4 h-4 text-slate-400 dark:text-zinc-500 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.clock}}></div><span class="text-sm font-medium text-slate-700 dark:text-zinc-200">${term}</span></div>`)}`}
+                                ${apiSuggestions.length > 0 && html`<div class="px-4 py-2 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider bg-slate-50 dark:bg-zinc-900/50">Suggestions</div>${apiSuggestions.map(sugg => html`<div class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-zinc-700 cursor-pointer border-b border-slate-50 dark:border-zinc-700/50 last:border-0" onMouseDown=${(e) => e.preventDefault()} onClick=${() => selectSuggestion(sugg)}><div class="w-4 h-4 text-slate-400 dark:text-zinc-500 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.pin}}></div><div class="flex flex-col"><span class="text-sm font-medium text-slate-700 dark:text-zinc-200">${sugg.address.city || sugg.address.town || sugg.address.village || sugg.name}</span><span class="text-xs text-slate-400 dark:text-zinc-500 truncate max-w-[200px]">${sugg.display_name}</span></div></div>`)}`}
                             </div>
                         `}
                     </div>
@@ -1467,10 +765,7 @@
                         ${zoomWarning && !loading && html`<${AlertPill} msg="Zoom in to find spots" />`}
                         
                         ${showListHint && html`
-                            <button 
-                                onClick=${handleViewChange} 
-                                class="bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-300 px-5 py-2.5 rounded-full shadow-lg text-sm font-bold font-brand z-[1000] pointer-events-auto active:scale-95 transition-transform flex items-center gap-2 mt-2 animate-ripple"
-                            >
+                            <button onClick=${handleViewChange} class="bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-300 px-5 py-2.5 rounded-full shadow-lg text-sm font-bold font-brand z-[1000] pointer-events-auto active:scale-95 transition-transform flex items-center gap-2 mt-2 animate-ripple">
                                 <span>Nothing nearby. View List</span>
                                 <div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.list}}></div>
                             </button>
@@ -1479,9 +774,7 @@
                     
                     ${isPickingLocation && html`
                         <div class="absolute inset-0 z-[1100] pointer-events-none flex items-center justify-center">
-                            <div class="text-slate-800 dark:text-zinc-200 drop-shadow-xl -translate-y-1/2">
-                                <span class="material-symbols-rounded text-6xl">location_on</span>
-                            </div>
+                            <div class="text-slate-800 dark:text-zinc-200 drop-shadow-xl -translate-y-1/2"><span class="material-symbols-rounded text-6xl">location_on</span></div>
                         </div>
                         <div class="absolute bottom-10 left-0 right-0 z-[1200] flex flex-col items-center space-y-3 px-6 pointer-events-auto">
                             <div class="bg-slate-800/80 backdrop-blur text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">Move map to position pin</div>
@@ -1494,18 +787,16 @@
 
                     <div id="map" ref=${mapRef} class="transition-opacity duration-500"></div>
                     
-                    ${view === 'list' && html`<div class="list-wrapper p-4 pb-24 safe-pb bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">
+                    ${(view === 'list' || isListExiting) && html`<div class="list-wrapper p-4 pb-24 safe-pb bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">
                         ${inAreaLocs.length === 0 && furtherLocs.length === 0 && html`<div class="text-center text-slate-400 dark:text-zinc-600 mt-20"><div class="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-zinc-700 opacity-50 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div><p class="font-brand text-lg">No spots visible.</p></div>`}
-                        
-                        ${inAreaLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i} onClick=${() => goToLoc(loc)} />`)}
-
+                        ${inAreaLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} />`)}
                         ${furtherLocs.length > 0 && html`
                             <div class="py-4 flex items-center gap-4 animate-stagger-fade" style=${{ animationDelay: '300ms' }}>
                                 <div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div>
                                 <span class="text-xs font-bold text-slate-400 dark:text-zinc-600 uppercase tracking-wider">Further Afield</span>
                                 <div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div>
                             </div>
-                            ${furtherLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i + inAreaLocs.length} onClick=${() => goToLoc(loc)} />`)}
+                            ${furtherLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i + inAreaLocs.length} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} />`)}
                         `}
                     </div>`}
                 </div>
@@ -1521,9 +812,7 @@
                             })()}
                         </div>
                     `}
-
                     <button onClick=${startPickingLocation} class="absolute right-5 w-14 h-14 bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-full shadow-lg flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 bottom-24" dangerouslySetInnerHTML=${{__html: ICONS.plus}}></button>
-
                     <button onClick=${handleGPS} class="absolute right-5 w-14 h-14 bg-slate-800 dark:bg-zinc-700 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 bottom-8" dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>
                 `}
                 
