@@ -135,6 +135,26 @@
             50% { transform: translateX(0); }
         }
         .animate-shake-wrapper { animation: shake 3s cubic-bezier(.36,.07,.19,.97) infinite; }
+
+        /* --- ANIMATIONS --- */
+        
+        /* Fade in scale for About Modal */
+        @keyframes scaleIn {
+            0% { opacity: 0; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Slide up for Details Card */
+        @keyframes slideUpCard {
+            0% { transform: translateY(100%); }
+            100% { transform: translateY(0); }
+        }
+
+        /* Staggered list items */
+        @keyframes staggerFade {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
     </style>
 
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -247,13 +267,35 @@
                 </div>
             </div>`;
 
+        // Updated Toggle Card Component for Filter Sheet
+        const ToggleCard = ({ label, subtext, icon, active, onClick, color }) => {
+            const activeClass = active 
+                ? 'bg-slate-800 text-white border-slate-800 dark:bg-zinc-600 dark:border-zinc-500' 
+                : 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700';
+            
+            const activeIconBg = active ? 'bg-white/20' : 'bg-slate-200 dark:bg-zinc-700';
+
+            return html`
+                <div onClick=${onClick} class=${`p-3 rounded-2xl border transition-all duration-200 active:scale-95 flex flex-col justify-between h-24 ${activeClass}`}>
+                    <div class="flex justify-between items-start w-full">
+                        <div class=${`w-8 h-8 rounded-full flex items-center justify-center ${activeIconBg}`}>
+                            <span class="material-symbols-rounded text-lg">${icon}</span>
+                        </div>
+                        <div class=${`w-10 h-6 rounded-full relative transition-colors duration-200 ${active ? 'bg-white/30' : 'bg-slate-300 dark:bg-zinc-600'}`}>
+                            <div class=${`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform duration-200 ${active ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="font-bold text-sm leading-tight">${label}</div>
+                        ${subtext && html`<div class=${`text-[10px] leading-tight mt-0.5 ${active ? 'text-white/70' : 'text-slate-400 dark:text-zinc-500'}`}>${subtext}</div>`}
+                    </div>
+                </div>
+            `;
+        }
+
         const FilterSheet = ({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, accessOnly, setAccessOnly, keyOnly, setKeyOnly, navApp, setNavApp, clearHistory, onClose }) => {
             const handleClose = () => { onClose(); };
-            const toggleFree = () => { setFreeOnly(!freeOnly); };
-            const toggleBottle = () => { setBottleOnly(!bottleOnly); };
-            const toggleAccess = () => { setAccessOnly(!accessOnly); };
-            const toggleKey = () => { setKeyOnly(!keyOnly); };
-
+            
             const handleClearHistory = () => {
                 if (confirm('Clear all search history?')) {
                     clearHistory();
@@ -270,40 +312,58 @@
                         <button onClick=${handleClose} className="p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
                     </div>
                     
-                    <div class="space-y-4 mb-8">
-                        <label class="flex items-center justify-between p-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-slate-100 dark:border-zinc-700" onClick=${toggleAccess}>
-                            <span class="font-medium text-slate-700 dark:text-zinc-200">Wheelchair Accessible</span>
-                            <div class=${'w-12 h-7 rounded-full relative transition-colors duration-200 ' + (accessOnly ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-zinc-600')}><div class=${'absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow transition-transform duration-200 ' + (accessOnly ? 'translate-x-5' : 'translate-x-0')}></div></div>
-                        </label>
-
-                        <label class="flex items-center justify-between p-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-slate-100 dark:border-zinc-700" onClick=${toggleKey}>
-                            <div><span class="font-medium text-slate-700 dark:text-zinc-200 block">Requires Radar/Key</span><span class="text-xs text-slate-400 dark:text-zinc-500">Only show locked facilities</span></div>
-                            <div class=${'w-12 h-7 rounded-full relative transition-colors duration-200 ' + (keyOnly ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-zinc-600')}><div class=${'absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow transition-transform duration-200 ' + (keyOnly ? 'translate-x-5' : 'translate-x-0')}></div></div>
-                        </label>
-
-                        <label class="flex items-center justify-between p-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-slate-100 dark:border-zinc-700" onClick=${toggleFree}>
-                            <span class="font-medium text-slate-700 dark:text-zinc-200">Free use only</span>
-                            <div class=${'w-12 h-7 rounded-full relative transition-colors duration-200 ' + (freeOnly ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-zinc-600')}><div class=${'absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow transition-transform duration-200 ' + (freeOnly ? 'translate-x-5' : 'translate-x-0')}></div></div>
-                        </label>
-                        
-                        <label class="flex items-center justify-between p-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-slate-100 dark:border-zinc-700" onClick=${toggleBottle}>
-                            <div><span class="font-medium text-slate-700 dark:text-zinc-200 block">Bottle refill only</span><span class="text-xs text-slate-400 dark:text-zinc-500">Only affects water points</span></div>
-                            <div class=${'w-12 h-7 rounded-full relative transition-colors duration-200 ' + (bottleOnly ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-zinc-600')}><div class=${'absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow transition-transform duration-200 ' + (bottleOnly ? 'translate-x-5' : 'translate-x-0')}></div></div>
-                        </label>
+                    <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">Map Filters</h3>
+                    <div class="grid grid-cols-2 gap-3 mb-8">
+                        <${ToggleCard} 
+                            label="Free Use" 
+                            icon="savings" 
+                            active=${freeOnly} 
+                            onClick=${() => setFreeOnly(!freeOnly)} 
+                        />
+                        <${ToggleCard} 
+                            label="Accessible" 
+                            subtext="Wheelchair friendly"
+                            icon="accessible" 
+                            active=${accessOnly} 
+                            onClick=${() => setAccessOnly(!accessOnly)} 
+                        />
+                        <${ToggleCard} 
+                            label="Bottle Refill" 
+                            subtext="Water points only"
+                            icon="water_bottle" 
+                            active=${bottleOnly} 
+                            onClick=${() => setBottleOnly(!bottleOnly)} 
+                        />
+                        <${ToggleCard} 
+                            label="Key Access" 
+                            subtext="Radar / Eurokey"
+                            icon="key" 
+                            active=${keyOnly} 
+                            onClick=${() => setKeyOnly(!keyOnly)} 
+                        />
                     </div>
 
                     <div class="mb-8">
-                        <h3 class="text-sm font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">Navigation App</h3>
+                        <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">Navigation App</h3>
                         <div class="bg-slate-100 dark:bg-zinc-800 p-1.5 rounded-xl flex gap-1">
-                            <button onClick=${() => setNavApp('google')} class=${'flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ' + (navApp === 'google' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>Google</button>
-                            <button onClick=${() => setNavApp('apple')} class=${'flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ' + (navApp === 'apple' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>Apple</button>
-                            <button onClick=${() => setNavApp('waze')} class=${'flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ' + (navApp === 'waze' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>Waze</button>
+                            <button onClick=${() => setNavApp('google')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ' + (navApp === 'google' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>
+                                <span>Google</span>
+                            </button>
+                            <button onClick=${() => setNavApp('apple')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ' + (navApp === 'apple' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>
+                                <span>Apple</span>
+                            </button>
+                            <button onClick=${() => setNavApp('waze')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ' + (navApp === 'waze' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}>
+                                <span>Waze</span>
+                            </button>
                         </div>
                     </div>
 
-                    <button onClick=${handleClearHistory} class="w-full py-4 text-rose-500 font-semibold bg-rose-50 dark:bg-rose-900/20 rounded-2xl hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-colors">
-                        Clear Search History
-                    </button>
+                    <div class="border-t border-slate-100 dark:border-zinc-800 pt-6">
+                        <button onClick=${handleClearHistory} class="w-full py-4 text-rose-500 font-bold bg-rose-50 dark:bg-rose-900/20 rounded-2xl hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-colors text-sm flex items-center justify-center gap-2">
+                            <span class="material-symbols-rounded text-lg">delete_history</span>
+                            <span>Clear Search History</span>
+                        </button>
+                    </div>
                 </div>
             </div>`;
         }
