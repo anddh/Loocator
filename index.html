@@ -256,17 +256,9 @@
 
         const FilterSheet = forwardRef(({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, accessOnly, setAccessOnly, keyOnly, setKeyOnly, navAppDrive, setNavAppDrive, navAppWalk, setNavAppWalk, clearHistory, onClose }, ref) => {
             const [isClosing, setIsClosing] = useState(false);
-            
-            const triggerClose = () => {
-                setIsClosing(true);
-                setTimeout(onClose, 300);
-            };
-
+            const triggerClose = () => { setIsClosing(true); setTimeout(onClose, 300); };
             useImperativeHandle(ref, () => ({ triggerClose }));
-            
-            const handleClearHistory = () => {
-                if (confirm('Clear all search history?')) { clearHistory(); }
-            };
+            const handleClearHistory = () => { if (confirm('Clear all search history?')) { clearHistory(); } };
 
             return html`
             <div class="fixed inset-0 z-[1600] flex flex-col justify-end pointer-events-none">
@@ -355,7 +347,6 @@
                 setTimeout(onClose, 300);
             };
             
-            // Allow maximizing on click, but ensure we don't block interaction with buttons
             const handleContainerClick = (e) => {
                 if (minimized) {
                     setMinimized(false);
@@ -379,7 +370,7 @@
             if (loc.displayType === 'shower') headerBg = 'bg-sky-50 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200';
 
             return html`
-                <div onClick=${handleContainerClick} class=${`fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl z-[1500] flex flex-col max-h-[85vh] safe-pb transition-transform duration-300 ease-in-out ${isClosing ? 'animate-slide-down-card' : 'animate-slide-up-card'} ${minimized ? 'translate-y-[calc(100%-170px)] cursor-pointer' : 'translate-y-0'}`}>
+                <div onClick=${handleContainerClick} style=${{ transform: minimized ? 'translateY(calc(100% - 170px))' : 'translateY(0)' }} class=${`fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl z-[1500] flex flex-col max-h-[85vh] safe-pb transition-transform duration-300 ease-in-out ${isClosing ? 'animate-slide-down-card' : 'animate-slide-up-card'} ${minimized ? 'cursor-pointer' : ''}`}>
                     <div class="w-full flex justify-center pt-3 pb-1" onClick=${(e) => { e.stopPropagation(); if (!minimized) handleClose(); else setMinimized(false); }}><div class="w-12 h-1.5 bg-slate-200 dark:bg-zinc-700 rounded-full"></div></div>
                     ${imageUrl ? html`<div class="w-full h-48 bg-slate-100 dark:bg-zinc-800 relative overflow-hidden shrink-0"><img src=${imageUrl} class="w-full h-full object-cover img-fade-in"/><div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div><button onClick=${(e) => { e.stopPropagation(); handleClose(); }} class="absolute top-4 right-4 p-2 bg-black/30 backdrop-blur rounded-full text-white"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>` : html`<div class="absolute top-2 right-4 z-10"><button onClick=${(e) => { e.stopPropagation(); handleClose(); }} class="p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-700"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>`}
                     <div class="p-6 pt-2 overflow-y-auto">
@@ -444,7 +435,7 @@
             const [isListExiting, setIsListExiting] = useState(false);
             const [allLocations, setAllLocations] = useState([]);
             const [selectedLoc, setSelectedLoc] = useState(null);
-            const [cardMinimized, setCardMinimized] = useState(false); // Minimized state
+            const [cardMinimized, setCardMinimized] = useState(false);
             const [loading, setLoading] = useState(false);
             const [toast, setToast] = useState({ msg: '', visible: false });
             const [zoomWarning, setZoomWarning] = useState(false);
@@ -483,13 +474,10 @@
             const camperModeRef = useRef(isCamperMode);
             const fetchController = useRef(null);
             const filterSheetRef = useRef(null);
-            const selectedLocRef = useRef(null); // Ref to access latest state in listener
+            const selectedLocRef = useRef(null); 
 
-            useEffect(() => {
-                selectedLocRef.current = selectedLoc;
-            }, [selectedLoc]);
+            useEffect(() => { selectedLocRef.current = selectedLoc; }, [selectedLoc]);
 
-            // Load Persisted Data
             useEffect(() => {
                 try {
                     const savedHistory = localStorage.getItem('loocator_history');
@@ -522,7 +510,7 @@
                 setShowAbout(false);
                 setShowContribute(false);
                 setSelectedLoc(null);
-                setCardMinimized(false); // Reset minimized state on close
+                setCardMinimized(false);
             };
 
             const toggleMode = () => { setIsCamperMode(!isCamperMode); };
@@ -583,7 +571,7 @@
             const startPickingLocation = () => { closeAllMenus(); setIsPickingLocation(true); if (mapInstanceRef.current && mapInstanceRef.current.getZoom() < 18) { mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18, { duration: 0.5 }); } };
             const confirmLocation = () => { if (mapInstanceRef.current) { const center = mapInstanceRef.current.getCenter(); setContributeCoords({ lat: center.lat, lon: center.lng }); setIsPickingLocation(false); setShowContribute(true); } };
             const cancelPicking = () => { setIsPickingLocation(false); };
-            const goToLoc = (loc) => { closeAllMenus(); setSelectedLoc(loc); setCardMinimized(false); setView('map'); const map = mapInstanceRef.current; if (map) { const targetZoom = 17; const point = map.project([loc.lat, loc.lon], targetZoom); const offsetY = map.getSize().y * 0.25; const targetPoint = L.point(point.x, point.y + offsetY); const newCenter = map.unproject(targetPoint, targetZoom); map.flyTo(newCenter, targetZoom); } }
+            const goToLoc = (loc) => { closeAllMenus(); setCardMinimized(false); setSelectedLoc(loc); setView('map'); const map = mapInstanceRef.current; if (map) { const targetZoom = 17; const point = map.project([loc.lat, loc.lon], targetZoom); const offsetY = map.getSize().y * 0.25; const targetPoint = L.point(point.x, point.y + offsetY); const newCenter = map.unproject(targetPoint, targetZoom); map.flyTo(newCenter, targetZoom); } }
 
             return html`
                 <div class="bg-white/95 dark:bg-zinc-900/95 backdrop-blur z-[1700] shadow-sm safe-pt transition-colors duration-300">
