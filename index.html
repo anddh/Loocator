@@ -613,7 +613,7 @@
                             </div>
                         `}
                     </div>
-                    <div class="px-4 flex space-x-2 overflow-x-auto no-scrollbar pb-1">
+                    <div class="px-4 flex space-x-2 overflow-x-auto no-scrollbar pb-2">
                         ${!isCamperMode ? html`<${FilterBtn} type="toilet" label="Toilets" active=${stdFilters.toilet} onClick=${() => setStdFilters({...stdFilters, toilet: !stdFilters.toilet})} /><${FilterBtn} type="water" label="Water" active=${stdFilters.water} color="teal" onClick=${() => setStdFilters({...stdFilters, water: !stdFilters.water})} /><${FilterBtn} type="baby" label="Baby" active=${stdFilters.baby} color="rose" onClick=${() => setStdFilters({...stdFilters, baby: !stdFilters.baby})} />` : html`<${FilterBtn} type="trash" label="Black" active=${vanFilters.black} color="black" onClick=${() => setVanFilters({...vanFilters, black: !vanFilters.black})} /><${FilterBtn} type="drop" label="Grey" active=${vanFilters.grey} color="grey" onClick=${() => setVanFilters({...vanFilters, grey: !vanFilters.grey})} /><${FilterBtn} type="water" label="Tank" active=${vanFilters.water} color="teal" onClick=${() => setVanFilters({...vanFilters, water: !vanFilters.water})} /><${FilterBtn} type="shower" label="Shower" active=${vanFilters.shower} color="sky" onClick=${() => setVanFilters({...vanFilters, shower: !vanFilters.shower})} />`}
                     </div>
                 </div>
