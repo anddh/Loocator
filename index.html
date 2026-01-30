@@ -1274,16 +1274,31 @@
                 setIsPickingLocation(false);
             };
 
+            // UPDATED FILTER BUTTON (PUSH-BUTTON STYLE)
             const FilterBtn = ({ type, label, active, onClick, color = 'slate' }) => {
                 const colors = { 
-                    slate: 'bg-slate-600 dark:bg-zinc-500', 
-                    teal: 'bg-teal-500 dark:bg-teal-600', 
-                    rose: 'bg-rose-400 dark:bg-rose-500', 
-                    black: 'bg-slate-800 dark:bg-zinc-700', 
-                    grey: 'bg-slate-400 dark:bg-zinc-500', 
-                    sky: 'bg-sky-500 dark:bg-sky-600' 
+                    slate: 'bg-slate-600 dark:bg-zinc-500 border-slate-600 dark:border-zinc-500', 
+                    teal: 'bg-teal-500 dark:bg-teal-600 border-teal-500 dark:border-teal-600', 
+                    rose: 'bg-rose-400 dark:bg-rose-500 border-rose-400 dark:border-rose-500', 
+                    black: 'bg-slate-800 dark:bg-zinc-700 border-slate-800 dark:border-zinc-700', 
+                    grey: 'bg-slate-400 dark:bg-zinc-500 border-slate-400 dark:border-zinc-500', 
+                    sky: 'bg-sky-500 dark:bg-sky-600 border-sky-500 dark:border-sky-600' 
                 };
-                return html`<button onClick=${() => { onClick(); }} class=${'flex items-center space-x-2 px-4 py-2.5 rounded-full text-xs font-semibold shrink-0 ' + (active ? colors[color] + ' text-white shadow-sm' : 'bg-slate-100 dark:bg-zinc-800 text-slate-400 dark:text-zinc-500')}><div class="flex items-center justify-center w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS[type]}}></div><span>${label}</span></button>`;
+                
+                // Base styles
+                const baseClass = "flex items-center space-x-2 px-4 py-2.5 rounded-full text-xs font-bold shrink-0 transition-all duration-200 active:scale-95 border";
+                
+                // Active vs Inactive styles
+                const stateClass = active 
+                    ? `${colors[color]} text-white shadow-md transform scale-100` 
+                    : "bg-white dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-700 shadow-sm hover:border-slate-300 dark:hover:border-zinc-600";
+
+                return html`
+                    <button onClick=${onClick} class=${`${baseClass} ${stateClass}`}>
+                        <div class="flex items-center justify-center w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS[type]}}></div>
+                        <span>${label}</span>
+                    </button>
+                `;
             };
 
             const goToLoc = (loc) => {
