@@ -109,7 +109,6 @@
         @media (prefers-color-scheme: dark) {
             body, html { background-color: #09090b; }
             .leaflet-container { background: #09090b !important; }
-            /* Update Ripple for dark mode in CSS to override Tailwind default if needed */
         }
 
         #root { height: 100%; display: flex; flex-direction: column; }
@@ -131,6 +130,14 @@
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        @media (prefers-color-scheme: dark) {
+            @keyframes ripple {
+                0% { box-shadow: 0 0 0 0 rgba(113, 113, 122, 0.4); }
+                70% { box-shadow: 0 0 0 15px rgba(113, 113, 122, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(113, 113, 122, 0); }
+            }
+        }
     </style>
 
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -148,7 +155,7 @@
 
     <script>
         const html = htm.bind(React.createElement);
-        const { useState, useEffect, useRef, useMemo } = React;
+        const { useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } = React;
 
         const ICONS = {
             toilet: `<span class="material-symbols-rounded icon-sm">wc</span>`,
@@ -175,17 +182,11 @@
             walk: `<span class="material-symbols-rounded icon-md">directions_walk</span>`,
             car: `<span class="material-symbols-rounded icon-md">directions_car</span>`,
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
-        // Colors mapping for the pie chart
         const TYPE_COLORS = {
-            toilet: '#64748b', // slate-500
-            water: '#14b8a6',  // teal-500
-            baby: '#fb7185',   // rose-400
-            shower: '#0ea5e9', // sky-500
-            black: '#1e293b',  // slate-800
-            grey: '#94a3b8'    // slate-400
+            toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8'
         };
 
         const ADDRESS_CACHE = {};
@@ -213,34 +214,21 @@
         const AlertPill = ({ msg }) => html`<div class="px-4 py-2 rounded-full shadow-lg text-sm font-medium font-brand z-[1000] bg-orange-100 text-orange-800 border-2 border-white/50 dark:bg-orange-900/80 dark:text-orange-200 dark:border-orange-800/50">${msg}</div>`;
         const Toast = ({ msg, visible }) => html`<div class=${'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-slate-800/95 dark:bg-zinc-800/95 backdrop-blur text-slate-100 px-6 py-3 rounded-full shadow-xl transition-all duration-300 z-[2000] flex items-center space-x-2 font-brand ' + (visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none')}><span>${msg}</span></div>`;
 
-        // --- COMPONENTS WITH CLOSING ANIMATIONS ---
-
         const AboutModal = ({ onClose }) => {
             const [isClosing, setIsClosing] = useState(false);
-            const handleClose = () => {
-                setIsClosing(true);
-                setTimeout(onClose, 200); // 200ms matches scaleOut
-            };
-
+            const handleClose = () => { setIsClosing(true); setTimeout(onClose, 200); };
             return html`
             <div class="fixed inset-0 z-[2000] flex items-center justify-center p-4">
                 <div class=${`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${handleClose}></div>
                 <div class=${`bg-white dark:bg-zinc-900 w-full max-w-sm rounded-3xl shadow-2xl p-6 relative ${isClosing ? 'animate-scale-out' : 'animate-scale-in'}`}>
                     <button onClick=${handleClose} class="absolute top-4 right-4 p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 transition-colors"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
-                    
                     <div class="text-center mb-6">
-                        <div class="inline-block w-24 h-24 rounded-3xl bg-slate-100 dark:bg-zinc-800 mb-4 shadow-sm overflow-hidden">
-                            <img src="icon.png" class="w-full h-full object-cover" alt="Loocator" />
-                        </div>
+                        <div class="inline-block w-24 h-24 rounded-3xl bg-slate-100 dark:bg-zinc-800 mb-4 shadow-sm overflow-hidden"><img src="icon.png" class="w-full h-full object-cover" alt="Loocator" /></div>
                         <h2 class="text-2xl font-bold font-brand text-slate-800 dark:text-zinc-100">Loocator</h2>
                         <p class="text-slate-500 dark:text-zinc-400 text-sm mt-1">v0.2</p>
                     </div>
-
                     <div class="space-y-4 text-center">
-                        <div class="bg-slate-50 dark:bg-zinc-800 p-4 rounded-xl border border-slate-100 dark:border-zinc-700">
-                            <p class="text-slate-600 dark:text-zinc-300 font-medium text-sm">Made with love in Tenerife + England ❤️</p>
-                        </div>
-
+                        <div class="bg-slate-50 dark:bg-zinc-800 p-4 rounded-xl border border-slate-100 dark:border-zinc-700"><p class="text-slate-600 dark:text-zinc-300 font-medium text-sm">Made with love in Tenerife + England ❤️</p></div>
                         <div class="text-xs text-slate-400 dark:text-zinc-500 space-y-2">
                             <p>Map Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">OpenStreetMap</a> contributors</p>
                             <p>Tiles courtesy of <a href="https://carto.com/attributions" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">CARTO</a></p>
@@ -254,54 +242,45 @@
         }
 
         const ToggleCard = ({ label, subtext, icon, active, onClick, color }) => {
-            const activeClass = active 
-                ? 'bg-slate-800 text-white border-slate-800 dark:bg-zinc-600 dark:border-zinc-500 transform' 
-                : 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transform';
-            
+            const activeClass = active ? 'bg-slate-800 text-white border-slate-800 dark:bg-zinc-600 dark:border-zinc-500 transform' : 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transform';
             const activeIconBg = active ? 'bg-white/20' : 'bg-slate-200 dark:bg-zinc-700';
-
             return html`
                 <div onClick=${onClick} class=${`p-3 rounded-2xl border transition-all duration-200 active:scale-95 flex flex-col justify-between h-24 ${activeClass}`}>
                     <div class="flex justify-between items-start w-full">
-                        <div class=${`w-8 h-8 rounded-full flex items-center justify-center ${activeIconBg}`}>
-                            <span class="material-symbols-rounded text-lg">${icon}</span>
-                        </div>
-                        <div class=${`w-10 h-6 rounded-full relative transition-colors duration-200 ${active ? 'bg-white/30' : 'bg-slate-300 dark:bg-zinc-600'}`}>
-                            <div class=${`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform duration-200 ${active ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                        </div>
+                        <div class=${`w-8 h-8 rounded-full flex items-center justify-center ${activeIconBg}`}><span class="material-symbols-rounded text-lg">${icon}</span></div>
+                        <div class=${`w-10 h-6 rounded-full relative transition-colors duration-200 ${active ? 'bg-white/30' : 'bg-slate-300 dark:bg-zinc-600'}`}><div class=${`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform duration-200 ${active ? 'translate-x-4' : 'translate-x-0'}`}></div></div>
                     </div>
-                    <div>
-                        <div class="font-bold text-sm leading-tight">${label}</div>
-                        ${subtext && html`<div class=${`text-[10px] leading-tight mt-0.5 ${active ? 'text-white/70' : 'text-slate-400 dark:text-zinc-500'}`}>${subtext}</div>`}
-                    </div>
-                </div>
-            `;
+                    <div><div class="font-bold text-sm leading-tight">${label}</div>${subtext && html`<div class=${`text-[10px] leading-tight mt-0.5 ${active ? 'text-white/70' : 'text-slate-400 dark:text-zinc-500'}`}>${subtext}</div>`}</div>
+                </div>`;
         }
 
-        const FilterSheet = ({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, accessOnly, setAccessOnly, keyOnly, setKeyOnly, navAppDrive, setNavAppDrive, navAppWalk, setNavAppWalk, clearHistory, onClose }) => {
+        // Updated FilterSheet using forwardRef to allow parent-triggered closing animation
+        const FilterSheet = forwardRef(({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, accessOnly, setAccessOnly, keyOnly, setKeyOnly, navAppDrive, setNavAppDrive, navAppWalk, setNavAppWalk, clearHistory, onClose }, ref) => {
             const [isClosing, setIsClosing] = useState(false);
             
-            const handleClose = () => {
+            const triggerClose = () => {
                 setIsClosing(true);
                 setTimeout(onClose, 300);
             };
+
+            // Expose the close trigger to the parent component
+            useImperativeHandle(ref, () => ({
+                triggerClose
+            }));
             
             const handleClearHistory = () => {
-                if (confirm('Clear all search history?')) {
-                    clearHistory();
-                }
+                if (confirm('Clear all search history?')) { clearHistory(); }
             };
 
             return html`
             <div class="fixed inset-0 z-[1600] flex flex-col justify-end pointer-events-none">
-                <div class=${`absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${handleClose}></div>
+                <div class=${`absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${triggerClose}></div>
                 <div class=${`bg-white dark:bg-zinc-900 w-full rounded-t-3xl shadow-2xl p-6 pb-10 pointer-events-auto max-h-[85vh] overflow-y-auto ${isClosing ? 'animate-slide-down-card' : 'animate-slide-up-card'}`}>
                     <div class="flex justify-center mb-4"><div class="w-12 h-1.5 bg-slate-200 dark:bg-zinc-700 rounded-full"></div></div>
                     <div class="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-bold font-brand text-slate-800 dark:text-zinc-100">Options</h2>
-                        <button onClick=${handleClose} className="p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
+                        <button onClick=${triggerClose} className="p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
                     </div>
-                    
                     <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">Map Filters</h3>
                     <div class="grid grid-cols-2 gap-3 mb-8">
                         <${ToggleCard} label="Free Use" icon="savings" active=${freeOnly} onClick=${() => setFreeOnly(!freeOnly)} />
@@ -309,7 +288,6 @@
                         <${ToggleCard} label="Bottle Refill" subtext="Water points only" icon="water_bottle" active=${bottleOnly} onClick=${() => setBottleOnly(!bottleOnly)} />
                         <${ToggleCard} label="Key Access" subtext="Radar / Eurokey" icon="key" active=${keyOnly} onClick=${() => setKeyOnly(!keyOnly)} />
                     </div>
-
                     <div class="mb-6">
                         <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">Driving App</h3>
                         <div class="bg-slate-100 dark:bg-zinc-800 p-1.5 rounded-xl flex gap-1">
@@ -318,7 +296,6 @@
                             <button onClick=${() => setNavAppDrive('waze')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppDrive === 'waze' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}><span>Waze</span></button>
                         </div>
                     </div>
-
                     <div class="mb-8">
                         <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">Walking App</h3>
                         <div class="bg-slate-100 dark:bg-zinc-800 p-1.5 rounded-xl flex gap-1">
@@ -326,16 +303,12 @@
                             <button onClick=${() => setNavAppWalk('apple')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppWalk === 'apple' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}><span>Apple</span></button>
                         </div>
                     </div>
-
                     <div class="border-t border-slate-100 dark:border-zinc-800 pt-6">
-                        <button onClick=${handleClearHistory} class="w-full py-4 text-rose-500 font-bold bg-rose-50 dark:bg-rose-900/20 rounded-2xl hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-all active:scale-95 duration-200 text-sm flex items-center justify-center gap-2 transform">
-                            <span class="material-symbols-rounded text-lg">delete_history</span>
-                            <span>Clear Search History</span>
-                        </button>
+                        <button onClick=${handleClearHistory} class="w-full py-4 text-rose-500 font-bold bg-rose-50 dark:bg-rose-900/20 rounded-2xl hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-all active:scale-95 duration-200 text-sm flex items-center justify-center gap-2 transform"><span class="material-symbols-rounded text-lg">delete_history</span><span>Clear Search History</span></button>
                     </div>
                 </div>
             </div>`;
-        }
+        });
 
         const ContributeSheet = ({ lat, lon, onClose, onShowToast }) => {
             const [text, setText] = useState('');
@@ -343,33 +316,16 @@
             const [sent, setSent] = useState(false);
             const [isClosing, setIsClosing] = useState(false);
 
-            const handleClose = () => {
-                setIsClosing(true);
-                setTimeout(onClose, 300);
-            };
+            const handleClose = () => { setIsClosing(true); setTimeout(onClose, 300); };
 
             const handleSubmit = async (e) => {
-                e.preventDefault();
-                if (!text.trim()) return;
-                setSending(true);
-
+                e.preventDefault(); if (!text.trim()) return; setSending(true);
                 try {
                     const formData = new FormData();
-                    formData.append('lat', lat);
-                    formData.append('lon', lon);
-                    formData.append('text', text + ' #LoocatorApp');
-
+                    formData.append('lat', lat); formData.append('lon', lon); formData.append('text', text + ' #LoocatorApp');
                     const res = await fetch('https://api.openstreetmap.org/api/0.6/notes.json', { method: 'POST', body: formData });
-
-                    if (res.ok) {
-                        setSent(true);
-                        onShowToast("Note sent to map editors!");
-                        setTimeout(handleClose, 2000);
-                    } else { throw new Error("Failed"); }
-                } catch (err) {
-                    onShowToast("Failed to send note. Try again.");
-                    setSending(false);
-                }
+                    if (res.ok) { setSent(true); onShowToast("Note sent to map editors!"); setTimeout(handleClose, 2000); } else { throw new Error("Failed"); }
+                } catch (err) { onShowToast("Failed to send note. Try again."); setSending(false); }
             };
 
             return html`
@@ -381,35 +337,13 @@
                         <h2 className="text-xl font-bold font-brand text-slate-800 dark:text-zinc-100">Add Missing Spot</h2>
                         <button onClick=${handleClose} className="p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
                     </div>
-                    
                     ${!sent ? html`
                         <div class="space-y-4">
                             <p class="text-slate-500 dark:text-zinc-400 text-sm">Describe what is here (e.g. "Public toilet, 50p fee"). This will be sent anonymously to OpenStreetMap volunteers.</p>
-                            <textarea 
-                                class="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl p-3 text-slate-700 dark:text-zinc-200 font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 min-h-[100px]"
-                                placeholder="Type description here..."
-                                value=${text}
-                                onInput=${(e) => setText(e.target.value)}
-                                disabled=${sending}
-                            ></textarea>
-                            <button 
-                                onClick=${handleSubmit}
-                                disabled=${sending || !text.trim()}
-                                class=${'w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-md transition-all ' + (sending || !text.trim() ? 'bg-slate-200 dark:bg-zinc-800 text-slate-400 dark:text-zinc-600 cursor-not-allowed' : 'bg-slate-800 text-white active:scale-95 dark:bg-zinc-700')}
-                            >
-                                ${sending ? html`<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>` : html`<div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.send}}></div>`}
-                                <span>${sending ? 'Sending...' : 'Send Note'}</span>
-                            </button>
-                        </div>
-                    ` : html`
-                        <div class="flex flex-col items-center justify-center py-8 text-center animate-pulse">
-                            <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
-                                <span class="material-symbols-rounded text-3xl">check</span>
-                            </div>
-                            <h3 class="text-xl font-bold text-slate-800 dark:text-zinc-100">Thank you!</h3>
-                            <p class="text-slate-500 dark:text-zinc-400">Your contribution helps everyone.</p>
-                        </div>
-                    `}
+                            <textarea class="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl p-3 text-slate-700 dark:text-zinc-200 font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 min-h-[100px]" placeholder="Type description here..." value=${text} onInput=${(e) => setText(e.target.value)} disabled=${sending}></textarea>
+                            <button onClick=${handleSubmit} disabled=${sending || !text.trim()} class=${'w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-md transition-all ' + (sending || !text.trim() ? 'bg-slate-200 dark:bg-zinc-800 text-slate-400 dark:text-zinc-600 cursor-not-allowed' : 'bg-slate-800 text-white active:scale-95 dark:bg-zinc-700')}>${sending ? html`<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>` : html`<div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.send}}></div>`}<span>${sending ? 'Sending...' : 'Send Note'}</span></button>
+                        </div>` : html`
+                        <div class="flex flex-col items-center justify-center py-8 text-center animate-pulse"><div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4"><span class="material-symbols-rounded text-3xl">check</span></div><h3 class="text-xl font-bold text-slate-800 dark:text-zinc-100">Thank you!</h3><p class="text-slate-500 dark:text-zinc-400">Your contribution helps everyone.</p></div>`}
                 </div>
             </div>`;
         }
@@ -420,68 +354,15 @@
             const [imageUrl, setImageUrl] = useState(null);
             const [isClosing, setIsClosing] = useState(false);
 
-            const handleClose = () => {
-                setIsClosing(true);
-                setTimeout(onClose, 300);
-            };
-            
-            // ... (Rest of logic same as before, just update render class)
-            // For brevity, skipping repeated fetch logic, it's identical to previous, just wrap render.
-            
-            // Re-adding fetch logic for completeness in copy-paste
-            const handleDrive = (e) => {
-                e.preventDefault();
-                let url = '';
-                const lat = loc.lat; const lon = loc.lon;
-                if (navAppDrive === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`;
-                else if (navAppDrive === 'waze') url = `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`;
-                else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`;
-                window.open(url, '_blank');
-            };
+            const handleClose = () => { setIsClosing(true); setTimeout(onClose, 300); };
+            const handleDrive = (e) => { e.preventDefault(); let url = ''; const lat = loc.lat; const lon = loc.lon; if (navAppDrive === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`; else if (navAppDrive === 'waze') url = `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`; window.open(url, '_blank'); };
+            const handleWalk = (e) => { e.preventDefault(); let url = ''; const lat = loc.lat; const lon = loc.lon; if (navAppWalk === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=w`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=walking`; window.open(url, '_blank'); };
 
-            const handleWalk = (e) => {
-                e.preventDefault();
-                let url = '';
-                const lat = loc.lat; const lon = loc.lon;
-                if (navAppWalk === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=w`;
-                else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=walking`;
-                window.open(url, '_blank');
-            };
-
-            useEffect(() => {
-                if (ADDRESS_CACHE[loc.id]) { setAddress(ADDRESS_CACHE[loc.id]); return; }
-                const fetchAddr = async () => {
-                    try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.lat}&lon=${loc.lon}&zoom=18&addressdetails=1`);
-                        const data = await res.json();
-                        const a = data.address || {};
-                        const formatted = (a.road || a.pedestrian || '') + (a.house_number ? ', ' + a.house_number : '') + (a.suburb ? ' (' + a.suburb + ')' : '');
-                        setAddress(formatted || "Address unavailable");
-                        ADDRESS_CACHE[loc.id] = formatted || "Address unavailable";
-                    } catch (e) { setAddress("Address unavailable"); }
-                };
-                fetchAddr();
-            }, [loc]);
-
-            useEffect(() => {
-                setImageUrl(null);
-                const fetchImage = async () => {
-                    if (loc.tags.image) { setImageUrl(loc.tags.image); return; }
-                    if (loc.tags.wikidata) {
-                        try {
-                            const res = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P18&entity=${loc.tags.wikidata}&format=json&origin=*`);
-                            const data = await res.json();
-                            const claims = data.claims.P18;
-                            if (claims && claims.length) setImageUrl(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(claims[0].mainsnak.datavalue.value)}?width=600`);
-                        } catch (e) {}
-                    }
-                };
-                fetchImage();
-            }, [loc]);
+            useEffect(() => { if (ADDRESS_CACHE[loc.id]) { setAddress(ADDRESS_CACHE[loc.id]); return; } const fetchAddr = async () => { try { const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.lat}&lon=${loc.lon}&zoom=18&addressdetails=1`); const data = await res.json(); const a = data.address || {}; const formatted = (a.road || a.pedestrian || '') + (a.house_number ? ', ' + a.house_number : '') + (a.suburb ? ' (' + a.suburb + ')' : ''); setAddress(formatted || "Address unavailable"); ADDRESS_CACHE[loc.id] = formatted || "Address unavailable"; } catch (e) { setAddress("Address unavailable"); } }; fetchAddr(); }, [loc]);
+            useEffect(() => { setImageUrl(null); const fetchImage = async () => { if (loc.tags.image) { setImageUrl(loc.tags.image); return; } if (loc.tags.wikidata) { try { const res = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P18&entity=${loc.tags.wikidata}&format=json&origin=*`); const data = await res.json(); const claims = data.claims.P18; if (claims && claims.length) setImageUrl(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(claims[0].mainsnak.datavalue.value)}?width=600`); } catch (e) {} } }; fetchImage(); }, [loc]);
 
             const distObj = userLoc ? calculateDistance(userLoc[0], userLoc[1], loc.lat, loc.lon) : null;
             const isPaid = loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no');
-            
             let headerBg = 'bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-300';
             if (loc.displayType === 'water') headerBg = 'bg-teal-50 text-teal-700 dark:bg-teal-900/50 dark:text-teal-200';
             if (loc.displayType === 'baby') headerBg = 'bg-rose-50 text-rose-700 dark:bg-rose-900/50 dark:text-rose-200';
@@ -513,103 +394,46 @@
                         </div>
                         <div class="space-y-3 mb-4">
                             <div class="flex gap-2">
-                                <button onClick=${handleDrive} class="flex-1 bg-slate-800 text-white dark:bg-zinc-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-                                    <div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.car}}></div>
-                                    <span>Drive</span>
-                                </button>
-                                <button onClick=${handleWalk} class="flex-1 bg-emerald-600 text-white dark:bg-emerald-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-                                    <div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.walk}}></div>
-                                    <span>Walk</span>
-                                </button>
+                                <button onClick=${handleDrive} class="flex-1 bg-slate-800 text-white dark:bg-zinc-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.car}}></div><span>Drive</span></button>
+                                <button onClick=${handleWalk} class="flex-1 bg-emerald-600 text-white dark:bg-emerald-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.walk}}></div><span>Walk</span></button>
                             </div>
                             <a href=${`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${loc.lat},${loc.lon}`} target="_blank" class="w-full bg-white text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-slate-200 dark:border-zinc-700"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.eye}}></div><span>Street Preview</span></a>
                         </div>
                     </div>
-                </div>
-            `;
+                </div>`;
         };
         
         const ListItem = ({ loc, onClick, userPos, index, isExiting }) => {
             let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet;
-            
             const types = [];
-            if (loc.isToilet) types.push('toilet');
-            if (loc.isWater) types.push('water');
-            if (loc.hasBaby) types.push('baby');
-            if (loc.hasShower) types.push('shower');
-            if (loc.isBlack) types.push('black');
-            if (loc.isGrey) types.push('grey');
-            if (types.length === 0) types.push('toilet');
-
+            if (loc.isToilet) types.push('toilet'); if (loc.isWater) types.push('water'); if (loc.hasBaby) types.push('baby'); if (loc.hasShower) types.push('shower'); if (loc.isBlack) types.push('black'); if (loc.isGrey) types.push('grey'); if (types.length === 0) types.push('toilet');
             let backgroundStyle = '';
-            if (types.length === 1) {
-                 backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`;
-            } else {
-                const segmentSize = 100 / types.length;
-                const gradientParts = types.map((t, i) => {
-                    const color = TYPE_COLORS[t];
-                    const start = i * segmentSize;
-                    const end = (i + 1) * segmentSize;
-                    return `${color} ${start}% ${end}%`;
-                });
-                backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`;
-            }
-
+            if (types.length === 1) { backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`; } else { const segmentSize = 100 / types.length; const gradientParts = types.map((t, i) => { const color = TYPE_COLORS[t]; const start = i * segmentSize; const end = (i + 1) * segmentSize; return `${color} ${start}% ${end}%`; }); backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`; }
             const [fetchedAddr, setFetchedAddr] = useState(ADDRESS_CACHE[loc.id] || null);
             const [displayName, setDisplayName] = useState(loc.name);
-
-            useEffect(() => {
-                if (ADDRESS_CACHE[loc.id]) { setFetchedAddr(ADDRESS_CACHE[loc.id]); return; }
-            }, [loc.id, index]);
-
+            useEffect(() => { if (ADDRESS_CACHE[loc.id]) { setFetchedAddr(ADDRESS_CACHE[loc.id]); return; } }, [loc.id, index]);
             const displayAddress = fetchedAddr || loc.rawAddress;
-
             return html`
-                <div 
-                    onClick=${() => { onClick(); }} 
-                    class=${`bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform ${isExiting ? 'animate-stagger-fade-out pointer-events-none' : 'animate-stagger-fade opacity-0'}`}
-                    style=${{ animationDelay: isExiting ? `${index * 30}ms` : `${index * 50}ms` }}
-                >
-                    <div class="flex items-center space-x-4 overflow-hidden">
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm pie-icon" style=${{ cssText: backgroundStyle }} dangerouslySetInnerHTML=${{__html: iconHtml}}></div>
-                        <div class="flex flex-col overflow-hidden">
-                            <h4 class="font-semibold text-slate-700 dark:text-zinc-200 font-brand text-base leading-tight truncate">${displayName}</h4>
-                            ${displayAddress && html`<p class="text-xs text-slate-400 dark:text-zinc-500 truncate mt-0.5">${displayAddress}</p>`}
-                        </div>
-                    </div>
+                <div onClick=${() => { onClick(); }} class=${`bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform ${isExiting ? 'animate-stagger-fade-out pointer-events-none' : 'animate-stagger-fade opacity-0'}`} style=${{ animationDelay: isExiting ? `${index * 30}ms` : `${index * 50}ms` }}>
+                    <div class="flex items-center space-x-4 overflow-hidden"><div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm pie-icon" style=${{ cssText: backgroundStyle }} dangerouslySetInnerHTML=${{__html: iconHtml}}></div><div class="flex flex-col overflow-hidden"><h4 class="font-semibold text-slate-700 dark:text-zinc-200 font-brand text-base leading-tight truncate">${displayName}</h4>${displayAddress && html`<p class="text-xs text-slate-400 dark:text-zinc-500 truncate mt-0.5">${displayAddress}</p>`}</div></div>
                     <span class="text-[10px] font-bold bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400 px-2 py-0.5 rounded-full ml-2 shrink-0">${calculateDistance(userPos[0], userPos[1], loc.lat, loc.lon).text}</span>
-                </div>
-            `;
+                </div>`;
         }
 
-        // FilterBtn - Using div for button logic to fix CSS issues and add custom styles
         const FilterBtn = ({ type, label, active, onClick, color = 'slate' }) => {
-            const colors = { 
-                slate: 'bg-slate-800 dark:bg-zinc-600 border-slate-800 dark:border-zinc-600', 
-                teal: 'bg-teal-500 dark:bg-teal-600 border-teal-500 dark:border-teal-600', 
-                rose: 'bg-rose-400 dark:bg-rose-500 border-rose-400 dark:border-rose-500', 
-                black: 'bg-slate-800 dark:bg-zinc-700 border-slate-800 dark:border-zinc-700', 
-                grey: 'bg-slate-400 dark:bg-zinc-500 border-slate-400 dark:border-zinc-500', 
-                sky: 'bg-sky-500 dark:bg-sky-600 border-sky-500 dark:border-sky-600' 
-            };
-            
+            const colors = { slate: 'bg-slate-800 dark:bg-zinc-600 border-slate-800 dark:border-zinc-600', teal: 'bg-teal-500 dark:bg-teal-600 border-teal-500 dark:border-teal-600', rose: 'bg-rose-400 dark:bg-rose-500 border-rose-400 dark:border-rose-500', black: 'bg-slate-800 dark:bg-zinc-700 border-slate-800 dark:border-zinc-700', grey: 'bg-slate-400 dark:bg-zinc-500 border-slate-400 dark:border-zinc-500', sky: 'bg-sky-500 dark:bg-sky-600 border-sky-500 dark:border-sky-600' };
             const baseClass = "flex items-center space-x-2 px-4 py-3 rounded-full text-xs font-bold shrink-0 transition-all duration-200 ease-out active:scale-90 border transform-gpu cursor-pointer select-none touch-manipulation";
             const inactiveClass = "bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700 shadow-sm hover:border-slate-300 dark:hover:border-zinc-600";
             const activeClass = `${colors[color]} text-white shadow-md`;
-
             return html`
                 <div onClick=${onClick} onTouchStart=${() => {}} class=${`${baseClass} ${active ? activeClass : inactiveClass}`}>
-                    <div class="flex items-center justify-center w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS[type]}}></div>
-                    <span>${label}</span>
-                </div>
-            `;
+                    <div class="flex items-center justify-center w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS[type]}}></div><span>${label}</span>
+                </div>`;
         };
 
         function App() {
             const [view, setView] = useState('map');
-            const [isListExiting, setIsListExiting] = useState(false); // Track list exit animation state
-            
-            // ... (All other state variables remain the same)
+            const [isListExiting, setIsListExiting] = useState(false);
             const [allLocations, setAllLocations] = useState([]);
             const [selectedLoc, setSelectedLoc] = useState(null);
             const [loading, setLoading] = useState(false);
@@ -649,6 +473,7 @@
             const tileLayerRef = useRef(null);
             const camperModeRef = useRef(isCamperMode);
             const fetchController = useRef(null);
+            const filterSheetRef = useRef(null);
 
             // Load Persisted Data
             useEffect(() => {
@@ -686,29 +511,31 @@
             };
 
             const toggleMode = () => { setIsCamperMode(!isCamperMode); };
-            const handleFilterClick = () => { if (showFilters) { setShowFilters(false); } else { closeAllMenus(); setShowFilters(true); } };
+            
+            const handleFilterClick = () => { 
+                if (showFilters) { 
+                    if (filterSheetRef.current) {
+                        filterSheetRef.current.triggerClose();
+                    }
+                } else { 
+                    closeAllMenus(); 
+                    setShowFilters(true); 
+                } 
+            };
+            
             const handleAboutClick = () => { if (showAbout) { setShowAbout(false); } else { closeAllMenus(); setShowAbout(true); } };
             
-            // UPDATED: View Toggle with Exit Animation Logic
             const handleViewToggle = () => {
                 if (view === 'list') {
-                    // Start exit animation
                     setIsListExiting(true);
-                    setTimeout(() => {
-                        setIsListExiting(false);
-                        setView('map');
-                    }, 300); // Wait for stagger fade out
+                    setTimeout(() => { setIsListExiting(false); setView('map'); }, 300);
                 } else {
-                    // Open list normally
                     closeAllMenus();
                     setView('list');
                 }
             };
             
-            const handleViewChange = () => {
-                closeAllMenus();
-                setView('list');
-            }
+            const handleViewChange = () => { closeAllMenus(); setView('list'); }
 
             const visibleLocations = useMemo(() => { return allLocations.filter(loc => { if (freeOnly && (loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no'))) return false; if (bottleOnly && loc.isWater && !loc.isToilet && !loc.hasBaby) { if (loc.tags.amenity !== 'drinking_water' && loc.tags.bottle !== 'yes') return false; } if (accessOnly) { const w = loc.tags.wheelchair; if (w !== 'yes' && w !== 'limited' && w !== 'designated') return false; } if (keyOnly) { const radar = loc.tags.radar_key; const central = loc.tags.centralkey; if (radar !== 'yes' && !central) return false; } return isCamperMode ? (vanFilters.black && loc.isBlack) || (vanFilters.grey && loc.isGrey) || (vanFilters.water && loc.isWater) || (vanFilters.shower && loc.hasShower) : (stdFilters.toilet && loc.isToilet) || (stdFilters.water && loc.isWater) || (stdFilters.baby && loc.hasBaby); }).map(loc => { let displayType = loc.baseType; if (isCamperMode) { if (vanFilters.black && loc.isBlack) displayType = 'black'; else if (vanFilters.grey && loc.isGrey) displayType = 'grey'; else if (vanFilters.shower && loc.hasShower) displayType = 'shower'; else if (vanFilters.water && loc.isWater) displayType = 'water'; } else if (stdFilters.baby && loc.hasBaby && !stdFilters.toilet) displayType = 'baby'; return { ...loc, displayType }; }).sort((a, b) => calculateDistance(userPos[0], userPos[1], a.lat, a.lon).km - calculateDistance(userPos[0], userPos[1], b.lat, b.lon).km); }, [allLocations, isCamperMode, stdFilters, vanFilters, userPos, freeOnly, bottleOnly, accessOnly, keyOnly]);
             const [inAreaLocs, furtherLocs] = useMemo(() => { if (!searchBounds) return [visibleLocations, []]; const inArea = []; const further = []; visibleLocations.forEach(loc => { if (searchBounds.contains([loc.lat, loc.lon])) { inArea.push(loc); } else { further.push(loc); } }); return [inArea, further]; }, [visibleLocations, searchBounds]);
@@ -816,7 +643,7 @@
                     <button onClick=${handleGPS} class="absolute right-5 w-14 h-14 bg-slate-800 dark:bg-zinc-700 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 bottom-8" dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>
                 `}
                 
-                ${showFilters && html`<${FilterSheet} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navAppDrive=${navAppDrive} setNavAppDrive=${setNavAppDrive} navAppWalk=${navAppWalk} setNavAppWalk=${setNavAppWalk} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} />`}
+                ${showFilters && html`<${FilterSheet} ref=${filterSheetRef} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navAppDrive=${navAppDrive} setNavAppDrive=${setNavAppDrive} navAppWalk=${navAppWalk} setNavAppWalk=${setNavAppWalk} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} />`}
                 ${showAbout && html`<${AboutModal} onClose=${() => setShowAbout(false)} />`}
                 ${showContribute && contributeCoords && html`<${ContributeSheet} lat=${contributeCoords.lat} lon=${contributeCoords.lon} onClose=${() => setShowContribute(false)} onShowToast=${showToast} />`}
                 ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} userLoc=${userPos} navAppDrive=${navAppDrive} navAppWalk=${navAppWalk} onClose=${() => setSelectedLoc(null)} />`}
