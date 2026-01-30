@@ -517,7 +517,13 @@
             
             useEffect(() => { camperModeRef.current = isCamperMode; if (mapInstanceRef.current) { setLoading(true); debouncedFetch(mapInstanceRef.current.getBounds()); } }, [isCamperMode]);
             
-            useEffect(() => { if (!mapInstanceRef.current) return; if (tileLayerRef.current) { mapInstanceRef.current.removeLayer(tileLayerRef.current); } const tileUrl = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'; tileLayerRef.current = L.tileLayer(tileUrl, { attribution: '', subdomains: 'abcd', maxZoom: 20 }).addTo(mapInstanceRef.current); }, [isDarkMode]);
+            // Re-added robust tile layer logic here
+            useEffect(() => { 
+                if (!mapInstanceRef.current) return; 
+                if (tileLayerRef.current) { mapInstanceRef.current.removeLayer(tileLayerRef.current); } 
+                const tileUrl = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'; 
+                tileLayerRef.current = L.tileLayer(tileUrl, { attribution: '', subdomains: 'abcd', maxZoom: 20 }).addTo(mapInstanceRef.current); 
+            }, [isDarkMode]);
 
             const showToast = (msg) => { setToast({ msg, visible: true }); setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000); };
             
@@ -565,7 +571,13 @@
             const updateUserLocation = (coords, source) => { setUserPos(coords); setMapCenter(coords); setGpsStatus('success'); setTimeout(() => setGpsStatus('idle'), 2500); if (source === 'GPS') { setAllLocations([]); } if (mapInstanceRef.current) { const zoom = source === 'GPS' ? 17 : source === 'IP' ? 13 : 13; mapInstanceRef.current.setView(coords, zoom); if (!userMarkerRef.current) { userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current); } else { userMarkerRef.current.setLatLng(coords); } setSearchBounds(mapInstanceRef.current.getBounds()); debouncedFetch(mapInstanceRef.current.getBounds()); } };
             useEffect(() => { if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) { setIsInstalled(true); } const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); }; window.addEventListener('beforeinstallprompt', handler); window.addEventListener('appinstalled', () => setIsInstalled(true)); return () => { window.removeEventListener('beforeinstallprompt', handler); window.removeEventListener('appinstalled', () => setIsInstalled(true)); } }, []);
             const handleInstall = () => { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') { setDeferredPrompt(null); setIsInstalled(true); } }); } else { const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; if (isIOS) { showToast("Tap 'Share' then 'Add to Home Screen'"); } else { showToast("Use browser menu to Install App"); } } };
-            useEffect(() => { if (!mapRef.current || mapInstanceRef.current) return; const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(mapCenter, 13); mapInstanceRef.current = map; const tileUrl = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'; tileLayerRef.current = L.tileLayer(tileUrl, { attribution: '', subdomains: 'abcd', maxZoom: 20 }).addTo(map); markersRef.current = L.layerGroup().addTo(map); 
+            useEffect(() => { if (!mapRef.current || mapInstanceRef.current) return; const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(mapCenter, 13); mapInstanceRef.current = map; 
+            
+            // TILE LOADING FIXED HERE: Immediate load
+            const tileUrl = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'; 
+            tileLayerRef.current = L.tileLayer(tileUrl, { attribution: '', subdomains: 'abcd', maxZoom: 20 }).addTo(map);
+
+            markersRef.current = L.layerGroup().addTo(map); 
             
             const handleMove = () => { if (map.getZoom() < 13) { setZoomWarning(true); setAllLocations([]); markersRef.current.clearLayers(); } else { setZoomWarning(false); setLoading(true); const b = map.getBounds(); setSearchBounds(b); debouncedFetch(b); } }; 
             
@@ -602,7 +614,19 @@
                     </div>
                     <div class="px-4 pb-2 relative z-[1001]">
                         <form onSubmit=${handleSearch} class="relative z-[1001]">
-                            <input type="text" placeholder="Search city..." class="w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl py-3 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-zinc-600 focus:bg-white dark:focus:bg-zinc-700 shadow-inner text-slate-600 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 transition-colors" value=${searchTerm} onInput=${handleInput} onFocus=${() => setShowHistory(true)} onBlur=${() => setTimeout(() => setShowHistory(false), 200)} autocomplete="off"/>
+                            <input 
+                                type="search" 
+                                name="q"
+                                id="search-input"
+                                inputmode="search"
+                                placeholder="Search city..." 
+                                class="w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl py-3 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-zinc-600 focus:bg-white dark:focus:bg-zinc-700 shadow-inner text-slate-600 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 transition-colors" 
+                                value=${searchTerm} 
+                                onInput=${handleInput} 
+                                onFocus=${() => setShowHistory(true)} 
+                                onBlur=${() => setTimeout(() => setShowHistory(false), 200)} 
+                                autocomplete="off"
+                            />
                             <button type="submit" class="absolute left-3.5 top-3 text-slate-400 dark:text-zinc-500 w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></button>
                         </form>
                         ${showHistory && ((searchTerm && historyMatches.length > 0) || (!searchTerm && searchHistory.length > 0) || apiSuggestions.length > 0) && html`
