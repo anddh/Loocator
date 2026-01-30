@@ -217,7 +217,6 @@
             return { text: d < 1 ? Math.round(d * 1000) + 'm' : d.toFixed(1) + 'km', km: d };
         }
 
-        const Loader = () => html`<div class="flex items-center space-x-2 bg-slate-800/90 dark:bg-zinc-800/90 backdrop-blur px-4 py-2 rounded-full shadow-lg z-[1000] animate-bounce"><div class="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div><span class="text-sm font-medium text-slate-200 font-brand">Scanning...</span></div>`;
         const AlertPill = ({ msg }) => html`<div class="px-4 py-2 rounded-full shadow-lg text-sm font-medium font-brand z-[1000] bg-orange-100 text-orange-800 border-2 border-white/50 dark:bg-orange-900/80 dark:text-orange-200 dark:border-orange-800/50">${msg}</div>`;
         const Toast = ({ msg, visible }) => html`<div class=${'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-slate-800/95 dark:bg-zinc-800/95 backdrop-blur text-slate-100 px-6 py-3 rounded-full shadow-xl transition-all duration-300 z-[2000] flex items-center space-x-2 font-brand ' + (visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none')}><span>${msg}</span></div>`;
 
@@ -1244,7 +1243,6 @@
                 </div>
                 <div class="map-wrapper relative bg-slate-200 dark:bg-zinc-900">
                     <div class="absolute top-4 left-0 right-0 flex justify-center z-[1000] pointer-events-none">
-                        ${loading && html`<${Loader} />`}
                         ${zoomWarning && !loading && html`<${AlertPill} msg="Zoom in to find spots" />`}
                         
                         ${showListHint && html`
@@ -1294,11 +1292,11 @@
                 </div>
                 
                 ${!isPickingLocation && !selectedLoc && html`
-                    ${gpsStatus !== 'idle' && html`
+                    ${(gpsStatus !== 'idle' || loading) && html`
                         <div class="absolute right-5 bottom-40 w-10 h-10 bg-white dark:bg-zinc-800 rounded-full shadow-lg z-[1000] flex items-center justify-center animate-pop-in border border-slate-100 dark:border-zinc-700">
-                            ${gpsStatus === 'searching' 
-                                ? html`<div class="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>` 
-                                : html`<div class="w-5 h-5 text-emerald-500 flex items-center justify-center animate-scale-in" dangerouslySetInnerHTML=${{__html: ICONS.check}}></div>`
+                            ${gpsStatus === 'success' 
+                                ? html`<div class="w-5 h-5 text-emerald-500 flex items-center justify-center animate-scale-in" dangerouslySetInnerHTML=${{__html: ICONS.check}}></div>`
+                                : html`<div class="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>`
                             }
                         </div>
                     `}
