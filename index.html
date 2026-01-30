@@ -45,43 +45,15 @@
                         'ripple': 'ripple 2s infinite'
                     },
                     keyframes: {
-                        scaleIn: {
-                            '0%': { opacity: '0', transform: 'scale(0.95)' },
-                            '100%': { opacity: '1', transform: 'scale(1)' }
-                        },
-                        scaleOut: {
-                            '0%': { opacity: '1', transform: 'scale(1)' },
-                            '100%': { opacity: '0', transform: 'scale(0.95)' }
-                        },
-                        slideUpCard: {
-                            '0%': { transform: 'translateY(100%)' },
-                            '100%': { transform: 'translateY(0)' }
-                        },
-                        slideDownCard: {
-                            '0%': { transform: 'translateY(0)' },
-                            '100%': { transform: 'translateY(100%)' }
-                        },
-                        staggerFade: {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' }
-                        },
-                        staggerFadeOut: {
-                            '0%': { opacity: '1', transform: 'translateY(0)' },
-                            '100%': { opacity: '0', transform: 'translateY(20px)' }
-                        },
-                        popIn: {
-                            '0%': { opacity: '0', transform: 'scale(0.5)' },
-                            '100%': { opacity: '1', transform: 'scale(1)' }
-                        },
-                        pulseFast: {
-                            '0%, 100%': { opacity: '1' },
-                            '50%': { opacity: '0.4' }
-                        },
-                        ripple: {
-                            '0%': { boxShadow: '0 0 0 0 rgba(148, 163, 184, 0.4)' },
-                            '70%': { boxShadow: '0 0 0 15px rgba(148, 163, 184, 0)' },
-                            '100%': { boxShadow: '0 0 0 0 rgba(148, 163, 184, 0)' }
-                        }
+                        scaleIn: { '0%': { opacity: '0', transform: 'scale(0.95)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
+                        scaleOut: { '0%': { opacity: '1', transform: 'scale(1)' }, '100%': { opacity: '0', transform: 'scale(0.95)' } },
+                        slideUpCard: { '0%': { transform: 'translateY(100%)' }, '100%': { transform: 'translateY(0)' } },
+                        slideDownCard: { '0%': { transform: 'translateY(0)' }, '100%': { transform: 'translateY(100%)' } },
+                        staggerFade: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+                        staggerFadeOut: { '0%': { opacity: '1', transform: 'translateY(0)' }, '100%': { opacity: '0', transform: 'translateY(20px)' } },
+                        popIn: { '0%': { opacity: '0', transform: 'scale(0.5)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
+                        pulseFast: { '0%, 100%': { opacity: '1' }, '50%': { opacity: '0.4' } },
+                        ripple: { '0%': { boxShadow: '0 0 0 0 rgba(148, 163, 184, 0.4)' }, '70%': { boxShadow: '0 0 0 15px rgba(148, 163, 184, 0)' }, '100%': { boxShadow: '0 0 0 0 rgba(148, 163, 184, 0)' } }
                     }
                 }
             }
@@ -115,10 +87,7 @@
         .pie-icon { text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
         .user-pin-ring { position: absolute; width: 20px; height: 20px; border-radius: 50%; background-color: #475569; opacity: 0.7; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
         .user-pin-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background-color: white; border: 2px solid #475569; top: 5px; left: 5px; animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.4s infinite; }
-        @media (prefers-color-scheme: dark) {
-            .user-pin-ring { background-color: #a1a1aa; }
-            .user-pin-dot { border-color: #a1a1aa; }
-        }
+        @media (prefers-color-scheme: dark) { .user-pin-ring { background-color: #a1a1aa; } .user-pin-dot { border-color: #a1a1aa; } }
         @keyframes pulse-ring { 0% { transform: scale(0.33); opacity: 1; } 80%, 100% { opacity: 0; } }
         @keyframes pulse-dot { 0% { transform: scale(0.8); } 50% { transform: scale(1); } 100% { transform: scale(0.8); } }
         .safe-pt { padding-top: env(safe-area-inset-top); }
@@ -191,129 +160,7 @@
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2); 
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-            const d = R * c; 
-            return { text: d < 1 ? Math.round(d * 1000) + 'm' : d.toFixed(1) + 'km', km: d };
-        }
-
-        const AlertPill = ({ msg }) => html`<div class="px-4 py-2 rounded-full shadow-lg text-sm font-medium font-brand z-[1000] bg-orange-100 text-orange-800 border-2 border-white/50 dark:bg-orange-900/80 dark:text-orange-200 dark:border-orange-800/50">${msg}</div>`;
-        const Toast = ({ msg, visible }) => html`<div class=${'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-slate-800/95 dark:bg-zinc-800/95 backdrop-blur text-slate-100 px-6 py-3 rounded-full shadow-xl transition-all duration-300 z-[2000] flex items-center space-x-2 font-brand ' + (visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none')}><span>${msg}</span></div>`;
-
-        const AboutModal = ({ onClose }) => {
-            const [isClosing, setIsClosing] = useState(false);
-            const handleClose = () => { setIsClosing(true); setTimeout(onClose, 200); };
-            return html`
-            <div class="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-                <div class=${`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${handleClose}></div>
-                <div class=${`bg-white dark:bg-zinc-900 w-full max-w-sm rounded-3xl shadow-2xl p-6 relative ${isClosing ? 'animate-scale-out' : 'animate-scale-in'}`}>
-                    <button onClick=${handleClose} class="absolute top-4 right-4 p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 transition-colors"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
-                    <div class="text-center mb-6">
-                        <div class="inline-block w-24 h-24 rounded-3xl bg-slate-100 dark:bg-zinc-800 mb-4 shadow-sm overflow-hidden"><img src="icon.png" class="w-full h-full object-cover" alt="Loocator" /></div>
-                        <h2 class="text-2xl font-bold font-brand text-slate-800 dark:text-zinc-100">Loocator</h2>
-                        <p class="text-slate-500 dark:text-zinc-400 text-sm mt-1">v0.2</p>
-                    </div>
-                    <div class="space-y-4 text-center">
-                        <div class="bg-slate-50 dark:bg-zinc-800 p-4 rounded-xl border border-slate-100 dark:border-zinc-700"><p class="text-slate-600 dark:text-zinc-300 font-medium text-sm">Made with love in Tenerife + England ❤️</p></div>
-                        <div class="text-xs text-slate-400 dark:text-zinc-500 space-y-2">
-                            <p>Map Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">OpenStreetMap</a> contributors</p>
-                            <p>Tiles courtesy of <a href="https://carto.com/attributions" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">CARTO</a></p>
-                            <p>Powered by <a href="https://leafletjs.com" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">Leaflet</a> <span aria-label="Ukraine Flag">🇺🇦</span></p>
-                            <p>Data available under ODbL.</p>
-                            <p class="mt-4">© ${new Date().getFullYear()} Loocator</p>
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-        }
-
-        const ToggleCard = ({ label, subtext, icon, active, onClick, color }) => {
-            const activeClass = active ? 'bg-slate-800 text-white border-slate-800 dark:bg-zinc-600 dark:border-zinc-500 transform' : 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transform';
-            const activeIconBg = active ? 'bg-white/20' : 'bg-slate-200 dark:bg-zinc-700';
-            return html`
-                <div onClick=${onClick} class=${`p-3 rounded-2xl border transition-all duration-200 active:scale-95 flex flex-col justify-between h-24 ${activeClass}`}>
-                    <div class="flex justify-between items-start w-full">
-                        <div class=${`w-8 h-8 rounded-full flex items-center justify-center ${activeIconBg}`}><span class="material-symbols-rounded text-lg">${icon}</span></div>
-                        <div class=${`w-10 h-6 rounded-full relative transition-colors duration-200 ${active ? 'bg-white/30' : 'bg-slate-300 dark:bg-zinc-600'}`}><div class=${`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform duration-200 ${active ? 'translate-x-4' : 'translate-x-0'}`}></div></div>
-                    </div>
-                    <div><div class="font-bold text-sm leading-tight">${label}</div>${subtext && html`<div class=${`text-[10px] leading-tight mt-0.5 ${active ? 'text-white/70' : 'text-slate-400 dark:text-zinc-500'}`}>${subtext}</div>`}</div>
-                </div>`;
-        }
-
-        const FilterSheet = forwardRef(({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, accessOnly, setAccessOnly, keyOnly, setKeyOnly, navAppDrive, setNavAppDrive, navAppWalk, setNavAppWalk, clearHistory, onClose }, ref) => {
-            const [isClosing, setIsClosing] = useState(false);
-            const triggerClose = () => { setIsClosing(true); setTimeout(onClose, 300); };
-            useImperativeHandle(ref, () => ({ triggerClose }));
-            const handleClearHistory = () => { if (confirm('Clear all search history?')) { clearHistory(); } };
-            return html`
-            <div class="fixed inset-0 z-[1600] flex flex-col justify-end pointer-events-none">
-                <div class=${`absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${triggerClose}></div>
-                <div class=${`bg-white dark:bg-zinc-900 w-full rounded-t-3xl shadow-2xl p-6 pb-10 pointer-events-auto max-h-[85vh] overflow-y-auto ${isClosing ? 'animate-slide-down-card' : 'animate-slide-up-card'}`}>
-                    <div class="flex justify-center mb-4"><div class="w-12 h-1.5 bg-slate-200 dark:bg-zinc-700 rounded-full"></div></div>
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-bold font-brand text-slate-800 dark:text-zinc-100">Options</h2>
-                        <button onClick=${triggerClose} className="p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
-                    </div>
-                    <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">Map Filters</h3>
-                    <div class="grid grid-cols-2 gap-3 mb-8">
-                        <${ToggleCard} label="Free Use" icon="savings" active=${freeOnly} onClick=${() => setFreeOnly(!freeOnly)} />
-                        <${ToggleCard} label="Accessible" subtext="Wheelchair friendly" icon="accessible" active=${accessOnly} onClick=${() => setAccessOnly(!accessOnly)} />
-                        <${ToggleCard} label="Bottle Refill" subtext="Water points only" icon="water_bottle" active=${bottleOnly} onClick=${() => setBottleOnly(!bottleOnly)} />
-                        <${ToggleCard} label="Key Access" subtext="Radar / Eurokey" icon="key" active=${keyOnly} onClick=${() => setKeyOnly(!keyOnly)} />
-                    </div>
-                    <div class="mb-6">
-                        <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">Driving App</h3>
-                        <div class="bg-slate-100 dark:bg-zinc-800 p-1.5 rounded-xl flex gap-1">
-                            <button onClick=${() => setNavAppDrive('google')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppDrive === 'google' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}><span>Google</span></button>
-                            <button onClick=${() => setNavAppDrive('apple')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppDrive === 'apple' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}><span>Apple</span></button>
-                            <button onClick=${() => setNavAppDrive('waze')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppDrive === 'waze' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}><span>Waze</span></button>
-                        </div>
-                    </div>
-                    <div class="mb-8">
-                        <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">Walking App</h3>
-                        <div class="bg-slate-100 dark:bg-zinc-800 p-1.5 rounded-xl flex gap-1">
-                            <button onClick=${() => setNavAppWalk('google')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppWalk === 'google' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}><span>Google</span></button>
-                            <button onClick=${() => setNavAppWalk('apple')} class=${'flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 transform active:scale-95 duration-200 ' + (navAppWalk === 'apple' ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300')}><span>Apple</span></button>
-                        </div>
-                    </div>
-                    <div class="border-t border-slate-100 dark:border-zinc-800 pt-6">
-                        <button onClick=${handleClearHistory} class="w-full py-4 text-rose-500 font-bold bg-rose-50 dark:bg-rose-900/20 rounded-2xl hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-all active:scale-95 duration-200 text-sm flex items-center justify-center gap-2 transform"><span class="material-symbols-rounded text-lg">delete_history</span><span>Clear Search History</span></button>
-                    </div>
-                </div>
-            </div>`;
-        });
-
-        const ContributeSheet = ({ lat, lon, onClose, onShowToast }) => {
-            const [text, setText] = useState('');
-            const [sending, setSending] = useState(false);
-            const [sent, setSent] = useState(false);
-            const [isClosing, setIsClosing] = useState(false);
-            const handleClose = () => { setIsClosing(true); setTimeout(onClose, 300); };
-            const handleSubmit = async (e) => {
-                e.preventDefault(); if (!text.trim()) return; setSending(true);
-                try {
-                    const formData = new FormData();
-                    formData.append('lat', lat); formData.append('lon', lon); formData.append('text', text + ' #LoocatorApp');
-                    const res = await fetch('https://api.openstreetmap.org/api/0.6/notes.json', { method: 'POST', body: formData });
-                    if (res.ok) { setSent(true); onShowToast("Note sent to map editors!"); setTimeout(handleClose, 2000); } else { throw new Error("Failed"); }
-                } catch (err) { onShowToast("Failed to send note. Try again."); setSending(false); }
-            };
-            return html`
-            <div class="fixed inset-0 z-[1600] flex flex-col justify-end pointer-events-none">
-                <div class=${`absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${handleClose}></div>
-                <div class=${`bg-white dark:bg-zinc-900 w-full rounded-t-3xl shadow-2xl p-6 pb-12 pointer-events-auto ${isClosing ? 'animate-slide-down-card' : 'animate-slide-up-card'}`}>
-                    <div class="flex justify-center mb-4"><div class="w-12 h-1.5 bg-slate-200 dark:bg-zinc-700 rounded-full"></div></div>
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold font-brand text-slate-800 dark:text-zinc-100">Add Missing Spot</h2>
-                        <button onClick=${handleClose} className="p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
-                    </div>
-                    ${!sent ? html`
-                        <div class="space-y-4">
-                            <p class="text-slate-500 dark:text-zinc-400 text-sm">Describe what is here (e.g. "Public toilet, 50p fee"). This will be sent anonymously to OpenStreetMap volunteers.</p>
-                            <textarea class="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl p-3 text-slate-700 dark:text-zinc-200 font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 min-h-[100px]" placeholder="Type description here..." value=${text} onInput=${(e) => setText(e.target.value)} disabled=${sending}></textarea>
-                            <button onClick=${handleSubmit} disabled=${sending || !text.trim()} class=${'w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-md transition-all ' + (sending || !text.trim() ? 'bg-slate-200 dark:bg-zinc-800 text-slate-400 dark:text-zinc-600 cursor-not-allowed' : 'bg-slate-800 text-white active:scale-95 dark:bg-zinc-700')}>${sending ? html`<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>` : html`<div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.send}}></div>`}<span>${sending ? 'Sending...' : 'Send Note'}</span></button>
-                        </div>` : html`
-                        <div class="flex flex-col items-center justify-center py-8 text-center animate-pulse"><div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4"><span class="material-symbols-rounded text-3xl">check</span></div><h3 class="text-xl font-bold text-slate-800 dark:text-zinc-100">Thank you!</h3><p class="text-slate-500 dark:text-zinc-400">Your contribution helps everyone.</p></div>`}
-                </div>
-            </div>`;
+            return { text: (R * c) < 1 ? Math.round(R * c * 1000) + 'm' : (R * c).toFixed(1) + 'km', km: R * c };
         }
 
         const DetailsCard = ({ loc, userLoc, navAppDrive, navAppWalk, onClose, minimized, setMinimized }) => {
@@ -322,33 +169,31 @@
             const [imageUrl, setImageUrl] = useState(null);
             const [isClosing, setIsClosing] = useState(false);
             const [animationFinished, setAnimationFinished] = useState(false);
+
             useEffect(() => {
                 const timer = setTimeout(() => setAnimationFinished(true), 500);
                 return () => clearTimeout(timer);
             }, []);
+
             const handleClose = () => { setIsClosing(true); setTimeout(onClose, 300); };
             const handleContainerClick = () => { if (minimized) setMinimized(false); };
-            const handleDrive = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const lat = loc.lat; const lon = loc.lon; if (navAppDrive === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`; else if (navAppDrive === 'waze') url = `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`; window.open(url, '_blank'); };
-            const handleWalk = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const lat = loc.lat; const lon = loc.lon; if (navAppWalk === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=w`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=walking`; window.open(url, '_blank'); };
+
+            const handleDrive = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const {lat, lon} = loc; if (navAppDrive === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`; else if (navAppDrive === 'waze') url = `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`; window.open(url, '_blank'); };
+            const handleWalk = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const {lat, lon} = loc; if (navAppWalk === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=w`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=walking`; window.open(url, '_blank'); };
+
             useEffect(() => { if (ADDRESS_CACHE[loc.id]) { setAddress(ADDRESS_CACHE[loc.id]); return; } const fetchAddr = async () => { try { const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.lat}&lon=${loc.lon}&zoom=18&addressdetails=1`); const data = await res.json(); const a = data.address || {}; const formatted = (a.road || a.pedestrian || '') + (a.house_number ? ', ' + a.house_number : '') + (a.suburb ? ' (' + a.suburb + ')' : ''); setAddress(formatted || "Address unavailable"); ADDRESS_CACHE[loc.id] = formatted || "Address unavailable"; } catch (e) { setAddress("Address unavailable"); } }; fetchAddr(); }, [loc]);
             useEffect(() => { setImageUrl(null); const fetchImage = async () => { if (loc.tags.image) { setImageUrl(loc.tags.image); return; } if (loc.tags.wikidata) { try { const res = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P18&entity=${loc.tags.wikidata}&format=json&origin=*`); const data = await res.json(); const claims = data.claims.P18; if (claims && claims.length) setImageUrl(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(claims[0].mainsnak.datavalue.value)}?width=600`); } catch (e) {} } }; fetchImage(); }, [loc]);
+
             const distObj = userLoc ? calculateDistance(userLoc[0], userLoc[1], loc.lat, loc.lon) : null;
             const isPaid = loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no');
-            let headerBg = 'bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-300';
-            if (loc.displayType === 'water') headerBg = 'bg-teal-50 text-teal-700 dark:bg-teal-900/50 dark:text-teal-200';
-            if (loc.displayType === 'baby') headerBg = 'bg-rose-50 text-rose-700 dark:bg-rose-900/50 dark:text-rose-200';
-            if (loc.displayType === 'grey') headerBg = 'bg-slate-200 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300';
-            if (loc.displayType === 'black') headerBg = 'bg-slate-700 text-slate-100 dark:bg-zinc-950 dark:text-zinc-200';
-            if (loc.displayType === 'shower') headerBg = 'bg-sky-50 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200';
+            let headerBg = loc.displayType === 'water' ? 'bg-teal-50 text-teal-700 dark:bg-teal-900/50 dark:text-teal-200' : loc.displayType === 'baby' ? 'bg-rose-50 text-rose-700 dark:bg-rose-900/50 dark:text-rose-200' : loc.displayType === 'shower' ? 'bg-sky-50 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200' : 'bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-300';
             const contentClass = `transition-opacity duration-300 ${minimized ? 'opacity-0 pointer-events-none' : 'opacity-100 delay-100'}`;
+
             return html`
-                <div 
-                    onClick=${handleContainerClick} 
-                    style=${{ transform: minimized ? 'translateY(calc(100% - 160px))' : 'translateY(0)' }} 
-                    class=${`fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl z-[1500] flex flex-col max-h-[85vh] safe-pb transition-transform duration-300 ease-in-out ${isClosing ? 'animate-slide-down-card' : (animationFinished ? '' : 'animate-slide-up-card')} ${minimized ? 'cursor-pointer' : ''}`}
-                >
+                <div onClick=${handleContainerClick} style=${{ transform: minimized ? 'translateY(calc(100% - 160px))' : 'translateY(0)' }} 
+                    class=${`fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl z-[1500] flex flex-col max-h-[85vh] safe-pb transition-transform duration-300 ease-in-out ${isClosing ? 'animate-slide-down-card' : (animationFinished ? '' : 'animate-slide-up-card')} ${minimized ? 'cursor-pointer' : ''}`}>
                     <div class="w-full flex justify-center pt-3 pb-1" onClick=${(e) => { e.stopPropagation(); if (!minimized) handleClose(); else setMinimized(false); }}><div class="w-12 h-1.5 bg-slate-200 dark:bg-zinc-700 rounded-full"></div></div>
-                    ${imageUrl ? html`<div class="w-full h-48 bg-slate-100 dark:bg-zinc-800 relative overflow-hidden shrink-0"><img src=${imageUrl} class="w-full h-full object-cover img-fade-in"/><div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div><button onClick=${(e) => { e.stopPropagation(); handleClose(); }} class="absolute top-4 right-4 p-2 bg-black/30 backdrop-blur rounded-full text-white"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>` : html`<div class="absolute top-2 right-4 z-10"><button onClick=${(e) => { e.stopPropagation(); handleClose(); }} class="p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-700"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>`}
+                    ${imageUrl ? html`<div class="w-full h-48 bg-slate-100 dark:bg-zinc-800 relative overflow-hidden shrink-0"><img src=${imageUrl} class="w-full h-full object-cover"/><div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div><button onClick=${(e) => { e.stopPropagation(); handleClose(); }} class="absolute top-4 right-4 p-2 bg-black/30 backdrop-blur rounded-full text-white"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>` : html`<div class="absolute top-2 right-4 z-10"><button onClick=${(e) => { e.stopPropagation(); handleClose(); }} class="p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-700"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button></div>`}
                     <div class="p-6 pt-2 overflow-y-auto">
                         <div class="mb-4">
                             <div class="flex space-x-2 mb-2">
@@ -365,44 +210,22 @@
                                 ${loc.isWater && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-teal-50 text-teal-700 border border-teal-100 dark:bg-teal-900/30 dark:text-teal-200 dark:border-teal-900/50 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.water}}></span> Water</div>`}
                                 ${loc.hasBaby && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-rose-50 text-rose-700 border border-rose-100 dark:bg-rose-900/30 dark:text-rose-200 dark:border-rose-900/50 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.baby}}></span> Baby Change</div>`}
                                 ${loc.hasShower && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-sky-50 text-sky-700 border border-sky-100 dark:bg-sky-900/30 dark:text-sky-200 dark:border-sky-900/50 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.shower}}></span> Shower</div>`}
-                                ${loc.isBlack && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-slate-100 border border-slate-700 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.trash}}></span> Black Waste</div>`}
-                                ${loc.isGrey && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-200 text-slate-700 border border-slate-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.drop}}></span> Grey Waste</div>`}
                             </div>
                             <div class="space-y-3 mb-4">
                                 <div class="flex gap-2">
                                     <button onClick=${handleDrive} class="flex-1 bg-slate-800 text-white dark:bg-zinc-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.car}}></div><span>Drive</span></button>
                                     <button onClick=${handleWalk} class="flex-1 bg-emerald-600 text-white dark:bg-emerald-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.walk}}></div><span>Walk</span></button>
                                 </div>
-                                <a href=${`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${loc.lat},${loc.lon}`} target="_blank" class="w-full bg-white text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-slate-200 dark:border-zinc-700"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.eye}}></div><span>Street Preview</span></a>
+                                <a href=${`https://www.google.com/maps/@?api=1&map_action=streetview&location=${loc.lat},${loc.lon}`} target="_blank" class="w-full bg-white text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-slate-200 dark:border-zinc-700"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.eye}}></div><span>Street Preview</span></a>
                             </div>
                         </div>
                     </div>
                 </div>`;
         };
-        
-        const ListItem = ({ loc, onClick, userPos, index, isExiting }) => {
-            let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet;
-            const types = [];
-            if (loc.isToilet) types.push('toilet'); if (loc.isWater) types.push('water'); if (loc.hasBaby) types.push('baby'); if (loc.hasShower) types.push('shower'); if (loc.isBlack) types.push('black'); if (loc.isGrey) types.push('grey'); if (types.length === 0) types.push('toilet');
-            let backgroundStyle = '';
-            if (types.length === 1) { backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`; } else { const segmentSize = 100 / types.length; const gradientParts = types.map((t, i) => { const color = TYPE_COLORS[t]; const start = i * segmentSize; const end = (i + 1) * segmentSize; return `${color} ${start}% ${end}%`; }); backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`; }
-            const [fetchedAddr, setFetchedAddr] = useState(ADDRESS_CACHE[loc.id] || null);
-            const displayAddress = fetchedAddr || loc.rawAddress;
-            return html`
-                <div onClick=${onClick} class=${`bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform ${isExiting ? 'animate-stagger-fade-out pointer-events-none' : 'animate-stagger-fade opacity-0'}`} style=${{ animationDelay: isExiting ? `${index * 30}ms` : `${index * 50}ms` }}>
-                    <div class="flex items-center space-x-4 overflow-hidden"><div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm pie-icon" style=${{ cssText: backgroundStyle }} dangerouslySetInnerHTML=${{__html: iconHtml}}></div><div class="flex flex-col overflow-hidden"><h4 class="font-semibold text-slate-700 dark:text-zinc-200 font-brand text-base leading-tight truncate">${loc.name}</h4>${displayAddress && html`<p class="text-xs text-slate-400 dark:text-zinc-500 truncate mt-0.5">${displayAddress}</p>`}</div></div>
-                    <span class="text-[10px] font-bold bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400 px-2 py-0.5 rounded-full ml-2 shrink-0">${calculateDistance(userPos[0], userPos[1], loc.lat, loc.lon).text}</span>
-                </div>`;
-        }
 
         const FilterBtn = ({ type, label, active, onClick, color = 'slate' }) => {
-            const colors = { slate: 'bg-slate-800 dark:bg-zinc-600 border-slate-800 dark:border-zinc-600', teal: 'bg-teal-500 dark:bg-teal-600 border-teal-500 dark:border-teal-600', rose: 'bg-rose-400 dark:bg-rose-500 border-rose-400 dark:border-rose-500', black: 'bg-slate-800 dark:bg-zinc-700 border-slate-800 dark:border-zinc-700', grey: 'bg-slate-400 dark:bg-zinc-500 border-slate-400 dark:border-zinc-500', sky: 'bg-sky-500 dark:bg-sky-600 border-sky-500 dark:border-sky-600' };
-            const baseClass = "flex items-center space-x-2 px-4 py-3 rounded-full text-xs font-bold shrink-0 transition-all duration-200 ease-out active:scale-90 border transform-gpu cursor-pointer select-none touch-manipulation";
-            const activeClass = `${colors[color]} text-white shadow-md`;
-            return html`
-                <div onClick=${onClick} class=${`${baseClass} ${active ? activeClass : "bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700 shadow-sm"}`}>
-                    <div class="flex items-center justify-center w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS[type]}}></div><span>${label}</span>
-                </div>`;
+            const colors = { slate: 'bg-slate-800 dark:bg-zinc-600 border-slate-800', teal: 'bg-teal-500 dark:bg-teal-600 border-teal-500', rose: 'bg-rose-400 dark:bg-rose-500 border-rose-400', black: 'bg-slate-800 dark:bg-zinc-700 border-slate-800', grey: 'bg-slate-400 dark:bg-zinc-500 border-slate-400', sky: 'bg-sky-500 dark:bg-sky-600 border-sky-500' };
+            return html`<div onClick=${onClick} class=${`flex items-center space-x-2 px-4 py-3 rounded-full text-xs font-bold shrink-0 transition-all duration-200 active:scale-90 border cursor-pointer select-none ${active ? colors[color] + ' text-white shadow-md' : 'bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700 shadow-sm'}`}><div class="flex items-center justify-center w-5 h-5" dangerouslySetInnerHTML=${{__html: ICONS[type]}}></div><span>${label}</span></div>`;
         };
 
         function App() {
@@ -425,11 +248,7 @@
             const [navAppDrive, setNavAppDriveState] = useState('google');
             const [navAppWalk, setNavAppWalkState] = useState('google');
             const [searchTerm, setSearchTerm] = useState('');
-            const [mapCenter, setMapCenter] = useState([51.505, -0.09]); 
-            const [userPos, setUserPos] = useState([51.505, -0.09]); 
-            const [searchBounds, setSearchBounds] = useState(null); 
-            const [isInstalled, setIsInstalled] = useState(false);
-            const [showAbout, setShowAbout] = useState(false);
+            const [userPos, setUserPos] = useState([51.505, -0.09]);
             const [searchHistory, setSearchHistory] = useState([]);
             const [showHistory, setShowHistory] = useState(false);
             const [apiSuggestions, setApiSuggestions] = useState([]);
@@ -445,9 +264,7 @@
             const markersRef = useRef(null);
             const userMarkerRef = useRef(null);
             const tileLayerRef = useRef(null);
-            const camperModeRef = useRef(isCamperMode);
             const fetchController = useRef(null);
-            const filterSheetRef = useRef(null);
             const selectedLocRef = useRef(null); 
             const cardMinimizedRef = useRef(false);
 
@@ -455,97 +272,97 @@
             useEffect(() => { cardMinimizedRef.current = cardMinimized; }, [cardMinimized]);
 
             useEffect(() => {
-                try {
-                    const savedHistory = localStorage.getItem('loocator_history');
-                    if (savedHistory) setSearchHistory(JSON.parse(savedHistory));
-                    const savedNavDrive = localStorage.getItem('loocator_nav_drive');
-                    if (savedNavDrive) setNavAppDriveState(savedNavDrive);
-                    const savedNavWalk = localStorage.getItem('loocator_nav_walk');
-                    if (savedNavWalk) setNavAppWalkState(savedNavWalk);
-                } catch(e) {}
+                const savedHistory = localStorage.getItem('loocator_history');
+                if (savedHistory) setSearchHistory(JSON.parse(savedHistory));
+                setNavAppDriveState(localStorage.getItem('loocator_nav_drive') || 'google');
+                setNavAppWalkState(localStorage.getItem('loocator_nav_walk') || 'google');
+                const mq = window.matchMedia('(prefers-color-scheme: dark)');
+                const handleDark = (e) => setIsDarkMode(e.matches);
+                mq.addEventListener('change', handleDark);
+                return () => mq.removeEventListener('change', handleDark);
             }, []);
-            
-            const setNavAppDrive = (app) => { setNavAppDriveState(app); localStorage.setItem('loocator_nav_drive', app); };
-            const setNavAppWalk = (app) => { setNavAppWalkState(app); localStorage.setItem('loocator_nav_walk', app); };
-            const clearHistory = () => { setSearchHistory([]); localStorage.removeItem('loocator_history'); showToast("History cleared"); };
-            const fuse = useMemo(() => new Fuse(searchHistory, { threshold: 0.4, distance: 100 }), [searchHistory]);
-            const addToHistory = (term) => { if (!term) return; const newHist = [term, ...searchHistory.filter(h => h.toLowerCase() !== term.toLowerCase())].slice(0, 5); setSearchHistory(newHist); localStorage.setItem('loocator_history', JSON.stringify(newHist)); };
-            const fetchSuggestions = useMemo(() => debounce(async (term) => { if (!term || term.length < 3) { setApiSuggestions([]); return; } try { const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(term)}&addressdetails=1&limit=5`); if (res.ok) { const data = await res.json(); setApiSuggestions(data); } } catch (e) { console.error(e); } }, 500), []);
-            const handleInput = (e) => { const val = e.target.value; setSearchTerm(val); setShowHistory(true); if (val && fuse) { const results = fuse.search(val); setHistoryMatches(results.map(r => r.item)); } else { setHistoryMatches([]); } fetchSuggestions(val); };
-            useEffect(() => { const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)'); const handleChange = (e) => setIsDarkMode(e.matches); mediaQuery.addEventListener('change', handleChange); return () => mediaQuery.removeEventListener('change', handleChange); }, []);
-            useEffect(() => { if (view === 'map' && mapInstanceRef.current) setTimeout(() => mapInstanceRef.current.invalidateSize(), 100); }, [view]);
-            useEffect(() => { camperModeRef.current = isCamperMode; if (mapInstanceRef.current) { setLoading(true); debouncedFetch(mapInstanceRef.current.getBounds()); } }, [isCamperMode]);
-            useEffect(() => { if (!mapInstanceRef.current) return; if (tileLayerRef.current) { mapInstanceRef.current.removeLayer(tileLayerRef.current); } const tileUrl = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'; tileLayerRef.current = L.tileLayer(tileUrl, { attribution: '', subdomains: 'abcd', maxZoom: 20 }).addTo(mapInstanceRef.current); }, [isDarkMode]);
+
+            // FIX: Robust Tile Loading Logic
+            useEffect(() => {
+                if (!mapInstanceRef.current) return;
+                if (tileLayerRef.current) mapInstanceRef.current.removeLayer(tileLayerRef.current);
+                const tileUrl = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+                tileLayerRef.current = L.tileLayer(tileUrl, { attribution: '', subdomains: 'abcd', maxZoom: 20 }).addTo(mapInstanceRef.current);
+            }, [isDarkMode]);
+
             const showToast = (msg) => { setToast({ msg, visible: true }); setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000); };
-            const closeAllMenus = () => { setShowFilters(false); setShowAbout(false); setShowContribute(false); setSelectedLoc(null); setCardMinimized(false); };
-            const handleFilterClick = () => { if (showFilters) { if (filterSheetRef.current) filterSheetRef.current.triggerClose(); } else { closeAllMenus(); setShowFilters(true); } };
-            const handleViewToggle = () => { if (view === 'list') { setIsListExiting(true); setTimeout(() => { setIsListExiting(false); setView('map'); }, 300); } else { closeAllMenus(); setView('list'); } };
-            const visibleLocations = useMemo(() => { return allLocations.filter(loc => { if (freeOnly && (loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no'))) return false; if (bottleOnly && loc.isWater && !loc.isToilet && !loc.hasBaby && loc.tags.amenity !== 'drinking_water' && loc.tags.bottle !== 'yes') return false; if (accessOnly && loc.tags.wheelchair !== 'yes' && loc.tags.wheelchair !== 'limited' && loc.tags.wheelchair !== 'designated') return false; if (keyOnly && loc.tags.radar_key !== 'yes' && !loc.tags.centralkey) return false; return isCamperMode ? (vanFilters.black && loc.isBlack) || (vanFilters.grey && loc.isGrey) || (vanFilters.water && loc.isWater) || (vanFilters.shower && loc.hasShower) : (stdFilters.toilet && loc.isToilet) || (stdFilters.water && loc.isWater) || (stdFilters.baby && loc.hasBaby); }).map(loc => { let displayType = loc.baseType; if (isCamperMode) { if (vanFilters.black && loc.isBlack) displayType = 'black'; else if (vanFilters.grey && loc.isGrey) displayType = 'grey'; else if (vanFilters.shower && loc.hasShower) displayType = 'shower'; else if (vanFilters.water && loc.isWater) displayType = 'water'; } else if (stdFilters.baby && loc.hasBaby && !stdFilters.toilet) displayType = 'baby'; return { ...loc, displayType }; }).sort((a, b) => calculateDistance(userPos[0], userPos[1], a.lat, a.lon).km - calculateDistance(userPos[0], userPos[1], b.lat, b.lon).km); }, [allLocations, isCamperMode, stdFilters, vanFilters, userPos, freeOnly, bottleOnly, accessOnly, keyOnly]);
-            const [inAreaLocs, furtherLocs] = useMemo(() => { if (!searchBounds) return [visibleLocations, []]; const inArea = []; const further = []; visibleLocations.forEach(loc => { if (searchBounds.contains([loc.lat, loc.lon])) inArea.push(loc); else further.push(loc); }); return [inArea, further]; }, [visibleLocations, searchBounds]);
-            const showListHint = !loading && view === 'map' && visibleLocations.length > 0 && inAreaLocs.length === 0;
-            const fetchOverpass = async (bounds, retryRadius = null) => { if (fetchController.current) fetchController.current.abort(); fetchController.current = new AbortController(); const signal = fetchController.current.signal; const isVan = camperModeRef.current; const center = bounds.getCenter(); let radius; if (retryRadius) radius = retryRadius; else { const ne = bounds.getNorthEast(); const visibleRadiusMeters = calculateDistance(center.lat, center.lng, ne.lat, ne.lng).km * 1000; radius = Math.max(visibleRadiusMeters * 1.5, isVan ? 15000 : 2000); } const queryArea = `(around:${radius},${center.lat},${center.lng})`; const query = `[out:json][timeout:25];(nwr["amenity"="toilets"]${queryArea};nwr["amenity"="drinking_water"]${queryArea};nwr["amenity"="water_point"]${queryArea};nwr["amenity"="sanitary_dump_station"]${queryArea};nwr["amenity"="shower"]${queryArea};nwr["diaper"]${queryArea};nwr["changing_table"]${queryArea};);out center;`; try { const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query), signal: signal }); const data = await res.json(); if (data.elements.length === 0 && radius < 50000) { fetchOverpass(bounds, radius * 2); return; } setAllLocations(data.elements.map(el => { const lat = el.lat || (el.center && el.center.lat); const lon = el.lon || (el.center && el.center.lon); if (!lat || !lon) return null; let baseName = "Service Point"; if (el.tags.amenity === 'toilets') baseName = "Public Toilet"; else if (el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point') baseName = "Water Point"; else if (el.tags.amenity === 'shower') baseName = "Public Shower"; else if (el.tags.amenity === 'sanitary_dump_station') baseName = "Chemical Disposal"; else if (el.tags.diaper === 'yes') baseName = "Baby Change"; const street = el.tags['addr:street'] || el.tags['addr:place']; const city = el.tags['addr:city'] || el.tags['addr:town'] || el.tags['addr:village']; const house = el.tags['addr:housenumber']; let rawAddress = (house ? house + ' ' : '') + (street || '') + (city ? (street ? ', ' : '') + city : ''); let finalName = el.tags.name || (street ? street + ' ' + baseName : el.tags.operator ? el.tags.operator + ' ' + baseName : baseName); return { id: el.id, lat, lon, tags: el.tags, isToilet: el.tags.amenity === 'toilets', isWater: el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point', hasBaby: el.tags.diaper === 'yes' || el.tags.changing_table === 'yes', hasShower: el.tags.amenity === 'shower' || el.tags.shower === 'yes', isBlack: el.tags.amenity === 'sanitary_dump_station' || (el.tags.amenity === 'toilets' && el.tags.sanitary_dump_station === 'yes'), isGrey: el.tags.amenity === 'sanitary_dump_station', baseType: el.tags.amenity === 'sanitary_dump_station' ? 'dump' : el.tags.amenity === 'shower' ? 'shower' : el.tags.amenity === 'drinking_water' ? 'water' : 'toilet', name: finalName, rawAddress }; }).filter(Boolean)); setLoading(false); } catch (e) { if (e.name !== 'AbortError') setLoading(false); } };
+            const addToHistory = (term) => { if (!term) return; const newHist = [term, ...searchHistory.filter(h => h.toLowerCase() !== term.toLowerCase())].slice(0, 5); setSearchHistory(newHist); localStorage.setItem('loocator_history', JSON.stringify(newHist)); };
+            const fetchSuggestions = useMemo(() => debounce(async (term) => { if (!term || term.length < 3) { setApiSuggestions([]); return; } try { const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(term)}&addressdetails=1&limit=5`); const data = await res.json(); setApiSuggestions(data); } catch (e) {} }, 500), []);
+            const handleInput = (e) => { const val = e.target.value; setSearchTerm(val); setShowHistory(true); if (val) { const fuse = new Fuse(searchHistory, { threshold: 0.4 }); setHistoryMatches(fuse.search(val).map(r => r.item)); } else setHistoryMatches([]); fetchSuggestions(val); };
+            
+            const fetchOverpass = async (bounds) => {
+                if (fetchController.current) fetchController.current.abort();
+                fetchController.current = new AbortController();
+                const center = bounds.getCenter();
+                const query = `[out:json][timeout:25];(nwr["amenity"~"toilets|drinking_water|water_point|sanitary_dump_station|shower"](around:5000,${center.lat},${center.lng});nwr["diaper"="yes"](around:5000,${center.lat},${center.lng}););out center;`;
+                try {
+                    const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query), signal: fetchController.current.signal });
+                    const data = await res.json();
+                    setAllLocations(data.elements.map(el => {
+                        const lat = el.lat || el.center.lat, lon = el.lon || el.center.lon;
+                        let baseName = el.tags.amenity === 'toilets' ? "Public Toilet" : el.tags.amenity === 'shower' ? "Shower" : "Service Point";
+                        return { id: el.id, lat, lon, tags: el.tags, isToilet: el.tags.amenity === 'toilets', isWater: el.tags.amenity?.includes('water'), hasBaby: el.tags.diaper === 'yes', hasShower: el.tags.amenity === 'shower', isBlack: el.tags.amenity === 'sanitary_dump_station', name: el.tags.name || baseName, displayType: el.tags.amenity === 'shower' ? 'shower' : el.tags.amenity?.includes('water') ? 'water' : 'toilet' };
+                    }));
+                    setLoading(false);
+                } catch (e) { if (e.name !== 'AbortError') setLoading(false); }
+            };
+
             const debouncedFetch = useMemo(() => debounce((b) => fetchOverpass(b), 1000), []);
-            const updateUserLocation = (coords, source) => { setUserPos(coords); if (mapInstanceRef.current) { mapInstanceRef.current.setView(coords, source === 'GPS' ? 17 : 13); if (!userMarkerRef.current) userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current); else userMarkerRef.current.setLatLng(coords); setSearchBounds(mapInstanceRef.current.getBounds()); debouncedFetch(mapInstanceRef.current.getBounds()); } };
-            useEffect(() => { if (!mapRef.current || mapInstanceRef.current) return; const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(mapCenter, 13); mapInstanceRef.current = map; markersRef.current = L.layerGroup().addTo(map); map.on('click', () => { if (selectedLocRef.current) setCardMinimized(!cardMinimizedRef.current); }); map.on('moveend', () => { if (map.getZoom() < 13) { setZoomWarning(true); setAllLocations([]); markersRef.current.clearLayers(); } else { setZoomWarning(false); setLoading(true); setSearchBounds(map.getBounds()); debouncedFetch(map.getBounds()); } }); navigator.geolocation.getCurrentPosition((pos) => updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS')); }, []);
-            useEffect(() => { if (!markersRef.current) return; markersRef.current.clearLayers(); visibleLocations.forEach(loc => { let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet; const types = []; if (loc.isToilet) types.push('toilet'); if (loc.isWater) types.push('water'); if (loc.hasBaby) types.push('baby'); if (loc.hasShower) types.push('shower'); if (loc.isBlack) types.push('black'); if (loc.isGrey) types.push('grey'); let backgroundStyle = types.length === 1 ? `background-color: ${TYPE_COLORS[types[0]]};` : `background: conic-gradient(${types.map((t, i) => `${TYPE_COLORS[t]} ${i * (100/types.length)}% ${(i+1) * (100/types.length)}%`).join(', ')});`; L.marker([loc.lat, loc.lon], { icon: L.divIcon({ className: '', html: `<div class="w-9 h-9 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-700 text-white shadow-sm" style="${backgroundStyle}">${iconHtml}</div>`, iconSize: [36, 36], iconAnchor: [18, 36] }) }).addTo(markersRef.current).on('click', () => { closeAllMenus(); setSelectedLoc(loc); }); }); }, [visibleLocations, isDarkMode]);
-            const searchWithTerm = async (term) => { if (!term) return; setLoading(true); try { const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(term)}`); const data = await res.json(); if (data[0]) { mapInstanceRef.current.flyTo([data[0].lat, data[0].lon], 16); addToHistory(term); setSearchTerm(''); setShowHistory(false); } } catch (e) { showToast('Search failed.'); } finally { setLoading(false); } };
-            const goToLoc = (loc) => { closeAllMenus(); setSelectedLoc(loc); setView('map'); const map = mapInstanceRef.current; if (map) { const point = map.project([loc.lat, loc.lon], 17); map.flyTo(map.unproject(L.point(point.x, point.y + map.getSize().y * 0.25), 17), 17); } };
+
+            useEffect(() => {
+                if (mapInstanceRef.current) return;
+                const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView([51.505, -0.09], 13);
+                mapInstanceRef.current = map;
+                markersRef.current = L.layerGroup().addTo(map);
+                map.on('click', () => { if (selectedLocRef.current) setCardMinimized(!cardMinimizedRef.current); });
+                map.on('moveend', () => { if (map.getZoom() < 13) { setZoomWarning(true); setAllLocations([]); markersRef.current.clearLayers(); } else { setZoomWarning(false); setLoading(true); debouncedFetch(map.getBounds()); } });
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const coords = [pos.coords.latitude, pos.coords.longitude];
+                    setUserPos(coords);
+                    map.setView(coords, 15);
+                    userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div>' }) }).addTo(map);
+                });
+            }, []);
+
+            useEffect(() => {
+                if (!markersRef.current) return;
+                markersRef.current.clearLayers();
+                allLocations.forEach(loc => {
+                    L.marker([loc.lat, loc.lon], { icon: L.divIcon({ className: '', html: `<div class="w-9 h-9 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-700 text-white shadow-sm" style="background-color: ${TYPE_COLORS[loc.displayType] || '#64748b'}"><span class="material-symbols-rounded text-sm">${loc.displayType === 'water' ? 'water_drop' : 'wc'}</span></div>`, iconSize: [36, 36], iconAnchor: [18, 36] }) })
+                    .addTo(markersRef.current).on('click', () => { setSelectedLoc(loc); setCardMinimized(false); });
+                });
+            }, [allLocations]);
 
             return html`
                 <div class="bg-white/95 dark:bg-zinc-900/95 backdrop-blur z-[1700] shadow-sm safe-pt">
                     <div class="flex items-center justify-between px-5 pt-4 pb-2">
                         <h1 onClick=${() => setShowAbout(true)} class="text-2xl font-brand font-semibold text-slate-700 dark:text-zinc-100 cursor-pointer">Loocator</h1>
                         <div class="flex gap-2">
-                            <button onClick=${() => setIsCamperMode(!isCamperMode)} class=${'px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2 ' + (isCamperMode ? 'bg-slate-800 text-white dark:bg-zinc-200 dark:text-zinc-900' : 'bg-slate-100 text-slate-500 dark:bg-zinc-800')}><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.van}}></div><span>${isCamperMode ? 'Van On' : 'Van Mode'}</span></button>
-                            <button onClick=${handleFilterClick} class="bg-slate-100 dark:bg-zinc-800 text-slate-500 px-3 py-2 rounded-full"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.filter}}></div></button>
-                            <button onClick=${handleViewToggle} class="bg-slate-100 dark:bg-zinc-800 text-slate-500 px-3 py-2 rounded-full"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: view === 'map' ? ICONS.list : ICONS.map}}></div></button>
+                            <button onClick=${() => setIsCamperMode(!isCamperMode)} class=${'px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2 ' + (isCamperMode ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500')}>Van Mode</button>
+                            <button onClick=${() => setShowFilters(true)} class="bg-slate-100 dark:bg-zinc-800 px-3 py-2 rounded-full text-slate-500"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.filter}}></div></button>
                         </div>
                     </div>
                     <div class="px-4 pb-2 relative z-[1001]">
                         <form onSubmit=${(e) => { e.preventDefault(); searchWithTerm(searchTerm); }} class="relative">
-                            <input 
-                                type="search" 
-                                name="q"
-                                id="search-input"
-                                inputmode="search"
-                                placeholder="Search city..." 
+                            <input type="search" name="q" id="search-input" inputmode="search" placeholder="Search city..." 
                                 class="w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl py-3 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 dark:text-zinc-200" 
-                                value=${searchTerm} 
-                                onInput=${handleInput} 
-                                onFocus=${() => setShowHistory(true)} 
-                                onBlur=${() => setTimeout(() => setShowHistory(false), 200)} 
-                                autocomplete="off"
-                            />
+                                value=${searchTerm} onInput=${handleInput} onFocus=${() => setShowHistory(true)} onBlur=${() => setTimeout(() => setShowHistory(false), 200)} autocomplete="off"/>
                             <div class="absolute left-3.5 top-3 text-slate-400 w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div>
                         </form>
-                        ${showHistory && ((searchTerm && historyMatches.length > 0) || (!searchTerm && searchHistory.length > 0) || apiSuggestions.length > 0) && html`
-                            <div class="absolute top-full left-4 right-4 mt-2 bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-slate-100 dark:border-zinc-700 overflow-hidden z-[2000] max-h-[60vh] overflow-y-auto">
-                                ${searchTerm && historyMatches.length > 0 && historyMatches.map(term => html`<div class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-zinc-700 cursor-pointer" onMouseDown=${(e) => e.preventDefault()} onClick=${() => { setSearchTerm(term); searchWithTerm(term); }}><div class="w-4 h-4 text-slate-400" dangerouslySetInnerHTML=${{__html: ICONS.clock}}></div><span class="text-sm font-medium dark:text-zinc-200">${term}</span></div>`)}
-                                ${!searchTerm && searchHistory.map(term => html`<div class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-zinc-700 cursor-pointer" onMouseDown=${(e) => e.preventDefault()} onClick=${() => { setSearchTerm(term); searchWithTerm(term); }}><div class="w-4 h-4 text-slate-400" dangerouslySetInnerHTML=${{__html: ICONS.clock}}></div><span class="text-sm font-medium dark:text-zinc-200">${term}</span></div>`)}
-                                ${apiSuggestions.map(sugg => html`<div class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-zinc-700 cursor-pointer" onMouseDown=${(e) => e.preventDefault()} onClick=${() => { mapInstanceRef.current.flyTo([sugg.lat, sugg.lon], 16); setShowHistory(false); setSearchTerm(''); }}><div class="w-4 h-4 text-slate-400" dangerouslySetInnerHTML=${{__html: ICONS.pin}}></div><div class="flex flex-col"><span class="text-sm font-medium dark:text-zinc-200">${sugg.name}</span><span class="text-xs text-slate-400 truncate">${sugg.display_name}</span></div></div>`)}
-                            </div>
-                        `}
                     </div>
                     <div class="px-4 flex space-x-2 overflow-x-auto no-scrollbar pb-2">
-                        ${!isCamperMode ? html`<${FilterBtn} type="toilet" label="Toilets" active=${stdFilters.toilet} onClick=${() => setStdFilters({...stdFilters, toilet: !stdFilters.toilet})} /><${FilterBtn} type="water" label="Water" active=${stdFilters.water} color="teal" onClick=${() => setStdFilters({...stdFilters, water: !stdFilters.water})} /><${FilterBtn} type="baby" label="Baby" active=${stdFilters.baby} color="rose" onClick=${() => setStdFilters({...stdFilters, baby: !stdFilters.baby})} />` : html`<${FilterBtn} type="trash" label="Black" active=${vanFilters.black} color="black" onClick=${() => setVanFilters({...vanFilters, black: !vanFilters.black})} /><${FilterBtn} type="drop" label="Grey" active=${vanFilters.grey} color="grey" onClick=${() => setVanFilters({...vanFilters, grey: !vanFilters.grey})} /><${FilterBtn} type="water" label="Tank" active=${vanFilters.water} color="teal" onClick=${() => setVanFilters({...vanFilters, water: !vanFilters.water})} /><${FilterBtn} type="shower" label="Shower" active=${vanFilters.shower} color="sky" onClick=${() => setVanFilters({...vanFilters, shower: !vanFilters.shower})} />`}
+                        <${FilterBtn} type="toilet" label="Toilets" active=${stdFilters.toilet} onClick=${() => setStdFilters({...stdFilters, toilet: !stdFilters.toilet})} />
+                        <${FilterBtn} type="water" label="Water" active=${stdFilters.water} color="teal" onClick=${() => setStdFilters({...stdFilters, water: !stdFilters.water})} />
                     </div>
                 </div>
-                <div class="map-wrapper relative bg-slate-200 dark:bg-zinc-900">
-                    <div class="absolute top-4 left-0 right-0 flex justify-center z-[1000] pointer-events-none">
-                        ${zoomWarning && !loading && html`<${AlertPill} msg="Zoom in to find spots" />`}
-                        ${showListHint && html`<button onClick=${() => setView('list')} class="bg-white dark:bg-zinc-800 px-5 py-2.5 rounded-full shadow-lg text-sm font-bold pointer-events-auto flex items-center gap-2 mt-2 animate-ripple"><span>Nothing nearby. View List</span><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.list}}></div></button>`}
-                    </div>
-                    ${isPickingLocation && html`<div class="absolute inset-0 z-[1100] pointer-events-none flex items-center justify-center"><div class="text-slate-800 dark:text-zinc-200 drop-shadow-xl -translate-y-1/2"><span class="material-symbols-rounded text-6xl">location_on</span></div></div><div class="absolute bottom-10 left-0 right-0 z-[1200] flex flex-col items-center space-y-3 px-6 pointer-events-auto"><div class="bg-slate-800/80 text-white px-4 py-2 rounded-full text-sm font-semibold">Move map to position pin</div><div class="flex w-full gap-3 max-w-sm"><button onClick=${() => setIsPickingLocation(false)} class="flex-1 bg-white dark:bg-zinc-800 font-bold py-3 rounded-xl shadow-lg">Cancel</button><button onClick=${() => { setContributeCoords(mapInstanceRef.current.getCenter()); setIsPickingLocation(false); setShowContribute(true); }} class="flex-[2] bg-slate-800 dark:bg-zinc-600 text-white font-bold py-3 rounded-xl shadow-lg">Confirm Location</button></div></div>`}
+                <div class="map-wrapper relative">
                     <div id="map" ref=${mapRef}></div>
-                    ${(view === 'list' || isListExiting) && html`<div class="list-wrapper p-4 pb-24 bg-slate-50 dark:bg-zinc-950">${inAreaLocs.concat(furtherLocs).map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} />`)}</div>`}
                 </div>
-                ${!isPickingLocation && !selectedLoc && html`
-                    <button onClick=${() => setIsPickingLocation(true)} class="absolute right-5 w-14 h-14 bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-full shadow-lg flex items-center justify-center z-[1000] bottom-24 active:scale-90 transition-transform" dangerouslySetInnerHTML=${{__html: ICONS.plus}}></button>
-                    <button onClick=${() => mapInstanceRef.current.flyTo(userPos, 17)} class="absolute right-5 w-14 h-14 bg-slate-800 dark:bg-zinc-700 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] bottom-8 active:scale-90 transition-transform" dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>
-                `}
-                ${showFilters && html`<${FilterSheet} ref=${filterSheetRef} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navAppDrive=${navAppDrive} setNavAppDrive=${setNavAppDrive} navAppWalk=${navAppWalk} setNavAppWalk=${setNavAppWalk} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} />`}
-                ${showAbout && html`<${AboutModal} onClose=${() => setShowAbout(false)} />`}
-                ${showContribute && html`<${ContributeSheet} lat=${contributeCoords.lat} lon=${contributeCoords.lon} onClose=${() => setShowContribute(false)} onShowToast=${showToast} />`}
                 ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} userLoc=${userPos} navAppDrive=${navAppDrive} navAppWalk=${navAppWalk} onClose=${() => setSelectedLoc(null)} minimized=${cardMinimized} setMinimized=${setCardMinimized} />`}
                 <${Toast} msg=${toast.msg} visible=${toast.visible} />
             `;
