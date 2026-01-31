@@ -84,6 +84,23 @@
         .pie-icon { text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
         .user-pin-ring { position: absolute; width: 20px; height: 20px; border-radius: 50%; background-color: #475569; opacity: 0.7; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
         .user-pin-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background-color: white; border: 2px solid #475569; top: 5px; left: 5px; animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.4s infinite; }
+        
+        /* New Compass Beam Style */
+        .user-beam {
+            position: absolute;
+            top: -40px; 
+            left: -40px; 
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.4), transparent 60%);
+            transform-origin: 50% 100%;
+            clip-path: polygon(0 0, 100% 0, 50% 100%);
+            pointer-events: none;
+            z-index: -1;
+            transition: transform 0.2s linear; /* Smooth rotation */
+            display: none; /* Hidden until valid heading */
+        }
+
         @media (prefers-color-scheme: dark) { .user-pin-ring { background-color: #a1a1aa; } .user-pin-dot { border-color: #a1a1aa; } }
         @keyframes pulse-ring { 0% { transform: scale(0.33); opacity: 1; } 80%, 100% { opacity: 0; } }
         @keyframes pulse-dot { 0% { transform: scale(0.8); } 50% { transform: scale(1); } 100% { transform: scale(0.8); } }
@@ -142,7 +159,6 @@
         const TYPE_COLORS = { toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8' };
         const ADDRESS_CACHE = {};
 
-        // Haptic Helper
         const triggerHaptic = () => { if (navigator.vibrate) navigator.vibrate(10); };
         const triggerSuccess = () => { if (navigator.vibrate) navigator.vibrate(50); };
 
@@ -481,7 +497,7 @@
 
             const fetchOverpass = async (bounds, retryRadius = null) => { if (fetchController.current) { fetchController.current.abort(); } fetchController.current = new AbortController(); const signal = fetchController.current.signal; const isVan = camperModeRef.current; const center = bounds.getCenter(); let radius; if (retryRadius) { radius = retryRadius; } else { const ne = bounds.getNorthEast(); const dist = calculateDistance(center.lat, center.lng, ne.lat, ne.lng); const visibleRadiusMeters = dist.km * 1000; const minRadius = isVan ? 15000 : 2000; radius = Math.max(visibleRadiusMeters * 1.5, minRadius); } const queryArea = `(around:${radius},${center.lat},${center.lng})`; const query = `[out:json][timeout:25];(nwr["amenity"="toilets"]${queryArea};nwr["amenity"="drinking_water"]${queryArea};nwr["amenity"="water_point"]${queryArea};nwr["amenity"="sanitary_dump_station"]${queryArea};nwr["amenity"="shower"]${queryArea};nwr["diaper"]${queryArea};nwr["changing_table"]${queryArea};);out center;`; try { const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query), signal: signal }); const data = await res.json(); if (data.elements.length === 0) { const nextRadius = radius * 2; if (nextRadius <= 50000) { showToast(`Scanning ${Math.round(nextRadius/1000)}km...`); fetchOverpass(bounds, nextRadius); return; } setLoading(false); return; } setAllLocations(data.elements.map(el => { const lat = el.lat || (el.center && el.center.lat); const lon = el.lon || (el.center && el.center.lon); if (!lat || !lon) return null; let baseName = "Service Point"; if (el.tags.amenity === 'toilets') baseName = "Public Toilet"; else if (el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point') baseName = "Water Point"; else if (el.tags.amenity === 'shower') baseName = "Public Shower"; else if (el.tags.amenity === 'sanitary_dump_station') baseName = "Chemical Disposal"; else if (el.tags.diaper === 'yes') baseName = "Baby Change"; const street = el.tags['addr:street'] || el.tags['addr:place']; const city = el.tags['addr:city'] || el.tags['addr:town'] || el.tags['addr:village']; const house = el.tags['addr:housenumber']; let rawAddress = ''; if (house) rawAddress += house + ' '; if (street) rawAddress += street; if (city) rawAddress += (rawAddress ? ', ' : '') + city; let finalName = el.tags.name; if (!finalName) { const operator = el.tags.operator; if (street) { finalName = `${street} ${baseName}`; } else if (operator) { finalName = `${operator} ${baseName}`; } else if (el.tags.ref) { finalName = `${baseName} (${el.tags.ref})`; } else if (el.tags.fee) { const feeText = el.tags.fee === 'no' ? 'Free' : 'Paid'; finalName = `${feeText} ${baseName}`; } else if (el.tags.description) { const descWords = el.tags.description.split(' '); if (descWords.length > 0) { finalName = descWords.slice(0, 4).join(' ') + (descWords.length > 4 ? '...' : ''); } else { finalName = baseName; } } else { finalName = baseName; } } return { id: el.id, lat: lat, lon: lon, tags: el.tags, isToilet: el.tags.amenity === 'toilets', isWater: el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point', hasBaby: el.tags.diaper === 'yes' || el.tags.changing_table === 'yes', hasShower: el.tags.amenity === 'shower' || el.tags.shower === 'yes', isBlack: (el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:chemical_toilet'] !== 'no') || (el.tags.amenity === 'toilets' && el.tags.sanitary_dump_station === 'yes'), isGrey: el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:grey_water'] !== 'no', baseType: el.tags.amenity === 'sanitary_dump_station' ? 'dump' : el.tags.amenity === 'shower' ? 'shower' : el.tags.amenity === 'drinking_water' ? 'water' : 'toilet', name: finalName, rawAddress: rawAddress }; }).filter(Boolean)); setLoading(false); } catch (e) { if (e.name !== 'AbortError') { setLoading(false); } } };
             const debouncedFetch = useMemo(() => debounce((b) => fetchOverpass(b), 1000), []);
-            const updateUserLocation = (coords, source) => { setUserPos(coords); setMapCenter(coords); setGpsStatus('success'); setTimeout(() => setGpsStatus('idle'), 2500); if (source === 'GPS') { setAllLocations([]); } if (mapInstanceRef.current) { const zoom = source === 'GPS' ? 17 : source === 'IP' ? 13 : 13; mapInstanceRef.current.setView(coords, zoom); if (!userMarkerRef.current) { userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current); } else { userMarkerRef.current.setLatLng(coords); } setSearchBounds(mapInstanceRef.current.getBounds()); debouncedFetch(mapInstanceRef.current.getBounds()); } };
+            const updateUserLocation = (coords, source) => { setUserPos(coords); setMapCenter(coords); setGpsStatus('success'); setTimeout(() => setGpsStatus('idle'), 2500); if (source === 'GPS') { setAllLocations([]); } if (mapInstanceRef.current) { const zoom = source === 'GPS' ? 17 : source === 'IP' ? 13 : 13; mapInstanceRef.current.setView(coords, zoom); if (!userMarkerRef.current) { userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div><div class="user-beam" id="user-heading-beam"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current); } else { userMarkerRef.current.setLatLng(coords); } setSearchBounds(mapInstanceRef.current.getBounds()); debouncedFetch(mapInstanceRef.current.getBounds()); } };
             useEffect(() => { if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) { setIsInstalled(true); } const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); }; window.addEventListener('beforeinstallprompt', handler); window.addEventListener('appinstalled', () => setIsInstalled(true)); return () => { window.removeEventListener('beforeinstallprompt', handler); window.removeEventListener('appinstalled', () => setIsInstalled(true)); } }, []);
             const handleInstall = () => { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') { setDeferredPrompt(null); setIsInstalled(true); } }); } else { const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; if (isIOS) { showToast("Tap 'Share' then 'Add to Home Screen'"); } else { showToast("Use browser menu to Install App"); } } };
             useEffect(() => { if (!mapRef.current || mapInstanceRef.current) return; const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(mapCenter, 13); mapInstanceRef.current = map; 
@@ -503,7 +519,52 @@
             const handleHistoryClick = (term) => { setSearchTerm(term); setTimeout(() => { searchWithTerm(term); }, 0); };
             const searchWithTerm = async (term) => { if (!term) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(term)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); addToHistory(term); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else { showToast('Place not found.'); } } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
             const selectSuggestion = (sugg) => { mapInstanceRef.current.flyTo([sugg.lat, sugg.lon], 16); addToHistory(sugg.display_name.split(',')[0]); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${sugg.display_name.split(',')[0]}`); }
-            const handleGPS = () => { triggerHaptic(); const map = mapInstanceRef.current; if (!map || !userPos) return; const center = map.getCenter(); const distInfo = calculateDistance(center.lat, center.lng, userPos[0], userPos[1]); if (distInfo.km > 0.05) { map.flyTo(userPos, 17); navigator.geolocation.getCurrentPosition( (pos) => { updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => { }, { enableHighAccuracy: true, timeout: 10000 } ); return; } if (!navigator.geolocation) { showToast('GPS not supported'); return; } setGpsStatus('searching'); navigator.geolocation.getCurrentPosition( (pos) => { const coords = [pos.coords.latitude, pos.coords.longitude]; updateUserLocation(coords, 'GPS'); }, (err) => { setGpsStatus('idle'); showToast('GPS Access Denied'); }, { enableHighAccuracy: true } ); };
+            
+            // COMPASS LOGIC
+            const handleOrientation = (e) => {
+                let heading = 0;
+                if (e.webkitCompassHeading) {
+                    heading = e.webkitCompassHeading;
+                } else if (e.alpha) {
+                    heading = 360 - e.alpha;
+                }
+                const beam = document.getElementById('user-heading-beam');
+                if (beam) {
+                    beam.style.display = 'block';
+                    beam.style.transform = `rotate(${heading}deg)`;
+                }
+            };
+
+            const requestCompass = async () => {
+                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    try {
+                        const response = await DeviceOrientationEvent.requestPermission();
+                        if (response === 'granted') {
+                            window.addEventListener('deviceorientation', handleOrientation);
+                        }
+                    } catch (e) { console.error(e); }
+                } else {
+                    window.addEventListener('deviceorientation', handleOrientation);
+                }
+            };
+
+            const handleGPS = () => { 
+                triggerHaptic(); 
+                requestCompass(); // Ask for compass permission
+                const map = mapInstanceRef.current; 
+                if (!map || !userPos) return; 
+                const center = map.getCenter(); 
+                const distInfo = calculateDistance(center.lat, center.lng, userPos[0], userPos[1]); 
+                if (distInfo.km > 0.05) { 
+                    map.flyTo(userPos, 17); 
+                    navigator.geolocation.getCurrentPosition( (pos) => { updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => { }, { enableHighAccuracy: true, timeout: 10000 } ); 
+                    return; 
+                } 
+                if (!navigator.geolocation) { showToast('GPS not supported'); return; } 
+                setGpsStatus('searching'); 
+                navigator.geolocation.getCurrentPosition( (pos) => { const coords = [pos.coords.latitude, pos.coords.longitude]; updateUserLocation(coords, 'GPS'); }, (err) => { setGpsStatus('idle'); showToast('GPS Access Denied'); }, { enableHighAccuracy: true } ); 
+            };
+            
             const startPickingLocation = () => { triggerHaptic(); closeAllMenus(); setIsPickingLocation(true); if (mapInstanceRef.current && mapInstanceRef.current.getZoom() < 18) { mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18, { duration: 0.5 }); } };
             const confirmLocation = () => { if (mapInstanceRef.current) { const center = mapInstanceRef.current.getCenter(); setContributeCoords({ lat: center.lat, lon: center.lng }); setIsPickingLocation(false); setShowContribute(true); } };
             const cancelPicking = () => { setIsPickingLocation(false); };
