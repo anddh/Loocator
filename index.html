@@ -188,18 +188,20 @@
             const currentDay = days[now.getDay()];
             const currentTime = now.getHours() * 60 + now.getMinutes();
             try {
-                if (openingHours.includes(currentDay) || !openingHours.match(/[A-Z][a-z]/)) {
-                    const timeMatch = openingHours.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
-                    if (timeMatch) {
-                        const [_, h1, m1, h2, m2] = timeMatch;
-                        const openTime = parseInt(h1) * 60 + parseInt(m1);
-                        const closeTime = parseInt(h2) * 60 + parseInt(m2);
-                        if (currentTime >= openTime && currentTime < closeTime) {
-                            if (closeTime - currentTime <= 30) return { status: 'closing', text: `Closing soon (${h2}:${m2})`, color: 'text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400' };
-                            return { status: 'open', text: `Open until ${h2}:${m2}`, color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' };
-                        } else {
-                            return { status: 'closed', text: 'Closed now', color: 'text-rose-600 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400' };
-                        }
+                // Basic check for current day string e.g., "Mo-Fr"
+                // This is simplistic; robust parsing requires a heavy library
+                const timeMatch = openingHours.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+                if (timeMatch) {
+                    const [_, h1, m1, h2, m2] = timeMatch;
+                    const openTime = parseInt(h1) * 60 + parseInt(m1);
+                    const closeTime = parseInt(h2) * 60 + parseInt(m2);
+                    
+                    // Simple logic: if it has times, assume they apply to today for MVP
+                    if (currentTime >= openTime && currentTime < closeTime) {
+                        if (closeTime - currentTime <= 30) return { status: 'closing', text: `Closing soon`, color: 'text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400' };
+                        return { status: 'open', text: `Open`, color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' };
+                    } else {
+                        return { status: 'closed', text: 'Closed', color: 'text-rose-600 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400' };
                     }
                 }
             } catch (e) { return null; }
@@ -379,7 +381,10 @@
                             </div>
                             <h2 class="text-2xl font-brand font-semibold text-slate-800 dark:text-zinc-100 leading-tight">${loc.name}</h2>
                         </div>
-                        <div class="mb-5 flex items-start space-x-2 text-slate-500 dark:text-zinc-400"><div class="w-4 h-4 mt-0.5 shrink-0 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.pin}}></div><p class="text-sm font-medium leading-tight">${address}</p></div>
+                        <div class="mb-5">
+                            <div class="flex items-start space-x-2 text-slate-500 dark:text-zinc-400"><div class="w-4 h-4 mt-0.5 shrink-0 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.pin}}></div><p class="text-sm font-medium leading-tight">${address}</p></div>
+                            ${loc.tags.opening_hours && html`<div class="flex items-start space-x-2 mt-1 text-slate-500 dark:text-zinc-400"><div class="w-4 h-4 mt-0.5 shrink-0"></div><p class="text-xs font-mono leading-tight opacity-70">${loc.tags.opening_hours.length > 50 ? loc.tags.opening_hours.substring(0, 50) + '...' : loc.tags.opening_hours}</p></div>`}
+                        </div>
                         <div class=${contentClass}>
                             <div class="flex flex-wrap gap-2 mb-6">
                                 <div class=${'px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1 ' + (isPaid ? 'bg-orange-50 text-orange-700 border border-orange-100 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-900/50' : 'bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-200 dark:border-emerald-900/50')}>${isPaid ? 'Pay to use' : 'Free entry'}</div>
@@ -394,7 +399,7 @@
                                     <button onClick=${handleWalk} class="flex-1 bg-emerald-600 text-white dark:bg-emerald-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.walk}}></div><span>Walk</span></button>
                                 </div>
                                 <div class="flex gap-2">
-                                    <a href=${`https://www.google.com/maps/@?api=1&map_action=streetview&location=${loc.lat},${loc.lon}`} target="_blank" class="flex-[3] bg-white text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-slate-200 dark:border-zinc-700"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.eye}}></div><span>Street Preview</span></a>
+                                    <a href=${`https://www.google.com/maps?layer=c&cbll=${loc.lat},${loc.lon}`} target="_blank" class="flex-[3] bg-white text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-slate-200 dark:border-zinc-700"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.eye}}></div><span>Street Preview</span></a>
                                     <button onClick=${handleShare} class="flex-1 bg-slate-100 text-slate-600 dark:bg-zinc-700 dark:text-zinc-300 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-slate-200 dark:border-zinc-600"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.share}}></div></button>
                                 </div>
                             </div>
@@ -425,9 +430,15 @@
             if (types.length === 1) { backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`; } else { const segmentSize = 100 / types.length; const gradientParts = types.map((t, i) => { const color = TYPE_COLORS[t]; const start = i * segmentSize; const end = (i + 1) * segmentSize; return `${color} ${start}% ${end}%`; }); backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`; }
             const [fetchedAddr, setFetchedAddr] = useState(ADDRESS_CACHE[loc.id] || null);
             const displayAddress = fetchedAddr || loc.rawAddress;
+            const openStatus = checkOpeningStatus(loc.tags.opening_hours);
             return html`
                 <div onClick=${() => { triggerHaptic(); onClick(); }} class=${`bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform ${isExiting ? 'animate-stagger-fade-out pointer-events-none' : 'animate-stagger-fade opacity-0'}`} style=${{ animationDelay: isExiting ? `${index * 30}ms` : `${index * 50}ms` }}>
-                    <div class="flex items-center space-x-4 overflow-hidden"><div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm pie-icon" style=${{ cssText: backgroundStyle }} dangerouslySetInnerHTML=${{__html: iconHtml}}></div><div class="flex flex-col overflow-hidden"><h4 class="font-semibold text-slate-700 dark:text-zinc-200 font-brand text-base leading-tight truncate">${loc.name}</h4>${displayAddress && html`<p class="text-xs text-slate-400 dark:text-zinc-500 truncate mt-0.5">${displayAddress}</p>`}</div></div>
+                    <div class="flex items-center space-x-4 overflow-hidden">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm pie-icon relative" style=${{ cssText: backgroundStyle }}>
+                            <div dangerouslySetInnerHTML=${{__html: iconHtml}}></div>
+                            ${openStatus && html`<div class=${`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-zinc-900 ${openStatus.color.split(' ')[0].replace('text-', 'bg-')}`}></div>`}
+                        </div>
+                        <div class="flex flex-col overflow-hidden"><h4 class="font-semibold text-slate-700 dark:text-zinc-200 font-brand text-base leading-tight truncate">${loc.name}</h4>${displayAddress && html`<p class="text-xs text-slate-400 dark:text-zinc-500 truncate mt-0.5">${displayAddress}</p>`}</div></div>
                     <span class="text-[10px] font-bold bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400 px-2 py-0.5 rounded-full ml-2 shrink-0">${calculateDistance(userPos[0], userPos[1], loc.lat, loc.lon).text}</span>
                 </div>`;
         }
