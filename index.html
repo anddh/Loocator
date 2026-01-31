@@ -153,7 +153,7 @@
             report: `<span class="material-symbols-rounded icon-sm">flag</span>`,
             share: `<span class="material-symbols-rounded icon-sm">share</span>`, 
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
         const TYPE_COLORS = { toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8' };
@@ -285,7 +285,7 @@
                     <div class="text-center mb-6">
                         <div class="inline-block w-24 h-24 rounded-3xl bg-slate-100 dark:bg-zinc-800 mb-4 shadow-sm overflow-hidden"><img src="icon.png" class="w-full h-full object-cover" alt="Loocator" /></div>
                         <h2 class="text-2xl font-bold font-brand text-slate-800 dark:text-zinc-100">Loocator</h2>
-                        <p class="text-slate-500 dark:text-zinc-400 text-sm mt-1">v0.2.2</p>
+                        <p class="text-slate-500 dark:text-zinc-400 text-sm mt-1">v0.2.3</p>
                     </div>
                     <div class="space-y-4 text-center">
                         <div class="bg-slate-50 dark:bg-zinc-800 p-4 rounded-xl border border-slate-100 dark:border-zinc-700"><p class="text-slate-600 dark:text-zinc-300 font-medium text-sm">Made with love in Tenerife + England ❤️</p></div>
@@ -387,7 +387,7 @@
                     if (isCorrection) noteText = `Correction for ${correctionName} (ID: ${correctionId}): ` + noteText;
                     formData.append('text', noteText);
                     const res = await fetch('https://api.openstreetmap.org/api/0.6/notes.json', { method: 'POST', body: formData });
-                    if (res.ok) { setSent(true); triggerSuccess(); onShowToast(isCorrection ? "Report sent! Thank you." : "Note sent to map editors!"); setTimeout(handleClose, 2000); } else { throw new Error("Failed"); }
+                    if (res.ok) { setSent(true); triggerSuccess(); setTimeout(handleClose, 2000); } else { throw new Error("Failed"); }
                 } catch (err) { onShowToast("Failed to send note. Try again."); setSending(false); }
             };
             return html`
@@ -569,12 +569,27 @@
             const [zoomWarning, setZoomWarning] = useState(false);
             const [showFilters, setShowFilters] = useState(false);
             const [isCamperMode, setIsCamperMode] = useState(localStorage.getItem('loocator_van_mode') === 'true');
-            const [stdFilters, setStdFilters] = useState({ toilet: true, water: true, baby: true });
-            const [vanFilters, setVanFilters] = useState({ black: true, grey: true, water: true, shower: true });
-            const [freeOnly, setFreeOnly] = useState(false);
-            const [bottleOnly, setBottleOnly] = useState(false);
-            const [accessOnly, setAccessOnly] = useState(false);
-            const [keyOnly, setKeyOnly] = useState(false);
+            
+            const [stdFilters, setStdFilters] = useState(() => {
+                try { return JSON.parse(localStorage.getItem('loocator_std_filters')) || { toilet: true, water: true, baby: true }; }
+                catch { return { toilet: true, water: true, baby: true }; }
+            });
+            const [vanFilters, setVanFilters] = useState(() => {
+                try { return JSON.parse(localStorage.getItem('loocator_van_filters')) || { black: true, grey: true, water: true, shower: true }; }
+                catch { return { black: true, grey: true, water: true, shower: true }; }
+            });
+            const [freeOnly, setFreeOnly] = useState(localStorage.getItem('loocator_filter_free') === 'true');
+            const [bottleOnly, setBottleOnly] = useState(localStorage.getItem('loocator_filter_bottle') === 'true');
+            const [accessOnly, setAccessOnly] = useState(localStorage.getItem('loocator_filter_access') === 'true');
+            const [keyOnly, setKeyOnly] = useState(localStorage.getItem('loocator_filter_key') === 'true');
+
+            useEffect(() => localStorage.setItem('loocator_std_filters', JSON.stringify(stdFilters)), [stdFilters]);
+            useEffect(() => localStorage.setItem('loocator_van_filters', JSON.stringify(vanFilters)), [vanFilters]);
+            useEffect(() => localStorage.setItem('loocator_filter_free', freeOnly), [freeOnly]);
+            useEffect(() => localStorage.setItem('loocator_filter_bottle', bottleOnly), [bottleOnly]);
+            useEffect(() => localStorage.setItem('loocator_filter_access', accessOnly), [accessOnly]);
+            useEffect(() => localStorage.setItem('loocator_filter_key', keyOnly), [keyOnly]);
+
             const [navAppDrive, setNavAppDriveState] = useState('google');
             const [navAppWalk, setNavAppWalkState] = useState('google');
             const [searchTerm, setSearchTerm] = useState('');
