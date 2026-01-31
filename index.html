@@ -222,40 +222,32 @@
             return { text: (R * c) < 1 ? Math.round(R * c * 1000) + 'm' : (R * c).toFixed(1) + 'km', km: R * c };
         }
 
-        // --- UPDATED OPENING STATUS LOGIC ---
         function checkOpeningStatus(openingHours) {
             if (!openingHours) return null;
             if (openingHours === '24/7') return { status: 'open', text: 'Open 24/7', color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' };
-            
             const now = new Date();
             const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
             const currentDay = days[now.getDay()];
             const currentTime = now.getHours() * 60 + now.getMinutes();
-            
             try {
-                // If specific days are listed (e.g. "Mo-Fr"), check if today is excluded
-                const hasLetters = /[A-Z][a-z]/.test(openingHours);
-                if (hasLetters && !openingHours.includes(currentDay)) {
-                    // Primitive check: if it lists days but not today, assume closed
-                    return { status: 'closed', text: 'Closed', color: 'text-rose-600 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400' };
-                }
-
-                // Try to parse time range "09:00-17:00"
-                const timeMatch = openingHours.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
-                if (timeMatch) {
-                    const [_, h1, m1, h2, m2] = timeMatch;
-                    const open = parseInt(h1) * 60 + parseInt(m1);
-                    const close = parseInt(h2) * 60 + parseInt(m2);
-                    
-                    if (currentTime >= open && currentTime < close) {
-                        if (close - currentTime <= 30) return { status: 'closing', text: 'Closing soon', color: 'text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400' };
-                        return { status: 'open', text: 'Open', color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' };
+                if (openingHours.includes(currentDay) || !openingHours.match(/[A-Z][a-z]/)) {
+                    const timeMatch = openingHours.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+                    if (timeMatch) {
+                        const [_, h1, m1, h2, m2] = timeMatch;
+                        const openTime = parseInt(h1) * 60 + parseInt(m1);
+                        const closeTime = parseInt(h2) * 60 + parseInt(m2);
+                        if (currentTime >= openTime && currentTime < closeTime) {
+                            if (closeTime - currentTime <= 30) return { status: 'closing', text: `Closing soon`, color: 'text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400' };
+                            return { status: 'open', text: `Open`, color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' };
+                        } else {
+                            return { status: 'closed', text: 'Closed', color: 'text-rose-600 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400' };
+                        }
                     }
+                } else if (/[A-Z][a-z]/.test(openingHours)) {
                     return { status: 'closed', text: 'Closed', color: 'text-rose-600 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400' };
                 }
             } catch (e) { return null; }
-            
-            return null; // Fallback if format is too complex
+            return null;
         }
 
         const AlertPill = ({ msg }) => html`<div class="px-4 py-2 rounded-full shadow-lg text-sm font-medium font-brand z-[1000] bg-orange-100 text-orange-800 border-2 border-white/50 dark:bg-orange-900/80 dark:text-orange-200 dark:border-orange-800/50">${msg}</div>`;
@@ -316,7 +308,6 @@
                             <p>Map Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">OpenStreetMap</a> contributors</p>
                             <p>Tiles courtesy of <a href="https://carto.com/attributions" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">CARTO</a></p>
                             <p>Powered by <a href="https://leafletjs.com" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">Leaflet</a> <span aria-label="Ukraine Flag">🇺🇦</span></p>
-                            <p>Data available under ODbL.</p>
                             <p class="mt-4">© ${new Date().getFullYear()} Loocator</p>
                         </div>
                     </div>
@@ -444,28 +435,8 @@
 
             const handleDrive = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const {lat, lon} = loc; if (navAppDrive === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`; else if (navAppDrive === 'waze') url = `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`; window.open(url, '_blank'); };
             const handleWalk = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const {lat, lon} = loc; if (navAppWalk === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=w`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=walking`; window.open(url, '_blank'); };
-            
-            useEffect(() => { 
-                if (ADDRESS_CACHE[loc.id]) { 
-                    setAddress(ADDRESS_CACHE[loc.id]); 
-                    return; 
-                } 
-                const fetchAddr = async () => { 
-                    try { 
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.lat}&lon=${loc.lon}&zoom=18&addressdetails=1`); 
-                        const data = await res.json(); 
-                        const formatted = formatAddressFromData(data); 
-                        const finalAddr = formatted || "Address unavailable";
-                        setAddress(finalAddr); 
-                        saveToAddrCache(loc.id, finalAddr); 
-                    } catch (e) { 
-                        setAddress("Address unavailable"); 
-                    } 
-                }; 
-                fetchAddr(); 
-            }, [loc]);
-
-            useEffect(() => { setImageUrl(null); const fetchImage = async () => { if (loc.tags && loc.tags.image) { setImageUrl(loc.tags.image); return; } if (loc.tags && loc.tags.wikidata) { try { const res = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P18&entity=${loc.tags.wikidata}&format=json&origin=*`); const data = await res.json(); const claims = data.claims.P18; if (claims && claims.length) setImageUrl(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(claims[0].mainsnak.datavalue.value)}?width=600`); } catch (e) {} } }; fetchImage(); }, [loc]);
+            useEffect(() => { if (ADDRESS_CACHE[loc.id]) { setAddress(ADDRESS_CACHE[loc.id]); return; } const fetchAddr = async () => { try { const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.lat}&lon=${loc.lon}&zoom=18&addressdetails=1`); const data = await res.json(); const formatted = formatAddressFromData(data); setAddress(formatted || "Address unavailable"); ADDRESS_CACHE[loc.id] = formatted || "Address unavailable"; } catch (e) { setAddress("Address unavailable"); } }; fetchAddr(); }, [loc]);
+            useEffect(() => { setImageUrl(null); const fetchImage = async () => { if (loc.tags.image) { setImageUrl(loc.tags.image); return; } if (loc.tags.wikidata) { try { const res = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P18&entity=${loc.tags.wikidata}&format=json&origin=*`); const data = await res.json(); const claims = data.claims.P18; if (claims && claims.length) setImageUrl(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(claims[0].mainsnak.datavalue.value)}?width=600`); } catch (e) {} } }; fetchImage(); }, [loc]);
             const distObj = userLoc ? calculateDistance(userLoc[0], userLoc[1], loc.lat, loc.lon) : null;
             const isPaid = loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no');
             let headerBg = loc.displayType === 'water' ? 'bg-teal-50 text-teal-700 dark:bg-teal-900/50 dark:text-teal-200' : loc.displayType === 'baby' ? 'bg-rose-50 text-rose-700 dark:bg-rose-900/50 dark:text-rose-200' : loc.displayType === 'shower' ? 'bg-sky-50 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200' : 'bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-300';
@@ -489,8 +460,10 @@
                         </div>
                         <div class="mb-5">
                             <div class="flex items-start space-x-2 text-slate-500 dark:text-zinc-400"><div class="w-4 h-4 mt-0.5 shrink-0 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.pin}}></div><p class="text-sm font-medium leading-tight">${address}</p></div>
+                        </div>
+                        <div class=${contentClass}>
                             ${loc.tags && loc.tags.opening_hours && html`
-                                <div class="mt-3 bg-slate-50 dark:bg-zinc-800/50 rounded-xl p-3 flex items-start gap-3 border border-slate-100 dark:border-zinc-800">
+                                <div class="mb-5 mt-1 bg-slate-50 dark:bg-zinc-800/50 rounded-xl p-3 flex items-start gap-3 border border-slate-100 dark:border-zinc-800">
                                     <div class=${`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${openStatus && openStatus.color ? openStatus.color.replace('text-', 'bg-').split(' ')[0] + '/20 ' + openStatus.color.split(' ')[0] : 'text-slate-400 bg-slate-200'}`}>
                                         <span class="material-symbols-rounded text-[14px]">schedule</span>
                                     </div>
@@ -500,8 +473,6 @@
                                     </div>
                                 </div>
                             `}
-                        </div>
-                        <div class=${contentClass}>
                             <div class="flex flex-wrap gap-2 mb-6">
                                 <div class=${'px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1 ' + (isPaid ? 'bg-orange-50 text-orange-700 border border-orange-100 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-900/50' : 'bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-200 dark:border-emerald-900/50')}>${isPaid ? 'Pay to use' : 'Free entry'}</div>
                                 ${loc.isToilet && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-100 text-slate-700 border border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.toilet}}></span> Toilet</div>`}
@@ -572,12 +543,12 @@
             const openStatus = checkOpeningStatus(loc.tags.opening_hours);
             return html`
                 <div onClick=${() => { triggerHaptic(); onClick(); }} class=${`bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform ${isExiting ? 'animate-stagger-fade-out pointer-events-none' : 'animate-stagger-fade opacity-0'}`} style=${{ animationDelay: isExiting ? `${index * 30}ms` : `${index * 50}ms` }}>
-                    <div class="flex items-center space-x-4 overflow-hidden">
+                    <div class="flex items-center space-x-4">
                         <div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm pie-icon relative" style=${{ cssText: backgroundStyle }}>
                             <div dangerouslySetInnerHTML=${{__html: iconHtml}}></div>
                             ${openStatus && openStatus.color && html`<div class=${`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-zinc-900 ${openStatus.color.split(' ')[0].replace('text-', 'bg-')}`}></div>`}
                         </div>
-                        <div class="flex flex-col overflow-hidden">
+                        <div class="flex flex-col overflow-hidden min-w-0">
                             <h4 class="font-semibold text-slate-700 dark:text-zinc-200 font-brand text-base leading-tight truncate">${loc.name}</h4>
                             ${displayAddress ? html`<p class="text-xs text-slate-400 dark:text-zinc-500 truncate mt-0.5">${displayAddress}</p>` : html`<div class="h-3 w-24 bg-slate-100 dark:bg-zinc-800 rounded animate-pulse mt-1"></div>`}
                         </div>
@@ -619,12 +590,9 @@
             const [showContribute, setShowContribute] = useState(false);
             const [isPickingLocation, setIsPickingLocation] = useState(false);
             const [contributeCoords, setContributeCoords] = useState(null);
-            
             const [showCorrection, setShowCorrection] = useState(false);
             const [correctionData, setCorrectionData] = useState(null);
-            
             const [showInstallButton, setShowInstallButton] = useState(false);
-
             const [gpsStatus, setGpsStatus] = useState('idle');
             const [isDarkMode, setIsDarkMode] = useState(window.matchMedia('(prefers-color-scheme: dark)').matches);
 
@@ -639,7 +607,6 @@
             const selectedLocRef = useRef(null); 
             const cardMinimizedRef = useRef(false);
 
-            // PARSE URL PARAMS
             const params = new URLSearchParams(window.location.search);
             const sharedLat = params.get('lat');
             const sharedLon = params.get('lon');
@@ -691,10 +658,8 @@
             };
 
             const toggleMode = () => { setIsCamperMode(!isCamperMode); };
-            
             const handleFilterClick = () => { if (showFilters) { if (filterSheetRef.current) { filterSheetRef.current.triggerClose(); } } else { closeAllMenus(); setShowFilters(true); } };
             const handleAboutClick = () => { if (showAbout) { setShowAbout(false); } else { closeAllMenus(); setShowAbout(true); } };
-            
             const handleViewToggle = () => { if (view === 'list') { setIsListExiting(true); setTimeout(() => { setIsListExiting(false); setView('map'); }, 300); } else { closeAllMenus(); setView('list'); } };
             const handleViewChange = () => { closeAllMenus(); setView('list'); }
 
