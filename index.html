@@ -176,7 +176,6 @@
         let MAP_CACHE = {};
         try {
             MAP_CACHE = JSON.parse(localStorage.getItem('loocator_map_cache') || '{}');
-            // Clean expired entries (24h)
             const now = Date.now();
             Object.keys(MAP_CACHE).forEach(key => {
                 if (now - MAP_CACHE[key].timestamp > 86400000) delete MAP_CACHE[key];
@@ -184,7 +183,6 @@
         } catch(e) {}
 
         const getMapCacheKey = (bounds) => {
-            // Create a grid key based on rounded coordinates to group nearby fetches
             const center = bounds.getCenter();
             return `${Math.round(center.lat * 100) / 100}_${Math.round(center.lng * 100) / 100}`;
         };
@@ -193,7 +191,7 @@
             const key = getMapCacheKey(bounds);
             MAP_CACHE[key] = { timestamp: Date.now(), data };
             const keys = Object.keys(MAP_CACHE);
-            if (keys.length > 50) delete MAP_CACHE[keys[0]]; // Limit grid tiles
+            if (keys.length > 50) delete MAP_CACHE[keys[0]]; 
             try { localStorage.setItem('loocator_map_cache', JSON.stringify(MAP_CACHE)); } catch(e) {}
         };
 
@@ -224,29 +222,40 @@
             return { text: (R * c) < 1 ? Math.round(R * c * 1000) + 'm' : (R * c).toFixed(1) + 'km', km: R * c };
         }
 
+        // --- UPDATED OPENING STATUS LOGIC ---
         function checkOpeningStatus(openingHours) {
-            if (!openingHours || openingHours === '24/7') return { status: 'open', text: 'Open 24/7', color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' };
+            if (!openingHours) return null;
+            if (openingHours === '24/7') return { status: 'open', text: 'Open 24/7', color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' };
+            
             const now = new Date();
             const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
             const currentDay = days[now.getDay()];
             const currentTime = now.getHours() * 60 + now.getMinutes();
+            
             try {
-                if (openingHours.includes(currentDay) || !openingHours.match(/[A-Z][a-z]/)) {
-                    const timeMatch = openingHours.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
-                    if (timeMatch) {
-                        const [_, h1, m1, h2, m2] = timeMatch;
-                        const openTime = parseInt(h1) * 60 + parseInt(m1);
-                        const closeTime = parseInt(h2) * 60 + parseInt(m2);
-                        if (currentTime >= openTime && currentTime < closeTime) {
-                            if (closeTime - currentTime <= 30) return { status: 'closing', text: `Closing soon`, color: 'text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400' };
-                            return { status: 'open', text: `Open`, color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' };
-                        } else {
-                            return { status: 'closed', text: 'Closed', color: 'text-rose-600 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400' };
-                        }
+                // If specific days are listed (e.g. "Mo-Fr"), check if today is excluded
+                const hasLetters = /[A-Z][a-z]/.test(openingHours);
+                if (hasLetters && !openingHours.includes(currentDay)) {
+                    // Primitive check: if it lists days but not today, assume closed
+                    return { status: 'closed', text: 'Closed', color: 'text-rose-600 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400' };
+                }
+
+                // Try to parse time range "09:00-17:00"
+                const timeMatch = openingHours.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+                if (timeMatch) {
+                    const [_, h1, m1, h2, m2] = timeMatch;
+                    const open = parseInt(h1) * 60 + parseInt(m1);
+                    const close = parseInt(h2) * 60 + parseInt(m2);
+                    
+                    if (currentTime >= open && currentTime < close) {
+                        if (close - currentTime <= 30) return { status: 'closing', text: 'Closing soon', color: 'text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400' };
+                        return { status: 'open', text: 'Open', color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' };
                     }
+                    return { status: 'closed', text: 'Closed', color: 'text-rose-600 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400' };
                 }
             } catch (e) { return null; }
-            return null;
+            
+            return null; // Fallback if format is too complex
         }
 
         const AlertPill = ({ msg }) => html`<div class="px-4 py-2 rounded-full shadow-lg text-sm font-medium font-brand z-[1000] bg-orange-100 text-orange-800 border-2 border-white/50 dark:bg-orange-900/80 dark:text-orange-200 dark:border-orange-800/50">${msg}</div>`;
@@ -307,6 +316,7 @@
                             <p>Map Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">OpenStreetMap</a> contributors</p>
                             <p>Tiles courtesy of <a href="https://carto.com/attributions" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">CARTO</a></p>
                             <p>Powered by <a href="https://leafletjs.com" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">Leaflet</a> <span aria-label="Ukraine Flag">🇺🇦</span></p>
+                            <p>Data available under ODbL.</p>
                             <p class="mt-4">© ${new Date().getFullYear()} Loocator</p>
                         </div>
                     </div>
@@ -455,8 +465,8 @@
                 fetchAddr(); 
             }, [loc]);
 
-            useEffect(() => { setImageUrl(null); const fetchImage = async () => { if (loc.tags.image) { setImageUrl(loc.tags.image); return; } if (loc.tags.wikidata) { try { const res = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P18&entity=${loc.tags.wikidata}&format=json&origin=*`); const data = await res.json(); const claims = data.claims.P18; if (claims && claims.length) setImageUrl(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(claims[0].mainsnak.datavalue.value)}?width=600`); } catch (e) {} } }; fetchImage(); }, [loc]);
-            const distObj = userLoc ? calculateDistance(userPos[0], userPos[1], loc.lat, loc.lon) : null;
+            useEffect(() => { setImageUrl(null); const fetchImage = async () => { if (loc.tags && loc.tags.image) { setImageUrl(loc.tags.image); return; } if (loc.tags && loc.tags.wikidata) { try { const res = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P18&entity=${loc.tags.wikidata}&format=json&origin=*`); const data = await res.json(); const claims = data.claims.P18; if (claims && claims.length) setImageUrl(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(claims[0].mainsnak.datavalue.value)}?width=600`); } catch (e) {} } }; fetchImage(); }, [loc]);
+            const distObj = userLoc ? calculateDistance(userLoc[0], userLoc[1], loc.lat, loc.lon) : null;
             const isPaid = loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no');
             let headerBg = loc.displayType === 'water' ? 'bg-teal-50 text-teal-700 dark:bg-teal-900/50 dark:text-teal-200' : loc.displayType === 'baby' ? 'bg-rose-50 text-rose-700 dark:bg-rose-900/50 dark:text-rose-200' : loc.displayType === 'shower' ? 'bg-sky-50 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200' : 'bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-300';
             const contentClass = `transition-opacity duration-300 ${minimized ? 'opacity-0 pointer-events-none' : 'opacity-100 delay-100'}`;
@@ -473,20 +483,20 @@
                             <div class="flex space-x-2 mb-2">
                                 <div class=${'inline-flex items-center px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wide ' + headerBg}>${loc.displayType.toUpperCase()}</div>
                                 ${distObj && html`<div class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400">${distObj.text} AWAY</div>`}
-                                ${openStatus && html`<div class=${`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide ${openStatus.color}`}><span class="w-1.5 h-1.5 rounded-full bg-current mr-1.5 animate-pulse"></span>${openStatus.text}</div>`}
+                                ${openStatus && openStatus.color && html`<div class=${`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide ${openStatus.color}`}><span class="w-1.5 h-1.5 rounded-full bg-current mr-1.5 animate-pulse"></span>${openStatus.text}</div>`}
                             </div>
                             <h2 class="text-2xl font-brand font-semibold text-slate-800 dark:text-zinc-100 leading-tight">${loc.name}</h2>
                         </div>
                         <div class="mb-5">
                             <div class="flex items-start space-x-2 text-slate-500 dark:text-zinc-400"><div class="w-4 h-4 mt-0.5 shrink-0 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.pin}}></div><p class="text-sm font-medium leading-tight">${address}</p></div>
-                            ${loc.tags.opening_hours && html`
+                            ${loc.tags && loc.tags.opening_hours && html`
                                 <div class="mt-3 bg-slate-50 dark:bg-zinc-800/50 rounded-xl p-3 flex items-start gap-3 border border-slate-100 dark:border-zinc-800">
-                                    <div class=${`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${openStatus ? openStatus.color.replace('text-', 'bg-').split(' ')[0] + '/20 ' + openStatus.color.split(' ')[0] : 'text-slate-400 bg-slate-200'}`}>
+                                    <div class=${`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${openStatus && openStatus.color ? openStatus.color.replace('text-', 'bg-').split(' ')[0] + '/20 ' + openStatus.color.split(' ')[0] : 'text-slate-400 bg-slate-200'}`}>
                                         <span class="material-symbols-rounded text-[14px]">schedule</span>
                                     </div>
                                     <div class="flex-1">
-                                        ${openStatus && html`<div class=${`text-xs font-bold mb-0.5 ${openStatus.color.split(' ')[0]}`}>${openStatus.text}</div>`}
-                                        <div class="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed whitespace-pre-line">${loc.tags.opening_hours.replace(/;/g, '\n')}</div>
+                                        ${openStatus && openStatus.color && html`<div class=${`text-xs font-bold mb-0.5 ${openStatus.color.split(' ')[0]}`}>${openStatus.text}</div>`}
+                                        <div class="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed whitespace-pre-line">${String(loc.tags.opening_hours).replace(/;/g, '\n')}</div>
                                     </div>
                                 </div>
                             `}
@@ -565,7 +575,7 @@
                     <div class="flex items-center space-x-4 overflow-hidden">
                         <div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm pie-icon relative" style=${{ cssText: backgroundStyle }}>
                             <div dangerouslySetInnerHTML=${{__html: iconHtml}}></div>
-                            ${openStatus && html`<div class=${`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-zinc-900 ${openStatus.color.split(' ')[0].replace('text-', 'bg-')}`}></div>`}
+                            ${openStatus && openStatus.color && html`<div class=${`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-zinc-900 ${openStatus.color.split(' ')[0].replace('text-', 'bg-')}`}></div>`}
                         </div>
                         <div class="flex flex-col overflow-hidden">
                             <h4 class="font-semibold text-slate-700 dark:text-zinc-200 font-brand text-base leading-tight truncate">${loc.name}</h4>
@@ -600,6 +610,7 @@
             const [userPos, setUserPos] = useState([51.505, -0.09]); 
             const [deferredPrompt, setDeferredPrompt] = useState(null);
             const [searchBounds, setSearchBounds] = useState(null); 
+            const [isInstalled, setIsInstalled] = useState(false);
             const [showAbout, setShowAbout] = useState(false);
             const [searchHistory, setSearchHistory] = useState([]);
             const [showHistory, setShowHistory] = useState(false);
@@ -608,9 +619,12 @@
             const [showContribute, setShowContribute] = useState(false);
             const [isPickingLocation, setIsPickingLocation] = useState(false);
             const [contributeCoords, setContributeCoords] = useState(null);
+            
             const [showCorrection, setShowCorrection] = useState(false);
             const [correctionData, setCorrectionData] = useState(null);
+            
             const [showInstallButton, setShowInstallButton] = useState(false);
+
             const [gpsStatus, setGpsStatus] = useState('idle');
             const [isDarkMode, setIsDarkMode] = useState(window.matchMedia('(prefers-color-scheme: dark)').matches);
 
@@ -625,6 +639,7 @@
             const selectedLocRef = useRef(null); 
             const cardMinimizedRef = useRef(false);
 
+            // PARSE URL PARAMS
             const params = new URLSearchParams(window.location.search);
             const sharedLat = params.get('lat');
             const sharedLon = params.get('lon');
@@ -676,8 +691,10 @@
             };
 
             const toggleMode = () => { setIsCamperMode(!isCamperMode); };
+            
             const handleFilterClick = () => { if (showFilters) { if (filterSheetRef.current) { filterSheetRef.current.triggerClose(); } } else { closeAllMenus(); setShowFilters(true); } };
             const handleAboutClick = () => { if (showAbout) { setShowAbout(false); } else { closeAllMenus(); setShowAbout(true); } };
+            
             const handleViewToggle = () => { if (view === 'list') { setIsListExiting(true); setTimeout(() => { setIsListExiting(false); setView('map'); }, 300); } else { closeAllMenus(); setView('list'); } };
             const handleViewChange = () => { closeAllMenus(); setView('list'); }
 
@@ -685,73 +702,34 @@
             const [inAreaLocs, furtherLocs] = useMemo(() => { if (!searchBounds) return [visibleLocations, []]; const inArea = []; const further = []; visibleLocations.forEach(loc => { if (searchBounds.contains([loc.lat, loc.lon])) { inArea.push(loc); } else { further.push(loc); } }); return [inArea, further]; }, [visibleLocations, searchBounds]);
             const showListHint = !loading && view === 'map' && visibleLocations.length > 0 && inAreaLocs.length === 0;
 
-            const fetchOverpass = async (bounds, retryRadius = null) => { 
-                if (fetchController.current) { fetchController.current.abort(); }
-                
-                // CHECK MAP DATA CACHE
+            const fetchOverpass = async (bounds, retryRadius = null) => { if (fetchController.current) { fetchController.current.abort(); } 
                 const cacheKey = getMapCacheKey(bounds);
                 if (MAP_CACHE[cacheKey] && !retryRadius) {
                     setAllLocations(MAP_CACHE[cacheKey].data);
                     setLoading(false);
                     return;
                 }
-
-                fetchController.current = new AbortController(); 
-                const signal = fetchController.current.signal; 
-                const isVan = camperModeRef.current; 
-                const center = bounds.getCenter(); 
-                let radius; 
-                if (retryRadius) { radius = retryRadius; } else { const ne = bounds.getNorthEast(); const dist = calculateDistance(center.lat, center.lng, ne.lat, ne.lng); radius = Math.max(dist.km * 1500, isVan ? 15000 : 2000); } 
-                const queryArea = `(around:${radius},${center.lat},${center.lng})`; 
-                const query = `[out:json][timeout:25];(nwr["amenity"="toilets"]["access"!~"customers|private|no|employees|permit"]${queryArea};nwr["amenity"="drinking_water"]${queryArea};nwr["amenity"="water_point"]${queryArea};nwr["amenity"="sanitary_dump_station"]${queryArea};nwr["amenity"="shower"]${queryArea};nwr["diaper"]${queryArea};nwr["changing_table"]${queryArea};);out center;`; 
-                
-                try { 
-                    const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query), signal: signal }); 
-                    const data = await res.json(); 
-                    if (data.elements.length === 0) { const nextRadius = radius * 2; if (nextRadius <= 50000) { showToast(`Scanning ${Math.round(nextRadius/1000)}km...`); fetchOverpass(bounds, nextRadius); return; } setLoading(false); return; } 
-                    const mapped = data.elements.map(el => { 
-                        const lat = el.lat || (el.center && el.center.lat); 
-                        const lon = el.lon || (el.center && el.center.lon); 
-                        if (!lat || !lon) return null; 
-                        let baseName = "Service Point"; 
-                        if (el.tags.amenity === 'toilets') baseName = "Public Toilet"; else if (el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point') baseName = "Water Point"; else if (el.tags.amenity === 'shower') baseName = "Public Shower"; else if (el.tags.amenity === 'sanitary_dump_station') baseName = "Chemical Disposal"; else if (el.tags.diaper === 'yes') baseName = "Baby Change"; 
-                        const street = el.tags['addr:street'] || el.tags['addr:place']; 
-                        const city = el.tags['addr:city'] || el.tags['addr:town'] || el.tags['addr:village']; 
-                        const house = el.tags['addr:housenumber']; 
-                        let rawAddress = ''; 
-                        if (house) rawAddress += house + ' '; 
-                        if (street) rawAddress += street; 
-                        if (city) rawAddress += (rawAddress ? ', ' : '') + city; 
-                        let finalName = el.tags.name; 
-                        if (!finalName) { 
-                            const operator = el.tags.operator; 
-                            if (street) finalName = `${street} ${baseName}`; else if (operator) finalName = `${operator} ${baseName}`; else if (el.tags.ref) finalName = `${baseName} (${el.tags.ref})`; else if (el.tags.fee) finalName = `${el.tags.fee === 'no' ? 'Free' : 'Paid'} ${baseName}`; else if (el.tags.description) { const descWords = el.tags.description.split(' '); finalName = descWords.slice(0, 4).join(' ') + (descWords.length > 4 ? '...' : ''); } else finalName = baseName; 
-                        } 
-                        return { id: el.id, lat: lat, lon: lon, tags: el.tags, isToilet: el.tags.amenity === 'toilets' || el.tags.toilets === 'yes', isWater: el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point' || el.tags.drinking_water === 'yes', hasBaby: el.tags.diaper === 'yes' || el.tags.changing_table === 'yes', hasShower: el.tags.amenity === 'shower' || el.tags.shower === 'yes', isBlack: (el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:chemical_toilet'] !== 'no') || (el.tags.amenity === 'toilets' && el.tags.sanitary_dump_station === 'yes'), isGrey: el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:grey_water'] !== 'no', baseType: el.tags.amenity === 'sanitary_dump_station' ? 'dump' : el.tags.amenity === 'shower' ? 'shower' : el.tags.amenity === 'drinking_water' ? 'water' : 'toilet', name: finalName, rawAddress: rawAddress }; 
-                    }).filter(Boolean); 
-                    setAllLocations(mapped); 
-                    saveToMapCache(bounds, mapped); // CACHE THE DATA
-                    setLoading(false); 
-                } catch (e) { if (e.name !== 'AbortError') setLoading(false); } 
-            };
-
+                fetchController.current = new AbortController(); const signal = fetchController.current.signal; const isVan = camperModeRef.current; const center = bounds.getCenter(); let radius; if (retryRadius) { radius = retryRadius; } else { const ne = bounds.getNorthEast(); const dist = calculateDistance(center.lat, center.lng, ne.lat, ne.lng); radius = Math.max(dist.km * 1500, isVan ? 15000 : 2000); } const queryArea = `(around:${radius},${center.lat},${center.lng})`; const query = `[out:json][timeout:25];(nwr["amenity"="toilets"]["access"!~"customers|private|no|employees|permit"]${queryArea};nwr["amenity"="drinking_water"]${queryArea};nwr["amenity"="water_point"]${queryArea};nwr["amenity"="sanitary_dump_station"]${queryArea};nwr["amenity"="shower"]${queryArea};nwr["diaper"]${queryArea};nwr["changing_table"]${queryArea};);out center;`; try { const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query), signal: signal }); const data = await res.json(); if (data.elements.length === 0) { const nextRadius = radius * 2; if (nextRadius <= 50000) { showToast(`Scanning ${Math.round(nextRadius/1000)}km...`); fetchOverpass(bounds, nextRadius); return; } setLoading(false); return; } 
+                const mapped = data.elements.map(el => { const lat = el.lat || (el.center && el.center.lat); const lon = el.lon || (el.center && el.center.lon); if (!lat || !lon) return null; let baseName = "Service Point"; if (el.tags.amenity === 'toilets') baseName = "Public Toilet"; else if (el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point') baseName = "Water Point"; else if (el.tags.amenity === 'shower') baseName = "Public Shower"; else if (el.tags.amenity === 'sanitary_dump_station') baseName = "Chemical Disposal"; else if (el.tags.diaper === 'yes') baseName = "Baby Change"; const street = el.tags['addr:street'] || el.tags['addr:place']; const city = el.tags['addr:city'] || el.tags['addr:town'] || el.tags['addr:village']; const house = el.tags['addr:housenumber']; let rawAddress = ''; if (house) rawAddress += house + ' '; if (street) rawAddress += street; if (city) rawAddress += (rawAddress ? ', ' : '') + city; let finalName = el.tags.name; if (!finalName) { const operator = el.tags.operator; if (street) { finalName = `${street} ${baseName}`; } else if (operator) { finalName = `${operator} ${baseName}`; } else if (el.tags.ref) { finalName = `${baseName} (${el.tags.ref})`; } else if (el.tags.fee) { const feeText = el.tags.fee === 'no' ? 'Free' : 'Paid'; finalName = `${feeText} ${baseName}`; } else if (el.tags.description) { const descWords = el.tags.description.split(' '); if (descWords.length > 0) { finalName = descWords.slice(0, 4).join(' ') + (descWords.length > 4 ? '...' : ''); } else { finalName = baseName; } } else { finalName = baseName; } } return { id: el.id, lat: lat, lon: lon, tags: el.tags, isToilet: el.tags.amenity === 'toilets' || el.tags.toilets === 'yes', isWater: el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point' || el.tags.drinking_water === 'yes', hasBaby: el.tags.diaper === 'yes' || el.tags.changing_table === 'yes', hasShower: el.tags.amenity === 'shower' || el.tags.shower === 'yes', isBlack: (el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:chemical_toilet'] !== 'no') || (el.tags.amenity === 'toilets' && el.tags.sanitary_dump_station === 'yes'), isGrey: el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:grey_water'] !== 'no', baseType: el.tags.amenity === 'sanitary_dump_station' ? 'dump' : el.tags.amenity === 'shower' ? 'shower' : el.tags.amenity === 'drinking_water' ? 'water' : 'toilet', name: finalName, rawAddress: rawAddress }; }).filter(Boolean);
+                setAllLocations(mapped); saveToMapCache(bounds, mapped); setLoading(false); } catch (e) { if (e.name !== 'AbortError') { setLoading(false); } } };
             const debouncedFetch = useMemo(() => debounce((b) => fetchOverpass(b), 1000), []);
-            const updateUserLocation = (coords, source) => { setUserPos(coords); setMapCenter(coords); setGpsStatus('success'); setTimeout(() => setGpsStatus('idle'), 2500); if (source === 'GPS') { setAllLocations([]); } if (mapInstanceRef.current) { const zoom = source === 'GPS' ? 17 : 13; mapInstanceRef.current.setView(coords, zoom); if (!userMarkerRef.current) { userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div><div class="user-beam" id="user-heading-beam"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current); } else { userMarkerRef.current.setLatLng(coords); } setSearchBounds(mapInstanceRef.current.getBounds()); debouncedFetch(mapInstanceRef.current.getBounds()); } };
+            const updateUserLocation = (coords, source) => { setUserPos(coords); setMapCenter(coords); setGpsStatus('success'); setTimeout(() => setGpsStatus('idle'), 2500); if (source === 'GPS') { setAllLocations([]); } if (mapInstanceRef.current) { const zoom = source === 'GPS' ? 17 : source === 'IP' ? 13 : 13; mapInstanceRef.current.setView(coords, zoom); if (!userMarkerRef.current) { userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div><div class="user-beam" id="user-heading-beam"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current); } else { userMarkerRef.current.setLatLng(coords); } setSearchBounds(mapInstanceRef.current.getBounds()); debouncedFetch(mapInstanceRef.current.getBounds()); } };
             
+            // INSTALL PROMPT LOGIC
             useEffect(() => { 
                 const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); setShowInstallButton(true); }; 
                 window.addEventListener('beforeinstallprompt', handler); 
                 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
                 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-                if (isIOS && !isStandalone) setShowInstallButton(true);
-                window.addEventListener('appinstalled', () => setShowInstallButton(false)); 
-                return () => window.removeEventListener('beforeinstallprompt', handler);
+                if (isIOS && !isStandalone) { setShowInstallButton(true); }
+                window.addEventListener('appinstalled', () => { setShowInstallButton(false); setIsInstalled(true); }); 
+                return () => { window.removeEventListener('beforeinstallprompt', handler); window.removeEventListener('appinstalled', () => setIsInstalled(true)); } 
             }, []);
 
-            const handleInstall = () => { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') { setDeferredPrompt(null); setShowInstallButton(false); } }); } else { const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; showToast(isIOS ? "Tap 'Share' then 'Add to Home Screen'" : "Use browser menu to Install App"); } };
+            const handleInstall = () => { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') { setDeferredPrompt(null); setShowInstallButton(false); setIsInstalled(true); } }); } else { const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; if (isIOS) { showToast("Tap 'Share' then 'Add to Home Screen'"); } else { showToast("Use browser menu to Install App"); } } };
             
-            useEffect(() => { 
-                if (!mapRef.current || mapInstanceRef.current) return; 
+            // INITIALIZE MAP & HANDLE SHARED LINKS
+            useEffect(() => { if (!mapRef.current || mapInstanceRef.current) return; 
                 const initialCenter = sharedLat && sharedLon ? [parseFloat(sharedLat), parseFloat(sharedLon)] : mapCenter;
                 const initialZoom = sharedLat ? 17 : 13;
                 const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(initialCenter, initialZoom); 
@@ -760,9 +738,9 @@
                 tileLayerRef.current = L.tileLayer(tileUrl, { attribution: '', subdomains: 'abcd', maxZoom: 20 }).addTo(map);
                 markersRef.current = L.layerGroup().addTo(map); 
                 const handleMove = () => { if (map.getZoom() < 13) { setZoomWarning(true); setAllLocations([]); markersRef.current.clearLayers(); } else { setZoomWarning(false); setLoading(true); const b = map.getBounds(); setSearchBounds(b); debouncedFetch(b); } }; 
-                map.on('click', () => { if (selectedLocRef.current) setCardMinimized(!cardMinimizedRef.current); });
+                map.on('click', () => { if (selectedLocRef.current) { setCardMinimized(!cardMinimizedRef.current); } });
                 map.on('moveend', handleMove); 
-                if (sharedLat) { setLoading(true); debouncedFetch(map.getBounds()); } else { setLoading(true); const findLocation = async () => { let gpsResolved = false; try { const res = await fetch('https://ipapi.co/json/'); if (res.ok) { const data = await res.json(); if (!gpsResolved && data.latitude && data.longitude) updateUserLocation([data.latitude, data.longitude], 'IP'); } } catch (e) {} navigator.geolocation.getCurrentPosition( (pos) => { gpsResolved = true; updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => {}, { enableHighAccuracy: true, timeout: 10000 } ); }; findLocation(); }
+                if (sharedLat) { setLoading(true); debouncedFetch(map.getBounds()); } else { setLoading(true); const findLocation = async () => { let gpsResolved = false; try { const res = await fetch('https://ipapi.co/json/'); if (res.ok) { const data = await res.json(); if (!gpsResolved && data.latitude && data.longitude) { updateUserLocation([data.latitude, data.longitude], 'IP'); } } } catch (e) { console.log('IP Loc failed'); } navigator.geolocation.getCurrentPosition( (pos) => { gpsResolved = true; updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => { console.log('GPS denied'); }, { enableHighAccuracy: true, timeout: 10000 } ); }; findLocation(); }
             }, []);
             
             useEffect(() => {
@@ -774,17 +752,19 @@
 
             useEffect(() => { if (!markersRef.current) return; markersRef.current.clearLayers(); visibleLocations.forEach(loc => { let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet; const types = []; if (loc.isToilet) types.push('toilet'); if (loc.isWater) types.push('water'); if (loc.hasBaby) types.push('baby'); if (loc.hasShower) types.push('shower'); if (loc.isBlack) types.push('black'); if (loc.isGrey) types.push('grey'); if (types.length === 0) types.push('toilet'); let backgroundStyle = ''; if (types.length === 1) { backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`; } else { const segmentSize = 100 / types.length; const gradientParts = types.map((t, i) => { const color = TYPE_COLORS[t]; const start = i * segmentSize; const end = (i + 1) * segmentSize; return `${color} ${start}% ${end}%`; }); backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`; } L.marker([loc.lat, loc.lon], { icon: L.divIcon({ className: '', html: `<div class="relative w-9 h-9"><div class="w-9 h-9 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-700 text-white z-10 relative shadow-sm" style="${backgroundStyle}"><div class="pie-icon flex items-center justify-center">${iconHtml}</div></div></div>`, iconSize: [36, 36], iconAnchor: [18, 36] }) }).addTo(markersRef.current).on('click', () => { closeAllMenus(); setCardMinimized(false); setSelectedLoc(loc); triggerHaptic(); }); }); }, [visibleLocations, isDarkMode]);
             
-            const handleSearch = async (e) => { e.preventDefault(); if (!searchTerm) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); addToHistory(searchTerm); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else showToast('Place not found.'); } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
-            const handleHistoryClick = (term) => { setSearchTerm(term); setTimeout(() => searchWithTerm(term), 0); };
-            const searchWithTerm = async (term) => { if (!term) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(term)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); addToHistory(term); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else showToast('Place not found.'); } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
+            const handleSearch = async (e) => { e.preventDefault(); if (!searchTerm) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); addToHistory(searchTerm); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else { showToast('Place not found.'); } } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
+            const handleHistoryClick = (term) => { setSearchTerm(term); setTimeout(() => { searchWithTerm(term); }, 0); };
+            const searchWithTerm = async (term) => { if (!term) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(term)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); addToHistory(term); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else { showToast('Place not found.'); } } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
             const selectSuggestion = (sugg) => { mapInstanceRef.current.flyTo([sugg.lat, sugg.lon], 16); addToHistory(sugg.display_name.split(',')[0]); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${sugg.display_name.split(',')[0]}`); }
-            const handleOrientation = (e) => { let heading = e.webkitCompassHeading || (360 - e.alpha); const beam = document.getElementById('user-heading-beam'); if (beam) { beam.style.display = 'block'; beam.style.transform = `rotate(${heading}deg)`; } };
-            const requestCompass = async () => { if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') { try { const response = await DeviceOrientationEvent.requestPermission(); if (response === 'granted') window.addEventListener('deviceorientation', handleOrientation); } catch (e) {} } else window.addEventListener('deviceorientation', handleOrientation); };
-            const handleGPS = () => { triggerHaptic(); requestCompass(); const map = mapInstanceRef.current; if (!map || !userPos) return; if (calculateDistance(map.getCenter().lat, map.getCenter().lng, userPos[0], userPos[1]).km > 0.05) { map.flyTo(userPos, 17); return; } if (!navigator.geolocation) { showToast('GPS not supported'); return; } setGpsStatus('searching'); navigator.geolocation.getCurrentPosition( (pos) => updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'), (err) => { setGpsStatus('idle'); showToast('GPS Access Denied'); }, { enableHighAccuracy: true } ); };
-            const startPickingLocation = () => { triggerHaptic(); closeAllMenus(); setIsPickingLocation(true); if (mapInstanceRef.current && mapInstanceRef.current.getZoom() < 18) mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18, { duration: 0.5 }); };
+            
+            const handleOrientation = (e) => { let heading = 0; if (e.webkitCompassHeading) { heading = e.webkitCompassHeading; } else if (e.alpha) { heading = 360 - e.alpha; } const beam = document.getElementById('user-heading-beam'); if (beam) { beam.style.display = 'block'; beam.style.transform = `rotate(${heading}deg)`; } };
+            const requestCompass = async () => { if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') { try { const response = await DeviceOrientationEvent.requestPermission(); if (response === 'granted') { window.addEventListener('deviceorientation', handleOrientation); } } catch (e) { console.error(e); } } else { window.addEventListener('deviceorientation', handleOrientation); } };
+            const handleGPS = () => { triggerHaptic(); requestCompass(); const map = mapInstanceRef.current; if (!map || !userPos) return; const center = map.getCenter(); const distInfo = calculateDistance(center.lat, center.lng, userPos[0], userPos[1]); if (distInfo.km > 0.05) { map.flyTo(userPos, 17); navigator.geolocation.getCurrentPosition( (pos) => { updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => { }, { enableHighAccuracy: true, timeout: 10000 } ); return; } if (!navigator.geolocation) { showToast('GPS not supported'); return; } setGpsStatus('searching'); navigator.geolocation.getCurrentPosition( (pos) => { const coords = [pos.coords.latitude, pos.coords.longitude]; updateUserLocation(coords, 'GPS'); }, (err) => { setGpsStatus('idle'); showToast('GPS Access Denied'); }, { enableHighAccuracy: true } ); };
+            
+            const startPickingLocation = () => { triggerHaptic(); closeAllMenus(); setIsPickingLocation(true); if (mapInstanceRef.current && mapInstanceRef.current.getZoom() < 18) { mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18, { duration: 0.5 }); } };
             const confirmLocation = () => { if (mapInstanceRef.current) { const center = mapInstanceRef.current.getCenter(); setContributeCoords({ lat: center.lat, lon: center.lng }); setIsPickingLocation(false); setShowContribute(true); } };
-            const cancelPicking = () => setIsPickingLocation(false);
-            const goToLoc = (loc) => { closeAllMenus(); setCardMinimized(false); setSelectedLoc(loc); setView('map'); if (mapInstanceRef.current) { const targetZoom = 17; const point = mapInstanceRef.current.project([loc.lat, loc.lon], targetZoom); const targetPoint = L.point(point.x, point.y + mapInstanceRef.current.getSize().y * 0.25); mapInstanceRef.current.flyTo(mapInstanceRef.current.unproject(targetPoint, targetZoom), targetZoom); } }
+            const cancelPicking = () => { setIsPickingLocation(false); };
+            const goToLoc = (loc) => { closeAllMenus(); setCardMinimized(false); setSelectedLoc(loc); setView('map'); const map = mapInstanceRef.current; if (map) { const targetZoom = 17; const point = map.project([loc.lat, loc.lon], targetZoom); const offsetY = map.getSize().y * 0.25; const targetPoint = L.point(point.x, point.y + offsetY); const newCenter = map.unproject(targetPoint, targetZoom); map.flyTo(newCenter, targetZoom); } }
             const openReport = (loc) => { setCorrectionData(loc); setShowCorrection(true); };
 
             return html`
