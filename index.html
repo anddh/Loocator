@@ -158,11 +158,18 @@
 
         const TYPE_COLORS = { toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8' };
         
+        // --- SAFE STORAGE HELPER ---
+        const safeParse = (key, fallback) => {
+            try {
+                const item = localStorage.getItem(key);
+                return item ? JSON.parse(item) : fallback;
+            } catch (e) {
+                return fallback;
+            }
+        };
+
         // --- ADDRESS CACHE ---
-        let ADDRESS_CACHE = {};
-        try {
-            ADDRESS_CACHE = JSON.parse(localStorage.getItem('loocator_addr_cache') || '{}');
-        } catch(e) {}
+        let ADDRESS_CACHE = safeParse('loocator_addr_cache', {});
 
         const saveToAddrCache = (id, address) => {
             if (!id || !address) return;
@@ -173,9 +180,8 @@
         };
 
         // --- MAP DATA CACHE (OVERPASS RESULTS) ---
-        let MAP_CACHE = {};
+        let MAP_CACHE = safeParse('loocator_map_cache', {});
         try {
-            MAP_CACHE = JSON.parse(localStorage.getItem('loocator_map_cache') || '{}');
             const now = Date.now();
             Object.keys(MAP_CACHE).forEach(key => {
                 if (now - MAP_CACHE[key].timestamp > 86400000) delete MAP_CACHE[key];
@@ -225,25 +231,29 @@
         function checkOpeningStatus(openingHours) {
             if (!openingHours) return null;
             if (openingHours === '24/7') return { status: 'open', text: 'Open 24/7', color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' };
+            
             const now = new Date();
             const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
             const currentDay = days[now.getDay()];
-            const currentTime = now.getHours() * 60 + now.getMinutes();
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            
             try {
-                if (openingHours.includes(currentDay) || !openingHours.match(/[A-Z][a-z]/)) {
-                    const timeMatch = openingHours.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
-                    if (timeMatch) {
-                        const [_, h1, m1, h2, m2] = timeMatch;
-                        const openTime = parseInt(h1) * 60 + parseInt(m1);
-                        const closeTime = parseInt(h2) * 60 + parseInt(m2);
-                        if (currentTime >= openTime && currentTime < closeTime) {
-                            if (closeTime - currentTime <= 30) return { status: 'closing', text: `Closing soon`, color: 'text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400' };
-                            return { status: 'open', text: `Open`, color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' };
-                        } else {
-                            return { status: 'closed', text: 'Closed', color: 'text-rose-600 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400' };
-                        }
+                const hasSpecificDays = /[A-Z][a-z]/.test(openingHours);
+                if (hasSpecificDays && !openingHours.includes(currentDay)) {
+                    return { status: 'closed', text: 'Closed today', color: 'text-rose-600 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400' };
+                }
+
+                const timeMatch = openingHours.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+                if (timeMatch) {
+                    const [_, h1, m1, h2, m2] = timeMatch;
+                    const openMins = parseInt(h1) * 60 + parseInt(m1);
+                    const closeMins = parseInt(h2) * 60 + parseInt(m2);
+                    
+                    if (currentMinutes >= openMins && currentMinutes < closeMins) {
+                        const remaining = closeMins - currentMinutes;
+                        if (remaining <= 30) return { status: 'closing', text: `Closing in ${remaining}m`, color: 'text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400' };
+                        return { status: 'open', text: 'Open', color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' };
                     }
-                } else if (/[A-Z][a-z]/.test(openingHours)) {
                     return { status: 'closed', text: 'Closed', color: 'text-rose-600 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400' };
                 }
             } catch (e) { return null; }
@@ -570,19 +580,14 @@
             const [showFilters, setShowFilters] = useState(false);
             const [isCamperMode, setIsCamperMode] = useState(localStorage.getItem('loocator_van_mode') === 'true');
             
-            const [stdFilters, setStdFilters] = useState(() => {
-                try { return JSON.parse(localStorage.getItem('loocator_std_filters')) || { toilet: true, water: true, baby: true }; }
-                catch { return { toilet: true, water: true, baby: true }; }
-            });
-            const [vanFilters, setVanFilters] = useState(() => {
-                try { return JSON.parse(localStorage.getItem('loocator_van_filters')) || { black: true, grey: true, water: true, shower: true }; }
-                catch { return { black: true, grey: true, water: true, shower: true }; }
-            });
+            const [stdFilters, setStdFilters] = useState(() => safeParse('loocator_std_filters', { toilet: true, water: true, baby: true }));
+            const [vanFilters, setVanFilters] = useState(() => safeParse('loocator_van_filters', { black: true, grey: true, water: true, shower: true }));
             const [freeOnly, setFreeOnly] = useState(localStorage.getItem('loocator_filter_free') === 'true');
             const [bottleOnly, setBottleOnly] = useState(localStorage.getItem('loocator_filter_bottle') === 'true');
             const [accessOnly, setAccessOnly] = useState(localStorage.getItem('loocator_filter_access') === 'true');
             const [keyOnly, setKeyOnly] = useState(localStorage.getItem('loocator_filter_key') === 'true');
 
+            useEffect(() => localStorage.setItem('loocator_van_mode', isCamperMode), [isCamperMode]);
             useEffect(() => localStorage.setItem('loocator_std_filters', JSON.stringify(stdFilters)), [stdFilters]);
             useEffect(() => localStorage.setItem('loocator_van_filters', JSON.stringify(vanFilters)), [vanFilters]);
             useEffect(() => localStorage.setItem('loocator_filter_free', freeOnly), [freeOnly]);
@@ -655,7 +660,6 @@
             
             useEffect(() => { 
                 camperModeRef.current = isCamperMode; 
-                localStorage.setItem('loocator_van_mode', isCamperMode);
                 if (mapInstanceRef.current) { 
                     setLoading(true); 
                     debouncedFetch(mapInstanceRef.current.getBounds()); 
