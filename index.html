@@ -83,22 +83,22 @@
         .leaflet-container { background: #d4dadc; }
         .pie-icon { text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
         .user-pin-ring { position: absolute; width: 20px; height: 20px; border-radius: 50%; background-color: #475569; opacity: 0.7; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
-        .user-pin-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background-color: white; border: 2px solid #475569; top: 5px; left: 5px; animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.4s infinite; }
+        .user-pin-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background-color: white; border: 2px solid #475569; top: 5px; left: 5px; animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.4s infinite; z-index: 2; }
         
-        /* New Compass Beam Style */
+        /* FIXED BEAM POSITION */
         .user-beam {
             position: absolute;
-            top: -40px; 
+            top: -90px;  /* Changed from -40px to align bottom tip with center */
             left: -40px; 
             width: 100px;
             height: 100px;
-            background: radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.4), transparent 60%);
-            transform-origin: 50% 100%;
-            clip-path: polygon(0 0, 100% 0, 50% 100%);
+            background: radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.4), transparent 70%);
+            transform-origin: 50% 100%; /* Rotate around the bottom center */
+            clip-path: polygon(0 0, 100% 0, 50% 100%); /* Triangle pointing down to the origin */
             pointer-events: none;
             z-index: -1;
-            transition: transform 0.2s linear; /* Smooth rotation */
-            display: none; /* Hidden until valid heading */
+            transition: transform 0.1s linear; 
+            display: none;
         }
 
         @media (prefers-color-scheme: dark) { .user-pin-ring { background-color: #a1a1aa; } .user-pin-dot { border-color: #a1a1aa; } }
