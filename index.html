@@ -722,6 +722,12 @@
             useEffect(() => { 
                 camperModeRef.current = isCamperMode; 
                 localStorage.setItem('loocator_van_mode', isCamperMode);
+
+                // --- NEW FIX START ---
+                setSelectedLoc(null);
+                setCardMinimized(false);
+                // --- NEW FIX END ---
+
                 if (mapInstanceRef.current) { 
                     setLoading(true); 
                     debouncedFetch(mapInstanceRef.current.getBounds()); 
