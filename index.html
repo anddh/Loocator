@@ -85,16 +85,15 @@
         .user-pin-ring { position: absolute; width: 20px; height: 20px; border-radius: 50%; background-color: #475569; opacity: 0.7; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
         .user-pin-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background-color: white; border: 2px solid #475569; top: 5px; left: 5px; animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.4s infinite; z-index: 2; }
         
-        /* FIXED BEAM POSITION */
         .user-beam {
             position: absolute;
-            top: -90px;  /* Changed from -40px to align bottom tip with center */
+            top: -90px;  
             left: -40px; 
             width: 100px;
             height: 100px;
             background: radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.4), transparent 70%);
-            transform-origin: 50% 100%; /* Rotate around the bottom center */
-            clip-path: polygon(0 0, 100% 0, 50% 100%); /* Triangle pointing down to the origin */
+            transform-origin: 50% 100%; 
+            clip-path: polygon(0 0, 100% 0, 50% 100%); 
             pointer-events: none;
             z-index: -1;
             transition: transform 0.1s linear; 
@@ -179,6 +178,43 @@
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2); 
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
             return { text: (R * c) < 1 ? Math.round(R * c * 1000) + 'm' : (R * c).toFixed(1) + 'km', km: R * c };
+        }
+
+        // --- OPENING HOURS PARSER ---
+        function checkOpeningStatus(openingHours) {
+            if (!openingHours || openingHours === '24/7') return { status: 'open', text: 'Open 24/7', color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' };
+            
+            const now = new Date();
+            const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+            const currentDay = days[now.getDay()];
+            const currentHour = now.getHours();
+            const currentMin = now.getMinutes();
+            const currentTime = currentHour * 60 + currentMin;
+
+            // Simplified Parsing: Looks for "08:00-18:00" or "Mo-Fr 09:00-17:00"
+            // This is a basic heuristic, full OSM parsing is extremely complex.
+            try {
+                // Check if current day is mentioned or implied
+                if (openingHours.includes(currentDay) || !openingHours.match(/[A-Z][a-z]/)) {
+                    const timeMatch = openingHours.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+                    if (timeMatch) {
+                        const [_, h1, m1, h2, m2] = timeMatch;
+                        const openTime = parseInt(h1) * 60 + parseInt(m1);
+                        const closeTime = parseInt(h2) * 60 + parseInt(m2);
+                        
+                        if (currentTime >= openTime && currentTime < closeTime) {
+                            // Check if closing soon (within 30 mins)
+                            if (closeTime - currentTime <= 30) {
+                                return { status: 'closing', text: `Closing soon (${h2}:${m2})`, color: 'text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400' };
+                            }
+                            return { status: 'open', text: `Open until ${h2}:${m2}`, color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' };
+                        } else {
+                            return { status: 'closed', text: 'Closed now', color: 'text-rose-600 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400' };
+                        }
+                    }
+                }
+            } catch (e) { return null; }
+            return null; // Format too complex or unknown
         }
 
         const AlertPill = ({ msg }) => html`<div class="px-4 py-2 rounded-full shadow-lg text-sm font-medium font-brand z-[1000] bg-orange-100 text-orange-800 border-2 border-white/50 dark:bg-orange-900/80 dark:text-orange-200 dark:border-orange-800/50">${msg}</div>`;
@@ -323,6 +359,10 @@
             useEffect(() => { setImageUrl(null); const fetchImage = async () => { if (loc.tags.image) { setImageUrl(loc.tags.image); return; } if (loc.tags.wikidata) { try { const res = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P18&entity=${loc.tags.wikidata}&format=json&origin=*`); const data = await res.json(); const claims = data.claims.P18; if (claims && claims.length) setImageUrl(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(claims[0].mainsnak.datavalue.value)}?width=600`); } catch (e) {} } }; fetchImage(); }, [loc]);
             const distObj = userLoc ? calculateDistance(userLoc[0], userLoc[1], loc.lat, loc.lon) : null;
             const isPaid = loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no');
+            
+            // SMART OPEN LOGIC
+            const openStatus = checkOpeningStatus(loc.tags.opening_hours);
+
             let headerBg = loc.displayType === 'water' ? 'bg-teal-50 text-teal-700 dark:bg-teal-900/50 dark:text-teal-200' : loc.displayType === 'baby' ? 'bg-rose-50 text-rose-700 dark:bg-rose-900/50 dark:text-rose-200' : loc.displayType === 'shower' ? 'bg-sky-50 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200' : 'bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-300';
             const contentClass = `transition-opacity duration-300 ${minimized ? 'opacity-0 pointer-events-none' : 'opacity-100 delay-100'}`;
             return html`
@@ -335,6 +375,7 @@
                             <div class="flex space-x-2 mb-2">
                                 <div class=${'inline-flex items-center px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wide ' + headerBg}>${loc.displayType.toUpperCase()}</div>
                                 ${distObj && html`<div class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400">${distObj.text} AWAY</div>`}
+                                ${openStatus && html`<div class=${`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide ${openStatus.color}`}><span class="w-1.5 h-1.5 rounded-full bg-current mr-1.5 animate-pulse"></span>${openStatus.text}</div>`}
                             </div>
                             <h2 class="text-2xl font-brand font-semibold text-slate-800 dark:text-zinc-100 leading-tight">${loc.name}</h2>
                         </div>
