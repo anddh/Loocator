@@ -153,7 +153,7 @@
             report: `<span class="material-symbols-rounded icon-sm">flag</span>`,
             share: `<span class="material-symbols-rounded icon-sm">share</span>`, 
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
         const TYPE_COLORS = { toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8' };
@@ -182,7 +182,6 @@
             });
         } catch(e) {}
 
-        // Updated cache key to include mode (std/van)
         const getMapCacheKey = (bounds, isVan) => {
             const center = bounds.getCenter();
             return `${Math.round(center.lat * 100) / 100}_${Math.round(center.lng * 100) / 100}_${isVan ? 'van' : 'std'}`;
@@ -569,7 +568,7 @@
             const [toast, setToast] = useState({ msg: '', visible: false });
             const [zoomWarning, setZoomWarning] = useState(false);
             const [showFilters, setShowFilters] = useState(false);
-            const [isCamperMode, setIsCamperMode] = useState(false);
+            const [isCamperMode, setIsCamperMode] = useState(localStorage.getItem('loocator_van_mode') === 'true');
             const [stdFilters, setStdFilters] = useState({ toilet: true, water: true, baby: true });
             const [vanFilters, setVanFilters] = useState({ black: true, grey: true, water: true, shower: true });
             const [freeOnly, setFreeOnly] = useState(false);
@@ -639,7 +638,14 @@
             useEffect(() => { const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)'); const handleChange = (e) => setIsDarkMode(e.matches); mediaQuery.addEventListener('change', handleChange); return () => mediaQuery.removeEventListener('change', handleChange); }, []);
             useEffect(() => { if (view === 'map' && mapInstanceRef.current) setTimeout(() => mapInstanceRef.current.invalidateSize(), 100); }, [view]);
             
-            useEffect(() => { camperModeRef.current = isCamperMode; if (mapInstanceRef.current) { setLoading(true); debouncedFetch(mapInstanceRef.current.getBounds()); } }, [isCamperMode]);
+            useEffect(() => { 
+                camperModeRef.current = isCamperMode; 
+                localStorage.setItem('loocator_van_mode', isCamperMode);
+                if (mapInstanceRef.current) { 
+                    setLoading(true); 
+                    debouncedFetch(mapInstanceRef.current.getBounds()); 
+                } 
+            }, [isCamperMode]);
             
             useEffect(() => { 
                 if (!mapInstanceRef.current) return; 
