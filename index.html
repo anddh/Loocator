@@ -151,6 +151,7 @@
             walk: `<span class="material-symbols-rounded icon-md">directions_walk</span>`,
             car: `<span class="material-symbols-rounded icon-md">directions_car</span>`,
             report: `<span class="material-symbols-rounded icon-sm">flag</span>`,
+            share: `<span class="material-symbols-rounded icon-sm">ios_share</span>`,
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
             drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
@@ -329,7 +330,7 @@
             </div>`;
         }
 
-        const DetailsCard = ({ loc, userLoc, navAppDrive, navAppWalk, onClose, minimized, setMinimized, onReport }) => {
+        const DetailsCard = ({ loc, userLoc, navAppDrive, navAppWalk, onClose, minimized, setMinimized, onReport, onShowToast }) => {
             if (!loc) return null;
             const [address, setAddress] = useState('Loading...');
             const [imageUrl, setImageUrl] = useState(null);
@@ -341,18 +342,29 @@
             }, []);
             const handleClose = () => { setIsClosing(true); setTimeout(onClose, 300); };
             const handleContainerClick = () => { if (minimized) setMinimized(false); };
+            
+            const handleShare = (e) => {
+                e.stopPropagation();
+                triggerHaptic();
+                const url = `${window.location.origin}${window.location.pathname}?lat=${loc.lat}&lon=${loc.lon}&id=${loc.id}`;
+                if (navigator.share) {
+                    navigator.share({ title: `Loocator: ${loc.name}`, text: `Check out this spot: ${loc.name}`, url: url }).catch(() => {});
+                } else {
+                    navigator.clipboard.writeText(url).then(() => onShowToast("Link copied to clipboard!"));
+                }
+            };
+
             const handleDrive = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const {lat, lon} = loc; if (navAppDrive === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`; else if (navAppDrive === 'waze') url = `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`; window.open(url, '_blank'); };
             const handleWalk = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const {lat, lon} = loc; if (navAppWalk === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=w`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=walking`; window.open(url, '_blank'); };
             useEffect(() => { if (ADDRESS_CACHE[loc.id]) { setAddress(ADDRESS_CACHE[loc.id]); return; } const fetchAddr = async () => { try { const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.lat}&lon=${loc.lon}&zoom=18&addressdetails=1`); const data = await res.json(); const a = data.address || {}; const formatted = (a.road || a.pedestrian || '') + (a.house_number ? ', ' + a.house_number : '') + (a.suburb ? ' (' + a.suburb + ')' : ''); setAddress(formatted || "Address unavailable"); ADDRESS_CACHE[loc.id] = formatted || "Address unavailable"; } catch (e) { setAddress("Address unavailable"); } }; fetchAddr(); }, [loc]);
             useEffect(() => { setImageUrl(null); const fetchImage = async () => { if (loc.tags.image) { setImageUrl(loc.tags.image); return; } if (loc.tags.wikidata) { try { const res = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P18&entity=${loc.tags.wikidata}&format=json&origin=*`); const data = await res.json(); const claims = data.claims.P18; if (claims && claims.length) setImageUrl(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(claims[0].mainsnak.datavalue.value)}?width=600`); } catch (e) {} } }; fetchImage(); }, [loc]);
             const distObj = userLoc ? calculateDistance(userLoc[0], userLoc[1], loc.lat, loc.lon) : null;
             const isPaid = loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no');
-            
-            // SMART OPEN LOGIC
-            const openStatus = checkOpeningStatus(loc.tags.opening_hours);
-
             let headerBg = loc.displayType === 'water' ? 'bg-teal-50 text-teal-700 dark:bg-teal-900/50 dark:text-teal-200' : loc.displayType === 'baby' ? 'bg-rose-50 text-rose-700 dark:bg-rose-900/50 dark:text-rose-200' : loc.displayType === 'shower' ? 'bg-sky-50 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200' : 'bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-300';
             const contentClass = `transition-opacity duration-300 ${minimized ? 'opacity-0 pointer-events-none' : 'opacity-100 delay-100'}`;
+            
+            const openStatus = checkOpeningStatus(loc.tags.opening_hours);
+
             return html`
                 <div onClick=${handleContainerClick} style=${{ transform: minimized ? 'translateY(calc(100% - 160px))' : 'translateY(0)' }} 
                     class=${`fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl z-[1500] flex flex-col max-h-[85vh] safe-pb transition-transform duration-300 ease-in-out ${isClosing ? 'animate-slide-down-card' : (animationFinished ? '' : 'animate-slide-up-card')} ${minimized ? 'cursor-pointer' : ''}`}>
@@ -375,15 +387,16 @@
                                 ${loc.isWater && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-teal-50 text-teal-700 border border-teal-100 dark:bg-teal-900/30 dark:text-teal-200 dark:border-teal-900/50 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.water}}></span> Water</div>`}
                                 ${loc.hasBaby && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-rose-50 text-rose-700 border border-rose-100 dark:bg-rose-900/30 dark:text-rose-200 dark:border-rose-900/50 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.baby}}></span> Baby Change</div>`}
                                 ${loc.hasShower && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-sky-50 text-sky-700 border border-sky-100 dark:bg-sky-900/30 dark:text-sky-200 dark:border-sky-900/50 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.shower}}></span> Shower</div>`}
-                                ${loc.isBlack && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-slate-100 border border-slate-700 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.trash}}></span> Black Waste</div>`}
-                                ${loc.isGrey && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-200 text-slate-700 border border-slate-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.drop}}></span> Grey Waste</div>`}
                             </div>
                             <div class="space-y-3 mb-2">
                                 <div class="flex gap-2">
                                     <button onClick=${handleDrive} class="flex-1 bg-slate-800 text-white dark:bg-zinc-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.car}}></div><span>Drive</span></button>
                                     <button onClick=${handleWalk} class="flex-1 bg-emerald-600 text-white dark:bg-emerald-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.walk}}></div><span>Walk</span></button>
                                 </div>
-                                <a href=${`https://www.google.com/maps/@?api=1&map_action=streetview&location=${loc.lat},${loc.lon}`} target="_blank" class="w-full bg-white text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-slate-200 dark:border-zinc-700"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.eye}}></div><span>Street Preview</span></a>
+                                <div class="flex gap-2">
+                                    <a href=${`https://www.google.com/maps/@?api=1&map_action=streetview&location=${loc.lat},${loc.lon}`} target="_blank" class="flex-[3] bg-white text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-slate-200 dark:border-zinc-700"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.eye}}></div><span>Street Preview</span></a>
+                                    <button onClick=${handleShare} class="flex-1 bg-slate-100 text-slate-600 dark:bg-zinc-700 dark:text-zinc-300 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-slate-200 dark:border-zinc-600"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.share}}></div></button>
+                                </div>
                             </div>
                             <div class="flex justify-center mt-4">
                                 <button onClick=${(e) => { e.stopPropagation(); onReport(loc); }} class="text-xs text-slate-400 dark:text-zinc-500 font-medium hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Something wrong?</button>
@@ -470,6 +483,13 @@
             const selectedLocRef = useRef(null); 
             const cardMinimizedRef = useRef(false);
 
+            // PARSE URL PARAMS
+            const params = new URLSearchParams(window.location.search);
+            const sharedLat = params.get('lat');
+            const sharedLon = params.get('lon');
+            const sharedId = params.get('id');
+            const [targetId, setTargetId] = useState(sharedId);
+
             useEffect(() => { selectedLocRef.current = selectedLoc; }, [selectedLoc]);
             useEffect(() => { cardMinimizedRef.current = cardMinimized; }, [cardMinimized]);
 
@@ -531,19 +551,56 @@
             const updateUserLocation = (coords, source) => { setUserPos(coords); setMapCenter(coords); setGpsStatus('success'); setTimeout(() => setGpsStatus('idle'), 2500); if (source === 'GPS') { setAllLocations([]); } if (mapInstanceRef.current) { const zoom = source === 'GPS' ? 17 : source === 'IP' ? 13 : 13; mapInstanceRef.current.setView(coords, zoom); if (!userMarkerRef.current) { userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div><div class="user-beam" id="user-heading-beam"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current); } else { userMarkerRef.current.setLatLng(coords); } setSearchBounds(mapInstanceRef.current.getBounds()); debouncedFetch(mapInstanceRef.current.getBounds()); } };
             useEffect(() => { if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) { setIsInstalled(true); } const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); }; window.addEventListener('beforeinstallprompt', handler); window.addEventListener('appinstalled', () => setIsInstalled(true)); return () => { window.removeEventListener('beforeinstallprompt', handler); window.removeEventListener('appinstalled', () => setIsInstalled(true)); } }, []);
             const handleInstall = () => { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') { setDeferredPrompt(null); setIsInstalled(true); } }); } else { const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; if (isIOS) { showToast("Tap 'Share' then 'Add to Home Screen'"); } else { showToast("Use browser menu to Install App"); } } };
-            useEffect(() => { if (!mapRef.current || mapInstanceRef.current) return; const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(mapCenter, 13); mapInstanceRef.current = map; 
             
-            // Initial tile load (Fix for race condition)
-            const tileUrl = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'; 
-            tileLayerRef.current = L.tileLayer(tileUrl, { attribution: '', subdomains: 'abcd', maxZoom: 20 }).addTo(map);
+            // INITIALIZE MAP & HANDLE SHARED LINKS
+            useEffect(() => { if (!mapRef.current || mapInstanceRef.current) return; 
+                
+                // If shared URL exists, start there. Otherwise default to London.
+                const initialCenter = sharedLat && sharedLon ? [parseFloat(sharedLat), parseFloat(sharedLon)] : mapCenter;
+                const initialZoom = sharedLat ? 17 : 13;
 
-            markersRef.current = L.layerGroup().addTo(map); 
+                const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(initialCenter, initialZoom); 
+                mapInstanceRef.current = map; 
             
-            const handleMove = () => { if (map.getZoom() < 13) { setZoomWarning(true); setAllLocations([]); markersRef.current.clearLayers(); } else { setZoomWarning(false); setLoading(true); const b = map.getBounds(); setSearchBounds(b); debouncedFetch(b); } }; 
+                // Initial tile load (Fix for race condition)
+                const tileUrl = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'; 
+                tileLayerRef.current = L.tileLayer(tileUrl, { attribution: '', subdomains: 'abcd', maxZoom: 20 }).addTo(map);
+
+                markersRef.current = L.layerGroup().addTo(map); 
             
-            map.on('click', () => { if (selectedLocRef.current) { setCardMinimized(!cardMinimizedRef.current); } });
-            map.on('moveend', handleMove); setLoading(true); const findLocation = async () => { let gpsResolved = false; try { const res = await fetch('https://ipapi.co/json/'); if (res.ok) { const data = await res.json(); if (!gpsResolved && data.latitude && data.longitude) { updateUserLocation([data.latitude, data.longitude], 'IP'); } } } catch (e) { console.log('IP Loc failed'); } navigator.geolocation.getCurrentPosition( (pos) => { gpsResolved = true; updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => { console.log('GPS denied'); }, { enableHighAccuracy: true, timeout: 10000 } ); }; findLocation(); }, []);
+                const handleMove = () => { if (map.getZoom() < 13) { setZoomWarning(true); setAllLocations([]); markersRef.current.clearLayers(); } else { setZoomWarning(false); setLoading(true); const b = map.getBounds(); setSearchBounds(b); debouncedFetch(b); } }; 
             
+                map.on('click', () => { if (selectedLocRef.current) { setCardMinimized(!cardMinimizedRef.current); } });
+                map.on('moveend', handleMove); 
+                
+                // If shared link, trigger fetch immediately for that spot
+                if (sharedLat) {
+                    setLoading(true);
+                    debouncedFetch(map.getBounds());
+                } else {
+                    // Normal boot: find location
+                    setLoading(true); 
+                    const findLocation = async () => { 
+                        let gpsResolved = false; 
+                        try { const res = await fetch('https://ipapi.co/json/'); if (res.ok) { const data = await res.json(); if (!gpsResolved && data.latitude && data.longitude) { updateUserLocation([data.latitude, data.longitude], 'IP'); } } } catch (e) { console.log('IP Loc failed'); } 
+                        navigator.geolocation.getCurrentPosition( (pos) => { gpsResolved = true; updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => { console.log('GPS denied'); }, { enableHighAccuracy: true, timeout: 10000 } ); 
+                    }; 
+                    findLocation(); 
+                }
+            }, []);
+            
+            // Effect to catch the Shared ID when data loads
+            useEffect(() => {
+                if (targetId && allLocations.length > 0) {
+                    const found = allLocations.find(l => l.id == targetId);
+                    if (found) {
+                        setSelectedLoc(found);
+                        setTargetId(null); // Clear so we don't keep re-selecting
+                        // showToast("Found shared location!");
+                    }
+                }
+            }, [allLocations, targetId]);
+
             useEffect(() => { if (!markersRef.current) return; markersRef.current.clearLayers(); visibleLocations.forEach(loc => { let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet; const types = []; if (loc.isToilet) types.push('toilet'); if (loc.isWater) types.push('water'); if (loc.hasBaby) types.push('baby'); if (loc.hasShower) types.push('shower'); if (loc.isBlack) types.push('black'); if (loc.isGrey) types.push('grey'); if (types.length === 0) types.push('toilet'); let backgroundStyle = ''; if (types.length === 1) { backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`; } else { const segmentSize = 100 / types.length; const gradientParts = types.map((t, i) => { const color = TYPE_COLORS[t]; const start = i * segmentSize; const end = (i + 1) * segmentSize; return `${color} ${start}% ${end}%`; }); backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`; } L.marker([loc.lat, loc.lon], { icon: L.divIcon({ className: '', html: `<div class="relative w-9 h-9"><div class="w-9 h-9 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-700 text-white z-10 relative shadow-sm" style="${backgroundStyle}"><div class="pie-icon flex items-center justify-center">${iconHtml}</div></div></div>`, iconSize: [36, 36], iconAnchor: [18, 36] }) }).addTo(markersRef.current).on('click', () => { closeAllMenus(); setCardMinimized(false); setSelectedLoc(loc); triggerHaptic(); }); }); }, [visibleLocations, isDarkMode]);
             
             const handleSearch = async (e) => { e.preventDefault(); if (!searchTerm) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); addToHistory(searchTerm); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else { showToast('Place not found.'); } } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
@@ -706,7 +763,7 @@
                 ${showAbout && html`<${AboutModal} onClose=${() => setShowAbout(false)} />`}
                 ${showContribute && contributeCoords && html`<${ContributeSheet} lat=${contributeCoords.lat} lon=${contributeCoords.lon} onClose=${() => setShowContribute(false)} onShowToast=${showToast} />`}
                 ${showCorrection && correctionData && html`<${ContributeSheet} lat=${correctionData.lat} lon=${correctionData.lon} isCorrection=${true} correctionId=${correctionData.id} correctionName=${correctionData.name} onClose=${() => setShowCorrection(false)} onShowToast=${showToast} />`}
-                ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} userLoc=${userPos} navAppDrive=${navAppDrive} navAppWalk=${navAppWalk} onClose=${() => setSelectedLoc(null)} minimized=${cardMinimized} setMinimized=${setCardMinimized} onReport=${openReport} />`}
+                ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} userLoc=${userPos} navAppDrive=${navAppDrive} navAppWalk=${navAppWalk} onClose=${() => setSelectedLoc(null)} minimized=${cardMinimized} setMinimized=${setCardMinimized} onReport=${openReport} onShowToast=${showToast} />`}
                 <${Toast} msg=${toast.msg} visible=${toast.visible} />
             `;
         }
