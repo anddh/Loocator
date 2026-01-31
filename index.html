@@ -99,8 +99,7 @@
         @keyframes march {
             to { stroke-dashoffset: -24; }
         }
-        /* --------------------------- */
-
+        
         .user-beam {
             position: absolute;
             top: -90px;  
@@ -169,7 +168,7 @@
             report: `<span class="material-symbols-rounded icon-sm">flag</span>`,
             share: `<span class="material-symbols-rounded icon-sm">share</span>`, 
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
         const TYPE_COLORS = { toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8' };
@@ -311,7 +310,7 @@
                     <div class="text-center mb-6">
                         <div class="inline-block w-24 h-24 rounded-3xl bg-slate-100 dark:bg-zinc-800 mb-4 shadow-sm overflow-hidden"><img src="icon.png" class="w-full h-full object-cover" alt="Loocator" /></div>
                         <h2 class="text-2xl font-bold font-brand text-slate-800 dark:text-zinc-100">Loocator</h2>
-                        <p class="text-slate-500 dark:text-zinc-400 text-sm mt-1">v0.2.3</p>
+                        <p class="text-slate-500 dark:text-zinc-400 text-sm mt-1">v0.2.4</p>
                     </div>
                     <div class="space-y-4 text-center">
                         <div class="bg-slate-50 dark:bg-zinc-800 p-4 rounded-xl border border-slate-100 dark:border-zinc-700"><p class="text-slate-600 dark:text-zinc-300 font-medium text-sm">Made with love in Tenerife + England ❤️</p></div>
@@ -632,7 +631,7 @@
             const [showInstallButton, setShowInstallButton] = useState(false);
             const [gpsStatus, setGpsStatus] = useState('idle');
             const [isDarkMode, setIsDarkMode] = useState(window.matchMedia('(prefers-color-scheme: dark)').matches);
-            const routeLayerRef = useRef(null); // Ref for breadcrumb polyline
+            const routeLayerRef = useRef(null); 
 
             const mapRef = useRef(null);
             const mapInstanceRef = useRef(null);
@@ -691,7 +690,7 @@
                     })
                     .catch(err => console.error("Routing failed", err));
 
-            }, [selectedLoc, userPos]); // Re-run when selection or user moves
+            }, [selectedLoc, userPos]); 
 
             useEffect(() => { selectedLocRef.current = selectedLoc; }, [selectedLoc]);
             useEffect(() => { cardMinimizedRef.current = cardMinimized; }, [cardMinimized]);
@@ -842,7 +841,8 @@
                 }
             }, [allLocations, targetId]);
 
-            useEffect(() => { if (!markersRef.current) return; markersRef.current.clearLayers(); visibleLocations.forEach(loc => { let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet; const types = []; if (loc.isToilet) types.push('toilet'); if (loc.isWater) types.push('water'); if (loc.hasBaby) types.push('baby'); if (loc.hasShower) types.push('shower'); if (loc.isBlack) types.push('black'); if (loc.isGrey) types.push('grey'); if (types.length === 0) types.push('toilet'); let backgroundStyle = ''; if (types.length === 1) { backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`; } else { const segmentSize = 100 / types.length; const gradientParts = types.map((t, i) => { const color = TYPE_COLORS[t]; const start = i * segmentSize; const end = (i + 1) * segmentSize; return `${color} ${start}% ${end}%`; }); backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`; } L.marker([loc.lat, loc.lon], { icon: L.divIcon({ className: '', html: `<div class="relative w-9 h-9"><div class="w-9 h-9 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-700 text-white z-10 relative shadow-sm" style="${backgroundStyle}"><div class="pie-icon flex items-center justify-center">${iconHtml}</div></div></div>`, iconSize: [36, 36], iconAnchor: [18, 36] }) }).addTo(markersRef.current).on('click', () => { closeAllMenus(); setCardMinimized(false); setSelectedLoc(loc); triggerHaptic(); }); }); }, [visibleLocations, isDarkMode]);
+            // UPDATED: Now uses goToLoc on Marker click to trigger Smart Zoom
+            useEffect(() => { if (!markersRef.current) return; markersRef.current.clearLayers(); visibleLocations.forEach(loc => { let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet; const types = []; if (loc.isToilet) types.push('toilet'); if (loc.isWater) types.push('water'); if (loc.hasBaby) types.push('baby'); if (loc.hasShower) types.push('shower'); if (loc.isBlack) types.push('black'); if (loc.isGrey) types.push('grey'); if (types.length === 0) types.push('toilet'); let backgroundStyle = ''; if (types.length === 1) { backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`; } else { const segmentSize = 100 / types.length; const gradientParts = types.map((t, i) => { const color = TYPE_COLORS[t]; const start = i * segmentSize; const end = (i + 1) * segmentSize; return `${color} ${start}% ${end}%`; }); backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`; } L.marker([loc.lat, loc.lon], { icon: L.divIcon({ className: '', html: `<div class="relative w-9 h-9"><div class="w-9 h-9 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-700 text-white z-10 relative shadow-sm" style="${backgroundStyle}"><div class="pie-icon flex items-center justify-center">${iconHtml}</div></div></div>`, iconSize: [36, 36], iconAnchor: [18, 36] }) }).addTo(markersRef.current).on('click', () => { goToLoc(loc); triggerHaptic(); }); }); }, [visibleLocations, isDarkMode]);
             
             const handleSearch = async (e) => { e.preventDefault(); if (!searchTerm) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); addToHistory(searchTerm); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else { showToast('Place not found.'); } } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
             const handleHistoryClick = (term) => { setSearchTerm(term); setTimeout(() => { searchWithTerm(term); }, 0); };
@@ -856,7 +856,38 @@
             const startPickingLocation = () => { triggerHaptic(); closeAllMenus(); setIsPickingLocation(true); if (mapInstanceRef.current && mapInstanceRef.current.getZoom() < 18) { mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18, { duration: 0.5 }); } };
             const confirmLocation = () => { if (mapInstanceRef.current) { const center = mapInstanceRef.current.getCenter(); setContributeCoords({ lat: center.lat, lon: center.lng }); setIsPickingLocation(false); setShowContribute(true); } };
             const cancelPicking = () => { setIsPickingLocation(false); };
-            const goToLoc = (loc) => { closeAllMenus(); setCardMinimized(false); setSelectedLoc(loc); setView('map'); const map = mapInstanceRef.current; if (map) { const targetZoom = 17; const point = map.project([loc.lat, loc.lon], targetZoom); const offsetY = map.getSize().y * 0.25; const targetPoint = L.point(point.x, point.y + offsetY); const newCenter = map.unproject(targetPoint, targetZoom); map.flyTo(newCenter, targetZoom); } }
+
+            // --- UPDATED GO-TO-LOC (SMART ZOOM) ---
+            const goToLoc = (loc) => { 
+                closeAllMenus(); 
+                setCardMinimized(false); 
+                setSelectedLoc(loc); 
+                setView('map'); 
+                
+                if (!mapInstanceRef.current) return;
+                
+                const map = mapInstanceRef.current;
+                const dist = userPos ? calculateDistance(userPos[0], userPos[1], loc.lat, loc.lon) : { km: 99999 };
+                
+                if (dist.km <= 2 && userPos) {
+                    // Fit start and end points if close
+                    const bounds = L.latLngBounds([userPos, [loc.lat, loc.lon]]);
+                    map.fitBounds(bounds, {
+                        paddingTopLeft: [50, 50],
+                        paddingBottomRight: [50, 300], // Accommodate card at bottom
+                        animate: true,
+                        maxZoom: 17
+                    });
+                } else {
+                    // Fly to location (Far away behavior)
+                    const targetZoom = 17; 
+                    const point = map.project([loc.lat, loc.lon], targetZoom); 
+                    const offsetY = map.getSize().y * 0.25; // Shift map center up so pin is lower (above card)
+                    const targetPoint = L.point(point.x, point.y + offsetY); 
+                    const newCenter = map.unproject(targetPoint, targetZoom); 
+                    map.flyTo(newCenter, targetZoom); 
+                }
+            }
             const openReport = (loc) => { setCorrectionData(loc); setShowCorrection(true); };
 
             return html`
@@ -892,11 +923,11 @@
                         ${zoomWarning && !loading && html`<${AlertPill} msg="Zoom in to find spots" />`}
                         ${showListHint && html`<button onClick=${handleViewChange} class="bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-300 px-5 py-2.5 rounded-full shadow-lg text-sm font-bold font-brand z-[1000] pointer-events-auto active:scale-95 transition-transform flex items-center gap-2 mt-2 animate-ripple"><span>Nothing nearby. View List</span><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.list}}></div></button>`}
                     </div>
-                    ${isPickingLocation && html`<div class="absolute inset-0 z-[1100] pointer-events-none flex items-center justify-center"><div class="text-slate-800 dark:text-zinc-200 drop-shadow-xl -translate-y-1/2"><span class="material-symbols-rounded text-6xl">location_on</span></div></div><div class="absolute bottom-10 left-0 right-0 z-[1200] flex flex-col items-center space-y-3 px-6 pointer-events-auto"><div class="bg-slate-800/80 backdrop-blur text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">Move map to position pin</div><div class="flex w-full gap-3 max-w-sm"><button onClick=${() => setIsPickingLocation(false)} class="flex-1 bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 font-bold py-3 rounded-xl shadow-lg">Cancel</button><button onClick=${() => { const c = mapInstanceRef.current.getCenter(); setContributeCoords({ lat: c.lat, lon: c.lng }); setIsPickingLocation(false); setShowContribute(true); }} class="flex-[2] bg-slate-800 dark:bg-zinc-600 text-white font-bold py-3 rounded-xl shadow-lg">Confirm</button></div></div>`}
+                    ${isPickingLocation && html`<div class="absolute inset-0 z-[1100] pointer-events-none flex items-center justify-center"><div class="text-slate-800 dark:text-zinc-200 drop-shadow-xl -translate-y-1/2"><span class="material-symbols-rounded text-6xl">location_on</span></div></div><div class="absolute bottom-10 left-0 right-0 z-[1200] flex flex-col items-center space-y-3 px-6 pointer-events-auto"><div class="bg-slate-800/80 backdrop-blur text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">Move map to position pin</div><div class="flex w-full gap-3 max-w-sm"><button onClick=${cancelPicking} class="flex-1 bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform">Cancel</button><button onClick=${confirmLocation} class="flex-[2] bg-slate-800 dark:bg-zinc-600 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform">Confirm Location</button></div></div>`}
                     <div id="map" ref=${mapRef} class="transition-opacity duration-500"></div>
                     ${(view === 'list' || isListExiting) && html`<div class="list-wrapper p-4 pb-24 safe-pb bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">${inAreaLocs.length === 0 && furtherLocs.length === 0 && html`<div class="text-center text-slate-400 dark:text-zinc-600 mt-20"><div class="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-zinc-700 opacity-50 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div><p class="font-brand text-lg">No spots visible.</p></div>`}${inAreaLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} />`)}${furtherLocs.length > 0 && html`<div class="py-4 flex items-center gap-4 animate-stagger-fade" style=${{ animationDelay: '300ms' }}><div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div><span class="text-xs font-bold text-slate-400 dark:text-zinc-600 uppercase tracking-wider">Further Afield</span><div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div></div>${furtherLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i + inAreaLocs.length} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} />`)}`}</div>`}
                 </div>
-                ${!isPickingLocation && !selectedLoc && html`${(gpsStatus !== 'idle' || loading) && html`<div class="absolute right-5 bottom-40 w-14 h-14 bg-white dark:bg-zinc-800 rounded-full shadow-lg z-[1000] flex items-center justify-center animate-pop-in border border-slate-100 dark:border-zinc-700">${(() => { if (gpsStatus === 'success') return html`<div class="w-5 h-5 text-emerald-500 flex items-center justify-center animate-scale-in" dangerouslySetInnerHTML=${{__html: ICONS.check}}></div>`; if (gpsStatus === 'searching') return html`<span class="material-symbols-rounded animate-pulse-fast text-sky-500 text-xl">my_location</span>`; if (loading) return html`<div class="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>`; return null; })()}</div>`}<button onClick=${() => { triggerHaptic(); closeAllMenus(); setIsPickingLocation(true); if (mapInstanceRef.current.getZoom() < 18) mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18); }} class="absolute right-5 w-14 h-14 bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-full shadow-lg flex items-center justify-center z-[1000] active:scale-90 transition-all bottom-24" dangerouslySetInnerHTML=${{__html: ICONS.plus}}></button><button onClick=${handleGPS} class="absolute right-5 w-14 h-14 bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all bottom-8" dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>`}
+                ${!isPickingLocation && !selectedLoc && html`${(gpsStatus !== 'idle' || loading) && html`<div class="absolute right-5 bottom-40 w-14 h-14 bg-white dark:bg-zinc-800 rounded-full shadow-lg z-[1000] flex items-center justify-center animate-pop-in border border-slate-100 dark:border-zinc-700">${(() => { if (gpsStatus === 'success') return html`<div class="w-5 h-5 text-emerald-500 flex items-center justify-center animate-scale-in" dangerouslySetInnerHTML=${{__html: ICONS.check}}></div>`; if (gpsStatus === 'searching') return html`<span class="material-symbols-rounded animate-pulse-fast text-sky-500 text-xl">my_location</span>`; if (loading) return html`<div class="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>`; return null; })()}</div>`}<button onClick=${startPickingLocation} class="absolute right-5 w-14 h-14 bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-full shadow-lg flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 bottom-24" dangerouslySetInnerHTML=${{__html: ICONS.plus}}></button><button onClick=${handleGPS} class="absolute right-5 w-14 h-14 bg-slate-800 dark:bg-zinc-700 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 bottom-8" dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>`}
                 ${showFilters && html`<${FilterSheet} ref=${filterSheetRef} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navAppDrive=${navAppDrive} setNavAppDrive=${setNavAppDrive} navAppWalk=${navAppWalk} setNavAppWalk=${setNavAppWalk} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} />`}
                 ${showAbout && html`<${AboutModal} onClose=${() => setShowAbout(false)} onShowToast=${showToast} />`}
                 ${showContribute && contributeCoords && html`<${ContributeSheet} lat=${contributeCoords.lat} lon=${contributeCoords.lon} onClose=${() => setShowContribute(false)} onShowToast=${showToast} />`}
