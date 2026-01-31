@@ -157,7 +157,41 @@
         };
 
         const TYPE_COLORS = { toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8' };
-        const ADDRESS_CACHE = {};
+        
+        // --- CACHE LOGIC START ---
+        // Initialize from LocalStorage or empty object
+        let ADDRESS_CACHE = {};
+        try {
+            ADDRESS_CACHE = JSON.parse(localStorage.getItem('loocator_addr_cache') || '{}');
+        } catch(e) {
+            console.error('Cache load failed', e);
+        }
+
+        const saveToCache = (id, address) => {
+            if (!id || !address) return;
+            ADDRESS_CACHE[id] = address;
+            
+            // Simple cleanup: if keys > 500, delete roughly the first 50 found (not perfect LRU but fast)
+            const keys = Object.keys(ADDRESS_CACHE);
+            if (keys.length > 500) {
+                for(let i=0; i<50; i++) {
+                    delete ADDRESS_CACHE[keys[i]];
+                }
+            }
+            
+            try {
+                localStorage.setItem('loocator_addr_cache', JSON.stringify(ADDRESS_CACHE));
+            } catch(e) {
+                // If storage full, clear half
+                try {
+                    const entries = Object.entries(ADDRESS_CACHE);
+                    const half = entries.slice(Math.floor(entries.length / 2));
+                    ADDRESS_CACHE = Object.fromEntries(half);
+                    localStorage.setItem('loocator_addr_cache', JSON.stringify(ADDRESS_CACHE));
+                } catch(err) {}
+            }
+        };
+        // --- CACHE LOGIC END ---
 
         // Helper to format address from Nominatim data
         const formatAddressFromData = (data) => {
@@ -362,7 +396,28 @@
 
             const handleDrive = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const {lat, lon} = loc; if (navAppDrive === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`; else if (navAppDrive === 'waze') url = `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`; window.open(url, '_blank'); };
             const handleWalk = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const {lat, lon} = loc; if (navAppWalk === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=w`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=walking`; window.open(url, '_blank'); };
-            useEffect(() => { if (ADDRESS_CACHE[loc.id]) { setAddress(ADDRESS_CACHE[loc.id]); return; } const fetchAddr = async () => { try { const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.lat}&lon=${loc.lon}&zoom=18&addressdetails=1`); const data = await res.json(); const formatted = formatAddressFromData(data); setAddress(formatted || "Address unavailable"); ADDRESS_CACHE[loc.id] = formatted || "Address unavailable"; } catch (e) { setAddress("Address unavailable"); } }; fetchAddr(); }, [loc]);
+            
+            // DETAILS CARD ADDRESS FETCHING WITH PERSISTENT CACHE
+            useEffect(() => { 
+                if (ADDRESS_CACHE[loc.id]) { 
+                    setAddress(ADDRESS_CACHE[loc.id]); 
+                    return; 
+                } 
+                const fetchAddr = async () => { 
+                    try { 
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.lat}&lon=${loc.lon}&zoom=18&addressdetails=1`); 
+                        const data = await res.json(); 
+                        const formatted = formatAddressFromData(data); 
+                        const finalAddr = formatted || "Address unavailable";
+                        setAddress(finalAddr); 
+                        saveToCache(loc.id, finalAddr); // SAVE TO PERSISTENT CACHE
+                    } catch (e) { 
+                        setAddress("Address unavailable"); 
+                    } 
+                }; 
+                fetchAddr(); 
+            }, [loc]);
+
             useEffect(() => { setImageUrl(null); const fetchImage = async () => { if (loc.tags.image) { setImageUrl(loc.tags.image); return; } if (loc.tags.wikidata) { try { const res = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P18&entity=${loc.tags.wikidata}&format=json&origin=*`); const data = await res.json(); const claims = data.claims.P18; if (claims && claims.length) setImageUrl(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(claims[0].mainsnak.datavalue.value)}?width=600`); } catch (e) {} } }; fetchImage(); }, [loc]);
             const distObj = userLoc ? calculateDistance(userLoc[0], userLoc[1], loc.lat, loc.lon) : null;
             const isPaid = loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no');
@@ -445,7 +500,7 @@
             
             const [fetchedAddr, setFetchedAddr] = useState(ADDRESS_CACHE[loc.id] || null);
             
-            // Lazy load address if missing
+            // Lazy load address if missing - NOW SAVES TO PERSISTENT CACHE
             useEffect(() => {
                 if (fetchedAddr || loc.rawAddress) return; 
                 if (ADDRESS_CACHE[loc.id]) { setFetchedAddr(ADDRESS_CACHE[loc.id]); return; }
@@ -461,8 +516,9 @@
                         const data = await res.json();
                         const formatted = formatAddressFromData(data);
                         const finalAddr = formatted || "Address unavailable";
-                        ADDRESS_CACHE[loc.id] = finalAddr;
+                        
                         setFetchedAddr(finalAddr);
+                        saveToCache(loc.id, finalAddr); // SAVE TO PERSISTENT CACHE
                     } catch (e) { }
                 }, delay);
 
