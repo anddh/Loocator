@@ -249,9 +249,25 @@
         const AlertPill = ({ msg }) => html`<div class="px-4 py-2 rounded-full shadow-lg text-sm font-medium font-brand z-[1000] bg-orange-100 text-orange-800 border-2 border-white/50 dark:bg-orange-900/80 dark:text-orange-200 dark:border-orange-800/50">${msg}</div>`;
         const Toast = ({ msg, visible }) => html`<div class=${'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-slate-800/95 dark:bg-zinc-800/95 backdrop-blur text-slate-100 px-6 py-3 rounded-full shadow-xl transition-all duration-300 z-[2000] flex items-center space-x-2 font-brand ' + (visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none')}><span>${msg}</span></div>`;
 
-        const AboutModal = ({ onClose }) => {
+        const AboutModal = ({ onClose, onShowToast }) => {
             const [isClosing, setIsClosing] = useState(false);
+            const [cacheCount, setCacheCount] = useState(0);
+
+            useEffect(() => {
+                setCacheCount(Object.keys(ADDRESS_CACHE).length);
+            }, []);
+
             const handleClose = () => { setIsClosing(true); setTimeout(onClose, 200); };
+            
+            const handleClearCache = () => {
+                if(confirm('Clear saved offline addresses?')) {
+                    ADDRESS_CACHE = {};
+                    localStorage.removeItem('loocator_addr_cache');
+                    setCacheCount(0);
+                    if(onShowToast) onShowToast("Cache cleared successfully");
+                }
+            };
+
             return html`
             <div class="fixed inset-0 z-[2000] flex items-center justify-center p-4">
                 <div class=${`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${handleClose}></div>
@@ -264,6 +280,15 @@
                     </div>
                     <div class="space-y-4 text-center">
                         <div class="bg-slate-50 dark:bg-zinc-800 p-4 rounded-xl border border-slate-100 dark:border-zinc-700"><p class="text-slate-600 dark:text-zinc-300 font-medium text-sm">Made with love in Tenerife + England ❤️</p></div>
+                        
+                        <div class="bg-slate-50 dark:bg-zinc-800 p-3 rounded-xl border border-slate-100 dark:border-zinc-700 flex justify-between items-center px-4">
+                            <span class="text-xs text-slate-500 dark:text-zinc-400 font-medium">Offline Addresses</span>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs font-bold text-slate-700 dark:text-zinc-200">${cacheCount}</span>
+                                ${cacheCount > 0 && html`<button onClick=${handleClearCache} class="text-[10px] font-bold text-rose-500 hover:text-rose-600 uppercase tracking-wide">Clear</button>`}
+                            </div>
+                        </div>
+
                         <div class="text-xs text-slate-400 dark:text-zinc-500 space-y-2">
                             <p>Map Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">OpenStreetMap</a> contributors</p>
                             <p>Tiles courtesy of <a href="https://carto.com/attributions" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">CARTO</a></p>
@@ -886,7 +911,7 @@
                 `}
                 
                 ${showFilters && html`<${FilterSheet} ref=${filterSheetRef} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navAppDrive=${navAppDrive} setNavAppDrive=${setNavAppDrive} navAppWalk=${navAppWalk} setNavAppWalk=${setNavAppWalk} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} />`}
-                ${showAbout && html`<${AboutModal} onClose=${() => setShowAbout(false)} />`}
+                ${showAbout && html`<${AboutModal} onClose=${() => setShowAbout(false)} onShowToast=${showToast} />`}
                 ${showContribute && contributeCoords && html`<${ContributeSheet} lat=${contributeCoords.lat} lon=${contributeCoords.lon} onClose=${() => setShowContribute(false)} onShowToast=${showToast} />`}
                 ${showCorrection && correctionData && html`<${ContributeSheet} lat=${correctionData.lat} lon=${correctionData.lon} isCorrection=${true} correctionId=${correctionData.id} correctionName=${correctionData.name} onClose=${() => setShowCorrection(false)} onShowToast=${showToast} />`}
                 ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} userLoc=${userPos} navAppDrive=${navAppDrive} navAppWalk=${navAppWalk} onClose=${() => setSelectedLoc(null)} minimized=${cardMinimized} setMinimized=${setCardMinimized} onReport=${openReport} onShowToast=${showToast} />`}
