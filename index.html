@@ -151,49 +151,52 @@
             walk: `<span class="material-symbols-rounded icon-md">directions_walk</span>`,
             car: `<span class="material-symbols-rounded icon-md">directions_car</span>`,
             report: `<span class="material-symbols-rounded icon-sm">flag</span>`,
-            share: `<span class="material-symbols-rounded icon-sm">share</span>`, // UPDATED ICON
+            share: `<span class="material-symbols-rounded icon-sm">share</span>`, 
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
             drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
         const TYPE_COLORS = { toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8' };
         
-        // --- CACHE LOGIC START ---
-        // Initialize from LocalStorage or empty object
+        // --- ADDRESS CACHE ---
         let ADDRESS_CACHE = {};
         try {
             ADDRESS_CACHE = JSON.parse(localStorage.getItem('loocator_addr_cache') || '{}');
-        } catch(e) {
-            console.error('Cache load failed', e);
-        }
+        } catch(e) {}
 
-        const saveToCache = (id, address) => {
+        const saveToAddrCache = (id, address) => {
             if (!id || !address) return;
             ADDRESS_CACHE[id] = address;
-            
-            // Simple cleanup: if keys > 500, delete roughly the first 50 found (not perfect LRU but fast)
             const keys = Object.keys(ADDRESS_CACHE);
-            if (keys.length > 500) {
-                for(let i=0; i<50; i++) {
-                    delete ADDRESS_CACHE[keys[i]];
-                }
-            }
-            
-            try {
-                localStorage.setItem('loocator_addr_cache', JSON.stringify(ADDRESS_CACHE));
-            } catch(e) {
-                // If storage full, clear half
-                try {
-                    const entries = Object.entries(ADDRESS_CACHE);
-                    const half = entries.slice(Math.floor(entries.length / 2));
-                    ADDRESS_CACHE = Object.fromEntries(half);
-                    localStorage.setItem('loocator_addr_cache', JSON.stringify(ADDRESS_CACHE));
-                } catch(err) {}
-            }
+            if (keys.length > 500) for(let i=0; i<50; i++) delete ADDRESS_CACHE[keys[i]];
+            try { localStorage.setItem('loocator_addr_cache', JSON.stringify(ADDRESS_CACHE)); } catch(e) {}
         };
-        // --- CACHE LOGIC END ---
 
-        // Helper to format address from Nominatim data
+        // --- MAP DATA CACHE (OVERPASS RESULTS) ---
+        let MAP_CACHE = {};
+        try {
+            MAP_CACHE = JSON.parse(localStorage.getItem('loocator_map_cache') || '{}');
+            // Clean expired entries (24h)
+            const now = Date.now();
+            Object.keys(MAP_CACHE).forEach(key => {
+                if (now - MAP_CACHE[key].timestamp > 86400000) delete MAP_CACHE[key];
+            });
+        } catch(e) {}
+
+        const getMapCacheKey = (bounds) => {
+            // Create a grid key based on rounded coordinates to group nearby fetches
+            const center = bounds.getCenter();
+            return `${Math.round(center.lat * 100) / 100}_${Math.round(center.lng * 100) / 100}`;
+        };
+
+        const saveToMapCache = (bounds, data) => {
+            const key = getMapCacheKey(bounds);
+            MAP_CACHE[key] = { timestamp: Date.now(), data };
+            const keys = Object.keys(MAP_CACHE);
+            if (keys.length > 50) delete MAP_CACHE[keys[0]]; // Limit grid tiles
+            try { localStorage.setItem('loocator_map_cache', JSON.stringify(MAP_CACHE)); } catch(e) {}
+        };
+
         const formatAddressFromData = (data) => {
             const a = data.address || {};
             return (a.road || a.pedestrian || '') + (a.house_number ? ', ' + a.house_number : '') + (a.suburb ? ' (' + a.suburb + ')' : '');
@@ -251,20 +254,25 @@
 
         const AboutModal = ({ onClose, onShowToast }) => {
             const [isClosing, setIsClosing] = useState(false);
-            const [cacheCount, setCacheCount] = useState(0);
+            const [counts, setCounts] = useState({ addr: 0, map: 0 });
 
             useEffect(() => {
-                setCacheCount(Object.keys(ADDRESS_CACHE).length);
+                setCounts({
+                    addr: Object.keys(ADDRESS_CACHE).length,
+                    map: Object.keys(MAP_CACHE).length
+                });
             }, []);
 
             const handleClose = () => { setIsClosing(true); setTimeout(onClose, 200); };
             
             const handleClearCache = () => {
-                if(confirm('Clear saved offline addresses?')) {
+                if(confirm('Clear all saved data? This will remove offline addresses and map speed-ups.')) {
                     ADDRESS_CACHE = {};
+                    MAP_CACHE = {};
                     localStorage.removeItem('loocator_addr_cache');
-                    setCacheCount(0);
-                    if(onShowToast) onShowToast("Cache cleared successfully");
+                    localStorage.removeItem('loocator_map_cache');
+                    setCounts({ addr: 0, map: 0 });
+                    if(onShowToast) onShowToast("All caches cleared");
                 }
             };
 
@@ -276,24 +284,29 @@
                     <div class="text-center mb-6">
                         <div class="inline-block w-24 h-24 rounded-3xl bg-slate-100 dark:bg-zinc-800 mb-4 shadow-sm overflow-hidden"><img src="icon.png" class="w-full h-full object-cover" alt="Loocator" /></div>
                         <h2 class="text-2xl font-bold font-brand text-slate-800 dark:text-zinc-100">Loocator</h2>
-                        <p class="text-slate-500 dark:text-zinc-400 text-sm mt-1">v0.2</p>
+                        <p class="text-slate-500 dark:text-zinc-400 text-sm mt-1">v0.2.1</p>
                     </div>
                     <div class="space-y-4 text-center">
                         <div class="bg-slate-50 dark:bg-zinc-800 p-4 rounded-xl border border-slate-100 dark:border-zinc-700"><p class="text-slate-600 dark:text-zinc-300 font-medium text-sm">Made with love in Tenerife + England ❤️</p></div>
                         
-                        <div class="bg-slate-50 dark:bg-zinc-800 p-3 rounded-xl border border-slate-100 dark:border-zinc-700 flex justify-between items-center px-4">
-                            <span class="text-xs text-slate-500 dark:text-zinc-400 font-medium">Offline Addresses</span>
-                            <div class="flex items-center gap-3">
-                                <span class="text-xs font-bold text-slate-700 dark:text-zinc-200">${cacheCount}</span>
-                                ${cacheCount > 0 && html`<button onClick=${handleClearCache} class="text-[10px] font-bold text-rose-500 hover:text-rose-600 uppercase tracking-wide">Clear</button>`}
+                        <div class="bg-slate-50 dark:bg-zinc-800 p-3 rounded-xl border border-slate-100 dark:border-zinc-700 space-y-2">
+                            <div class="flex justify-between items-center px-2">
+                                <span class="text-xs text-slate-500 dark:text-zinc-400">Offline Addresses</span>
+                                <span class="text-xs font-bold text-slate-700 dark:text-zinc-200">${counts.addr}</span>
                             </div>
+                            <div class="flex justify-between items-center px-2">
+                                <span class="text-xs text-slate-500 dark:text-zinc-400">Map Tiles Cached</span>
+                                <span class="text-xs font-bold text-slate-700 dark:text-zinc-200">${counts.map}</span>
+                            </div>
+                            ${(counts.addr > 0 || counts.map > 0) && html`
+                                <button onClick=${handleClearCache} class="w-full mt-2 py-2 text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-900/20 rounded-lg uppercase tracking-wider">Clear Storage</button>
+                            `}
                         </div>
 
                         <div class="text-xs text-slate-400 dark:text-zinc-500 space-y-2">
                             <p>Map Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">OpenStreetMap</a> contributors</p>
                             <p>Tiles courtesy of <a href="https://carto.com/attributions" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">CARTO</a></p>
                             <p>Powered by <a href="https://leafletjs.com" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">Leaflet</a> <span aria-label="Ukraine Flag">🇺🇦</span></p>
-                            <p>Data available under ODbL.</p>
                             <p class="mt-4">© ${new Date().getFullYear()} Loocator</p>
                         </div>
                     </div>
@@ -310,7 +323,7 @@
                         <div class=${`w-8 h-8 rounded-full flex items-center justify-center ${activeIconBg}`}><span class="material-symbols-rounded text-lg">${icon}</span></div>
                         <div class=${`w-10 h-6 rounded-full relative transition-colors duration-200 ${active ? 'bg-white/30' : 'bg-slate-300 dark:bg-zinc-600'}`}><div class=${`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform duration-200 ${active ? 'translate-x-4' : 'translate-x-0'}`}></div></div>
                     </div>
-                    <div><div class="font-bold text-sm leading-tight">${label}</div>${subtext && html`<div class=${`text-[10px] leading-tight mt-0.5 ${active ? 'text-white/70' : 'text-slate-400 dark:text-zinc-500'}`}>${subtext}</div>`}</div>
+                    <div><div class="font-bold text-sm line-clamp-1">${label}</div>${subtext && html`<div class=${`text-[10px] leading-tight mt-0.5 ${active ? 'text-white/70' : 'text-slate-400 dark:text-zinc-500'} line-clamp-1`}>${subtext}</div>`}</div>
                 </div>`;
         }
 
@@ -422,7 +435,6 @@
             const handleDrive = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const {lat, lon} = loc; if (navAppDrive === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`; else if (navAppDrive === 'waze') url = `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`; window.open(url, '_blank'); };
             const handleWalk = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const {lat, lon} = loc; if (navAppWalk === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=w`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=walking`; window.open(url, '_blank'); };
             
-            // DETAILS CARD ADDRESS FETCHING WITH PERSISTENT CACHE
             useEffect(() => { 
                 if (ADDRESS_CACHE[loc.id]) { 
                     setAddress(ADDRESS_CACHE[loc.id]); 
@@ -435,7 +447,7 @@
                         const formatted = formatAddressFromData(data); 
                         const finalAddr = formatted || "Address unavailable";
                         setAddress(finalAddr); 
-                        saveToCache(loc.id, finalAddr); // SAVE TO PERSISTENT CACHE
+                        saveToAddrCache(loc.id, finalAddr); 
                     } catch (e) { 
                         setAddress("Address unavailable"); 
                     } 
@@ -444,7 +456,7 @@
             }, [loc]);
 
             useEffect(() => { setImageUrl(null); const fetchImage = async () => { if (loc.tags.image) { setImageUrl(loc.tags.image); return; } if (loc.tags.wikidata) { try { const res = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P18&entity=${loc.tags.wikidata}&format=json&origin=*`); const data = await res.json(); const claims = data.claims.P18; if (claims && claims.length) setImageUrl(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(claims[0].mainsnak.datavalue.value)}?width=600`); } catch (e) {} } }; fetchImage(); }, [loc]);
-            const distObj = userLoc ? calculateDistance(userLoc[0], userLoc[1], loc.lat, loc.lon) : null;
+            const distObj = userLoc ? calculateDistance(userPos[0], userPos[1], loc.lat, loc.lon) : null;
             const isPaid = loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no');
             let headerBg = loc.displayType === 'water' ? 'bg-teal-50 text-teal-700 dark:bg-teal-900/50 dark:text-teal-200' : loc.displayType === 'baby' ? 'bg-rose-50 text-rose-700 dark:bg-rose-900/50 dark:text-rose-200' : loc.displayType === 'shower' ? 'bg-sky-50 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200' : 'bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-300';
             const contentClass = `transition-opacity duration-300 ${minimized ? 'opacity-0 pointer-events-none' : 'opacity-100 delay-100'}`;
@@ -474,7 +486,7 @@
                                     </div>
                                     <div class="flex-1">
                                         ${openStatus && html`<div class=${`text-xs font-bold mb-0.5 ${openStatus.color.split(' ')[0]}`}>${openStatus.text}</div>`}
-                                        <div class="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">${loc.tags.opening_hours.replace(/;/g, '\n')}</div>
+                                        <div class="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed whitespace-pre-line">${loc.tags.opening_hours.replace(/;/g, '\n')}</div>
                                     </div>
                                 </div>
                             `}
@@ -525,25 +537,21 @@
             
             const [fetchedAddr, setFetchedAddr] = useState(ADDRESS_CACHE[loc.id] || null);
             
-            // Lazy load address if missing - NOW SAVES TO PERSISTENT CACHE
             useEffect(() => {
                 if (fetchedAddr || loc.rawAddress) return; 
                 if (ADDRESS_CACHE[loc.id]) { setFetchedAddr(ADDRESS_CACHE[loc.id]); return; }
 
-                // Stagger requests to avoid rate limits (1.2s delay per item index)
                 const delay = index * 1200; 
                 const timer = setTimeout(async () => {
                     try {
-                        // Double check cache before fetch
                         if (ADDRESS_CACHE[loc.id]) { setFetchedAddr(ADDRESS_CACHE[loc.id]); return; }
                         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.lat}&lon=${loc.lon}&zoom=18&addressdetails=1`);
                         if (!res.ok) return;
                         const data = await res.json();
                         const formatted = formatAddressFromData(data);
                         const finalAddr = formatted || "Address unavailable";
-                        
                         setFetchedAddr(finalAddr);
-                        saveToCache(loc.id, finalAddr); // SAVE TO PERSISTENT CACHE
+                        saveToAddrCache(loc.id, finalAddr); 
                     } catch (e) { }
                 }, delay);
 
@@ -554,7 +562,7 @@
             const openStatus = checkOpeningStatus(loc.tags.opening_hours);
             return html`
                 <div onClick=${() => { triggerHaptic(); onClick(); }} class=${`bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 flex items-center justify-between mb-3 active:scale-[0.98] transition-transform ${isExiting ? 'animate-stagger-fade-out pointer-events-none' : 'animate-stagger-fade opacity-0'}`} style=${{ animationDelay: isExiting ? `${index * 30}ms` : `${index * 50}ms` }}>
-                    <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-4 overflow-hidden">
                         <div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm pie-icon relative" style=${{ cssText: backgroundStyle }}>
                             <div dangerouslySetInnerHTML=${{__html: iconHtml}}></div>
                             ${openStatus && html`<div class=${`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-zinc-900 ${openStatus.color.split(' ')[0].replace('text-', 'bg-')}`}></div>`}
@@ -592,7 +600,6 @@
             const [userPos, setUserPos] = useState([51.505, -0.09]); 
             const [deferredPrompt, setDeferredPrompt] = useState(null);
             const [searchBounds, setSearchBounds] = useState(null); 
-            const [isInstalled, setIsInstalled] = useState(false);
             const [showAbout, setShowAbout] = useState(false);
             const [searchHistory, setSearchHistory] = useState([]);
             const [showHistory, setShowHistory] = useState(false);
@@ -601,12 +608,9 @@
             const [showContribute, setShowContribute] = useState(false);
             const [isPickingLocation, setIsPickingLocation] = useState(false);
             const [contributeCoords, setContributeCoords] = useState(null);
-            
             const [showCorrection, setShowCorrection] = useState(false);
             const [correctionData, setCorrectionData] = useState(null);
-            
             const [showInstallButton, setShowInstallButton] = useState(false);
-
             const [gpsStatus, setGpsStatus] = useState('idle');
             const [isDarkMode, setIsDarkMode] = useState(window.matchMedia('(prefers-color-scheme: dark)').matches);
 
@@ -621,7 +625,6 @@
             const selectedLocRef = useRef(null); 
             const cardMinimizedRef = useRef(false);
 
-            // PARSE URL PARAMS
             const params = new URLSearchParams(window.location.search);
             const sharedLat = params.get('lat');
             const sharedLon = params.get('lon');
@@ -673,10 +676,8 @@
             };
 
             const toggleMode = () => { setIsCamperMode(!isCamperMode); };
-            
             const handleFilterClick = () => { if (showFilters) { if (filterSheetRef.current) { filterSheetRef.current.triggerClose(); } } else { closeAllMenus(); setShowFilters(true); } };
             const handleAboutClick = () => { if (showAbout) { setShowAbout(false); } else { closeAllMenus(); setShowAbout(true); } };
-            
             const handleViewToggle = () => { if (view === 'list') { setIsListExiting(true); setTimeout(() => { setIsListExiting(false); setView('map'); }, 300); } else { closeAllMenus(); setView('list'); } };
             const handleViewChange = () => { closeAllMenus(); setView('list'); }
 
@@ -684,135 +685,107 @@
             const [inAreaLocs, furtherLocs] = useMemo(() => { if (!searchBounds) return [visibleLocations, []]; const inArea = []; const further = []; visibleLocations.forEach(loc => { if (searchBounds.contains([loc.lat, loc.lon])) { inArea.push(loc); } else { further.push(loc); } }); return [inArea, further]; }, [visibleLocations, searchBounds]);
             const showListHint = !loading && view === 'map' && visibleLocations.length > 0 && inAreaLocs.length === 0;
 
-            const fetchOverpass = async (bounds, retryRadius = null) => { if (fetchController.current) { fetchController.current.abort(); } fetchController.current = new AbortController(); const signal = fetchController.current.signal; const isVan = camperModeRef.current; const center = bounds.getCenter(); let radius; if (retryRadius) { radius = retryRadius; } else { const ne = bounds.getNorthEast(); const dist = calculateDistance(center.lat, center.lng, ne.lat, ne.lng); const visibleRadiusMeters = dist.km * 1000; const minRadius = isVan ? 15000 : 2000; radius = Math.max(visibleRadiusMeters * 1.5, minRadius); } const queryArea = `(around:${radius},${center.lat},${center.lng})`; const query = `[out:json][timeout:25];(nwr["amenity"="toilets"]["access"!~"customers|private|no|employees|permit"]${queryArea};nwr["amenity"="drinking_water"]${queryArea};nwr["amenity"="water_point"]${queryArea};nwr["amenity"="sanitary_dump_station"]${queryArea};nwr["amenity"="shower"]${queryArea};nwr["diaper"]${queryArea};nwr["changing_table"]${queryArea};);out center;`; try { const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query), signal: signal }); const data = await res.json(); if (data.elements.length === 0) { const nextRadius = radius * 2; if (nextRadius <= 50000) { showToast(`Scanning ${Math.round(nextRadius/1000)}km...`); fetchOverpass(bounds, nextRadius); return; } setLoading(false); return; } setAllLocations(data.elements.map(el => { const lat = el.lat || (el.center && el.center.lat); const lon = el.lon || (el.center && el.center.lon); if (!lat || !lon) return null; let baseName = "Service Point"; if (el.tags.amenity === 'toilets') baseName = "Public Toilet"; else if (el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point') baseName = "Water Point"; else if (el.tags.amenity === 'shower') baseName = "Public Shower"; else if (el.tags.amenity === 'sanitary_dump_station') baseName = "Chemical Disposal"; else if (el.tags.diaper === 'yes') baseName = "Baby Change"; const street = el.tags['addr:street'] || el.tags['addr:place']; const city = el.tags['addr:city'] || el.tags['addr:town'] || el.tags['addr:village']; const house = el.tags['addr:housenumber']; let rawAddress = ''; if (house) rawAddress += house + ' '; if (street) rawAddress += street; if (city) rawAddress += (rawAddress ? ', ' : '') + city; let finalName = el.tags.name; if (!finalName) { const operator = el.tags.operator; if (street) { finalName = `${street} ${baseName}`; } else if (operator) { finalName = `${operator} ${baseName}`; } else if (el.tags.ref) { finalName = `${baseName} (${el.tags.ref})`; } else if (el.tags.fee) { const feeText = el.tags.fee === 'no' ? 'Free' : 'Paid'; finalName = `${feeText} ${baseName}`; } else if (el.tags.description) { const descWords = el.tags.description.split(' '); if (descWords.length > 0) { finalName = descWords.slice(0, 4).join(' ') + (descWords.length > 4 ? '...' : ''); } else { finalName = baseName; } } else { finalName = baseName; } } return { id: el.id, lat: lat, lon: lon, tags: el.tags, isToilet: el.tags.amenity === 'toilets' || el.tags.toilets === 'yes', isWater: el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point' || el.tags.drinking_water === 'yes', hasBaby: el.tags.diaper === 'yes' || el.tags.changing_table === 'yes', hasShower: el.tags.amenity === 'shower' || el.tags.shower === 'yes', isBlack: (el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:chemical_toilet'] !== 'no') || (el.tags.amenity === 'toilets' && el.tags.sanitary_dump_station === 'yes'), isGrey: el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:grey_water'] !== 'no', baseType: el.tags.amenity === 'sanitary_dump_station' ? 'dump' : el.tags.amenity === 'shower' ? 'shower' : el.tags.amenity === 'drinking_water' ? 'water' : 'toilet', name: finalName, rawAddress: rawAddress }; }).filter(Boolean)); setLoading(false); } catch (e) { if (e.name !== 'AbortError') { setLoading(false); } } };
+            const fetchOverpass = async (bounds, retryRadius = null) => { 
+                if (fetchController.current) { fetchController.current.abort(); }
+                
+                // CHECK MAP DATA CACHE
+                const cacheKey = getMapCacheKey(bounds);
+                if (MAP_CACHE[cacheKey] && !retryRadius) {
+                    setAllLocations(MAP_CACHE[cacheKey].data);
+                    setLoading(false);
+                    return;
+                }
+
+                fetchController.current = new AbortController(); 
+                const signal = fetchController.current.signal; 
+                const isVan = camperModeRef.current; 
+                const center = bounds.getCenter(); 
+                let radius; 
+                if (retryRadius) { radius = retryRadius; } else { const ne = bounds.getNorthEast(); const dist = calculateDistance(center.lat, center.lng, ne.lat, ne.lng); radius = Math.max(dist.km * 1500, isVan ? 15000 : 2000); } 
+                const queryArea = `(around:${radius},${center.lat},${center.lng})`; 
+                const query = `[out:json][timeout:25];(nwr["amenity"="toilets"]["access"!~"customers|private|no|employees|permit"]${queryArea};nwr["amenity"="drinking_water"]${queryArea};nwr["amenity"="water_point"]${queryArea};nwr["amenity"="sanitary_dump_station"]${queryArea};nwr["amenity"="shower"]${queryArea};nwr["diaper"]${queryArea};nwr["changing_table"]${queryArea};);out center;`; 
+                
+                try { 
+                    const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query), signal: signal }); 
+                    const data = await res.json(); 
+                    if (data.elements.length === 0) { const nextRadius = radius * 2; if (nextRadius <= 50000) { showToast(`Scanning ${Math.round(nextRadius/1000)}km...`); fetchOverpass(bounds, nextRadius); return; } setLoading(false); return; } 
+                    const mapped = data.elements.map(el => { 
+                        const lat = el.lat || (el.center && el.center.lat); 
+                        const lon = el.lon || (el.center && el.center.lon); 
+                        if (!lat || !lon) return null; 
+                        let baseName = "Service Point"; 
+                        if (el.tags.amenity === 'toilets') baseName = "Public Toilet"; else if (el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point') baseName = "Water Point"; else if (el.tags.amenity === 'shower') baseName = "Public Shower"; else if (el.tags.amenity === 'sanitary_dump_station') baseName = "Chemical Disposal"; else if (el.tags.diaper === 'yes') baseName = "Baby Change"; 
+                        const street = el.tags['addr:street'] || el.tags['addr:place']; 
+                        const city = el.tags['addr:city'] || el.tags['addr:town'] || el.tags['addr:village']; 
+                        const house = el.tags['addr:housenumber']; 
+                        let rawAddress = ''; 
+                        if (house) rawAddress += house + ' '; 
+                        if (street) rawAddress += street; 
+                        if (city) rawAddress += (rawAddress ? ', ' : '') + city; 
+                        let finalName = el.tags.name; 
+                        if (!finalName) { 
+                            const operator = el.tags.operator; 
+                            if (street) finalName = `${street} ${baseName}`; else if (operator) finalName = `${operator} ${baseName}`; else if (el.tags.ref) finalName = `${baseName} (${el.tags.ref})`; else if (el.tags.fee) finalName = `${el.tags.fee === 'no' ? 'Free' : 'Paid'} ${baseName}`; else if (el.tags.description) { const descWords = el.tags.description.split(' '); finalName = descWords.slice(0, 4).join(' ') + (descWords.length > 4 ? '...' : ''); } else finalName = baseName; 
+                        } 
+                        return { id: el.id, lat: lat, lon: lon, tags: el.tags, isToilet: el.tags.amenity === 'toilets' || el.tags.toilets === 'yes', isWater: el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point' || el.tags.drinking_water === 'yes', hasBaby: el.tags.diaper === 'yes' || el.tags.changing_table === 'yes', hasShower: el.tags.amenity === 'shower' || el.tags.shower === 'yes', isBlack: (el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:chemical_toilet'] !== 'no') || (el.tags.amenity === 'toilets' && el.tags.sanitary_dump_station === 'yes'), isGrey: el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:grey_water'] !== 'no', baseType: el.tags.amenity === 'sanitary_dump_station' ? 'dump' : el.tags.amenity === 'shower' ? 'shower' : el.tags.amenity === 'drinking_water' ? 'water' : 'toilet', name: finalName, rawAddress: rawAddress }; 
+                    }).filter(Boolean); 
+                    setAllLocations(mapped); 
+                    saveToMapCache(bounds, mapped); // CACHE THE DATA
+                    setLoading(false); 
+                } catch (e) { if (e.name !== 'AbortError') setLoading(false); } 
+            };
+
             const debouncedFetch = useMemo(() => debounce((b) => fetchOverpass(b), 1000), []);
-            const updateUserLocation = (coords, source) => { setUserPos(coords); setMapCenter(coords); setGpsStatus('success'); setTimeout(() => setGpsStatus('idle'), 2500); if (source === 'GPS') { setAllLocations([]); } if (mapInstanceRef.current) { const zoom = source === 'GPS' ? 17 : source === 'IP' ? 13 : 13; mapInstanceRef.current.setView(coords, zoom); if (!userMarkerRef.current) { userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div><div class="user-beam" id="user-heading-beam"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current); } else { userMarkerRef.current.setLatLng(coords); } setSearchBounds(mapInstanceRef.current.getBounds()); debouncedFetch(mapInstanceRef.current.getBounds()); } };
+            const updateUserLocation = (coords, source) => { setUserPos(coords); setMapCenter(coords); setGpsStatus('success'); setTimeout(() => setGpsStatus('idle'), 2500); if (source === 'GPS') { setAllLocations([]); } if (mapInstanceRef.current) { const zoom = source === 'GPS' ? 17 : 13; mapInstanceRef.current.setView(coords, zoom); if (!userMarkerRef.current) { userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div><div class="user-beam" id="user-heading-beam"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current); } else { userMarkerRef.current.setLatLng(coords); } setSearchBounds(mapInstanceRef.current.getBounds()); debouncedFetch(mapInstanceRef.current.getBounds()); } };
             
-            // INSTALL PROMPT LOGIC
             useEffect(() => { 
                 const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); setShowInstallButton(true); }; 
                 window.addEventListener('beforeinstallprompt', handler); 
-                // Check for iOS non-standalone
                 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
                 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-                if (isIOS && !isStandalone) { setShowInstallButton(true); }
-
-                window.addEventListener('appinstalled', () => { setShowInstallButton(false); setIsInstalled(true); }); 
-                return () => { window.removeEventListener('beforeinstallprompt', handler); window.removeEventListener('appinstalled', () => setIsInstalled(true)); } 
+                if (isIOS && !isStandalone) setShowInstallButton(true);
+                window.addEventListener('appinstalled', () => setShowInstallButton(false)); 
+                return () => window.removeEventListener('beforeinstallprompt', handler);
             }, []);
 
-            const handleInstall = () => { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') { setDeferredPrompt(null); setShowInstallButton(false); setIsInstalled(true); } }); } else { const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; if (isIOS) { showToast("Tap 'Share' then 'Add to Home Screen'"); } else { showToast("Use browser menu to Install App"); } } };
+            const handleInstall = () => { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') { setDeferredPrompt(null); setShowInstallButton(false); } }); } else { const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; showToast(isIOS ? "Tap 'Share' then 'Add to Home Screen'" : "Use browser menu to Install App"); } };
             
-            // INITIALIZE MAP & HANDLE SHARED LINKS
-            useEffect(() => { if (!mapRef.current || mapInstanceRef.current) return; 
-                
-                // If shared URL exists, start there. Otherwise default to London.
+            useEffect(() => { 
+                if (!mapRef.current || mapInstanceRef.current) return; 
                 const initialCenter = sharedLat && sharedLon ? [parseFloat(sharedLat), parseFloat(sharedLon)] : mapCenter;
                 const initialZoom = sharedLat ? 17 : 13;
-
                 const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(initialCenter, initialZoom); 
                 mapInstanceRef.current = map; 
-            
-                // Initial tile load (Fix for race condition)
                 const tileUrl = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'; 
                 tileLayerRef.current = L.tileLayer(tileUrl, { attribution: '', subdomains: 'abcd', maxZoom: 20 }).addTo(map);
-
                 markersRef.current = L.layerGroup().addTo(map); 
-            
                 const handleMove = () => { if (map.getZoom() < 13) { setZoomWarning(true); setAllLocations([]); markersRef.current.clearLayers(); } else { setZoomWarning(false); setLoading(true); const b = map.getBounds(); setSearchBounds(b); debouncedFetch(b); } }; 
-            
-                map.on('click', () => { if (selectedLocRef.current) { setCardMinimized(!cardMinimizedRef.current); } });
+                map.on('click', () => { if (selectedLocRef.current) setCardMinimized(!cardMinimizedRef.current); });
                 map.on('moveend', handleMove); 
-                
-                // If shared link, trigger fetch immediately for that spot
-                if (sharedLat) {
-                    setLoading(true);
-                    debouncedFetch(map.getBounds());
-                } else {
-                    // Normal boot: find location
-                    setLoading(true); 
-                    const findLocation = async () => { 
-                        let gpsResolved = false; 
-                        try { const res = await fetch('https://ipapi.co/json/'); if (res.ok) { const data = await res.json(); if (!gpsResolved && data.latitude && data.longitude) { updateUserLocation([data.latitude, data.longitude], 'IP'); } } } catch (e) { console.log('IP Loc failed'); } 
-                        navigator.geolocation.getCurrentPosition( (pos) => { gpsResolved = true; updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => { console.log('GPS denied'); }, { enableHighAccuracy: true, timeout: 10000 } ); 
-                    }; 
-                    findLocation(); 
-                }
+                if (sharedLat) { setLoading(true); debouncedFetch(map.getBounds()); } else { setLoading(true); const findLocation = async () => { let gpsResolved = false; try { const res = await fetch('https://ipapi.co/json/'); if (res.ok) { const data = await res.json(); if (!gpsResolved && data.latitude && data.longitude) updateUserLocation([data.latitude, data.longitude], 'IP'); } } catch (e) {} navigator.geolocation.getCurrentPosition( (pos) => { gpsResolved = true; updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => {}, { enableHighAccuracy: true, timeout: 10000 } ); }; findLocation(); }
             }, []);
             
-            // Effect to catch the Shared ID when data loads
             useEffect(() => {
                 if (targetId && allLocations.length > 0) {
                     const found = allLocations.find(l => l.id == targetId);
-                    if (found) {
-                        setSelectedLoc(found);
-                        setTargetId(null); // Clear so we don't keep re-selecting
-                        // showToast("Found shared location!");
-                    }
+                    if (found) { setSelectedLoc(found); setTargetId(null); }
                 }
             }, [allLocations, targetId]);
 
             useEffect(() => { if (!markersRef.current) return; markersRef.current.clearLayers(); visibleLocations.forEach(loc => { let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet; const types = []; if (loc.isToilet) types.push('toilet'); if (loc.isWater) types.push('water'); if (loc.hasBaby) types.push('baby'); if (loc.hasShower) types.push('shower'); if (loc.isBlack) types.push('black'); if (loc.isGrey) types.push('grey'); if (types.length === 0) types.push('toilet'); let backgroundStyle = ''; if (types.length === 1) { backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`; } else { const segmentSize = 100 / types.length; const gradientParts = types.map((t, i) => { const color = TYPE_COLORS[t]; const start = i * segmentSize; const end = (i + 1) * segmentSize; return `${color} ${start}% ${end}%`; }); backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`; } L.marker([loc.lat, loc.lon], { icon: L.divIcon({ className: '', html: `<div class="relative w-9 h-9"><div class="w-9 h-9 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-700 text-white z-10 relative shadow-sm" style="${backgroundStyle}"><div class="pie-icon flex items-center justify-center">${iconHtml}</div></div></div>`, iconSize: [36, 36], iconAnchor: [18, 36] }) }).addTo(markersRef.current).on('click', () => { closeAllMenus(); setCardMinimized(false); setSelectedLoc(loc); triggerHaptic(); }); }); }, [visibleLocations, isDarkMode]);
             
-            const handleSearch = async (e) => { e.preventDefault(); if (!searchTerm) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); addToHistory(searchTerm); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else { showToast('Place not found.'); } } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
-            const handleHistoryClick = (term) => { setSearchTerm(term); setTimeout(() => { searchWithTerm(term); }, 0); };
-            const searchWithTerm = async (term) => { if (!term) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(term)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); addToHistory(term); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else { showToast('Place not found.'); } } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
+            const handleSearch = async (e) => { e.preventDefault(); if (!searchTerm) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); addToHistory(searchTerm); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else showToast('Place not found.'); } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
+            const handleHistoryClick = (term) => { setSearchTerm(term); setTimeout(() => searchWithTerm(term), 0); };
+            const searchWithTerm = async (term) => { if (!term) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(term)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); addToHistory(term); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else showToast('Place not found.'); } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
             const selectSuggestion = (sugg) => { mapInstanceRef.current.flyTo([sugg.lat, sugg.lon], 16); addToHistory(sugg.display_name.split(',')[0]); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${sugg.display_name.split(',')[0]}`); }
-            
-            // COMPASS LOGIC
-            const handleOrientation = (e) => {
-                let heading = 0;
-                if (e.webkitCompassHeading) {
-                    heading = e.webkitCompassHeading;
-                } else if (e.alpha) {
-                    heading = 360 - e.alpha;
-                }
-                const beam = document.getElementById('user-heading-beam');
-                if (beam) {
-                    beam.style.display = 'block';
-                    beam.style.transform = `rotate(${heading}deg)`;
-                }
-            };
-
-            const requestCompass = async () => {
-                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                    try {
-                        const response = await DeviceOrientationEvent.requestPermission();
-                        if (response === 'granted') {
-                            window.addEventListener('deviceorientation', handleOrientation);
-                        }
-                    } catch (e) { console.error(e); }
-                } else {
-                    window.addEventListener('deviceorientation', handleOrientation);
-                }
-            };
-
-            const handleGPS = () => { 
-                triggerHaptic(); 
-                requestCompass(); // Ask for compass permission
-                const map = mapInstanceRef.current; 
-                if (!map || !userPos) return; 
-                const center = map.getCenter(); 
-                const distInfo = calculateDistance(center.lat, center.lng, userPos[0], userPos[1]); 
-                if (distInfo.km > 0.05) { 
-                    map.flyTo(userPos, 17); 
-                    navigator.geolocation.getCurrentPosition( (pos) => { updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => { }, { enableHighAccuracy: true, timeout: 10000 } ); 
-                    return; 
-                } 
-                if (!navigator.geolocation) { showToast('GPS not supported'); return; } 
-                setGpsStatus('searching'); 
-                navigator.geolocation.getCurrentPosition( (pos) => { const coords = [pos.coords.latitude, pos.coords.longitude]; updateUserLocation(coords, 'GPS'); }, (err) => { setGpsStatus('idle'); showToast('GPS Access Denied'); }, { enableHighAccuracy: true } ); 
-            };
-            
-            const startPickingLocation = () => { triggerHaptic(); closeAllMenus(); setIsPickingLocation(true); if (mapInstanceRef.current && mapInstanceRef.current.getZoom() < 18) { mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18, { duration: 0.5 }); } };
+            const handleOrientation = (e) => { let heading = e.webkitCompassHeading || (360 - e.alpha); const beam = document.getElementById('user-heading-beam'); if (beam) { beam.style.display = 'block'; beam.style.transform = `rotate(${heading}deg)`; } };
+            const requestCompass = async () => { if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') { try { const response = await DeviceOrientationEvent.requestPermission(); if (response === 'granted') window.addEventListener('deviceorientation', handleOrientation); } catch (e) {} } else window.addEventListener('deviceorientation', handleOrientation); };
+            const handleGPS = () => { triggerHaptic(); requestCompass(); const map = mapInstanceRef.current; if (!map || !userPos) return; if (calculateDistance(map.getCenter().lat, map.getCenter().lng, userPos[0], userPos[1]).km > 0.05) { map.flyTo(userPos, 17); return; } if (!navigator.geolocation) { showToast('GPS not supported'); return; } setGpsStatus('searching'); navigator.geolocation.getCurrentPosition( (pos) => updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'), (err) => { setGpsStatus('idle'); showToast('GPS Access Denied'); }, { enableHighAccuracy: true } ); };
+            const startPickingLocation = () => { triggerHaptic(); closeAllMenus(); setIsPickingLocation(true); if (mapInstanceRef.current && mapInstanceRef.current.getZoom() < 18) mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18, { duration: 0.5 }); };
             const confirmLocation = () => { if (mapInstanceRef.current) { const center = mapInstanceRef.current.getCenter(); setContributeCoords({ lat: center.lat, lon: center.lng }); setIsPickingLocation(false); setShowContribute(true); } };
-            const cancelPicking = () => { setIsPickingLocation(false); };
-            const goToLoc = (loc) => { closeAllMenus(); setCardMinimized(false); setSelectedLoc(loc); setView('map'); const map = mapInstanceRef.current; if (map) { const targetZoom = 17; const point = map.project([loc.lat, loc.lon], targetZoom); const offsetY = map.getSize().y * 0.25; const targetPoint = L.point(point.x, point.y + offsetY); const newCenter = map.unproject(targetPoint, targetZoom); map.flyTo(newCenter, targetZoom); } }
-
-            const openReport = (loc) => {
-                setCorrectionData(loc);
-                setShowCorrection(true);
-            };
+            const cancelPicking = () => setIsPickingLocation(false);
+            const goToLoc = (loc) => { closeAllMenus(); setCardMinimized(false); setSelectedLoc(loc); setView('map'); if (mapInstanceRef.current) { const targetZoom = 17; const point = mapInstanceRef.current.project([loc.lat, loc.lon], targetZoom); const targetPoint = L.point(point.x, point.y + mapInstanceRef.current.getSize().y * 0.25); mapInstanceRef.current.flyTo(mapInstanceRef.current.unproject(targetPoint, targetZoom), targetZoom); } }
+            const openReport = (loc) => { setCorrectionData(loc); setShowCorrection(true); };
 
             return html`
                 <div class="bg-white/95 dark:bg-zinc-900/95 backdrop-blur z-[1700] shadow-sm safe-pt transition-colors duration-300">
@@ -827,19 +800,7 @@
                     </div>
                     <div class="px-4 pb-2 relative z-[1001]">
                         <form onSubmit=${handleSearch} class="relative z-[1001]">
-                            <input 
-                                type="search" 
-                                name="q"
-                                id="search-input"
-                                inputmode="search"
-                                placeholder="Search city..." 
-                                class="w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl py-3 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-zinc-600 focus:bg-white dark:focus:bg-zinc-700 shadow-inner text-slate-600 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 transition-colors" 
-                                value=${searchTerm} 
-                                onInput=${handleInput} 
-                                onFocus=${() => setShowHistory(true)} 
-                                onBlur=${() => setTimeout(() => setShowHistory(false), 200)} 
-                                autocomplete="off"
-                            />
+                            <input type="search" name="q" id="search-input" inputmode="search" placeholder="Search city..." class="w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl py-3 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-zinc-600 focus:bg-white dark:focus:bg-zinc-700 shadow-inner text-slate-600 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 transition-colors" value=${searchTerm} onInput=${handleInput} onFocus=${() => setShowHistory(true)} onBlur=${() => setTimeout(() => setShowHistory(false), 200)} autocomplete="off" />
                             <button type="submit" class="absolute left-3.5 top-3 text-slate-400 dark:text-zinc-500 w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></button>
                         </form>
                         ${showHistory && ((searchTerm && historyMatches.length > 0) || (!searchTerm && searchHistory.length > 0) || apiSuggestions.length > 0) && html`
@@ -857,59 +818,13 @@
                 <div class="map-wrapper relative bg-slate-200 dark:bg-zinc-900">
                     <div class="absolute top-4 left-0 right-0 flex justify-center z-[1000] pointer-events-none">
                         ${zoomWarning && !loading && html`<${AlertPill} msg="Zoom in to find spots" />`}
-                        
-                        ${showListHint && html`
-                            <button onClick=${handleViewChange} class="bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-300 px-5 py-2.5 rounded-full shadow-lg text-sm font-bold font-brand z-[1000] pointer-events-auto active:scale-95 transition-transform flex items-center gap-2 mt-2 animate-ripple">
-                                <span>Nothing nearby. View List</span>
-                                <div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.list}}></div>
-                            </button>
-                        `}
+                        ${showListHint && html`<button onClick=${handleViewChange} class="bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-300 px-5 py-2.5 rounded-full shadow-lg text-sm font-bold font-brand z-[1000] pointer-events-auto active:scale-95 transition-transform flex items-center gap-2 mt-2 animate-ripple"><span>Nothing nearby. View List</span><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.list}}></div></button>`}
                     </div>
-                    
-                    ${isPickingLocation && html`
-                        <div class="absolute inset-0 z-[1100] pointer-events-none flex items-center justify-center">
-                            <div class="text-slate-800 dark:text-zinc-200 drop-shadow-xl -translate-y-1/2"><span class="material-symbols-rounded text-6xl">location_on</span></div>
-                        </div>
-                        <div class="absolute bottom-10 left-0 right-0 z-[1200] flex flex-col items-center space-y-3 px-6 pointer-events-auto">
-                            <div class="bg-slate-800/80 backdrop-blur text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">Move map to position pin</div>
-                            <div class="flex w-full gap-3 max-w-sm">
-                                <button onClick=${cancelPicking} class="flex-1 bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform">Cancel</button>
-                                <button onClick=${confirmLocation} class="flex-[2] bg-slate-800 dark:bg-zinc-600 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform">Confirm Location</button>
-                            </div>
-                        </div>
-                    `}
-
+                    ${isPickingLocation && html`<div class="absolute inset-0 z-[1100] pointer-events-none flex items-center justify-center"><div class="text-slate-800 dark:text-zinc-200 drop-shadow-xl -translate-y-1/2"><span class="material-symbols-rounded text-6xl">location_on</span></div></div><div class="absolute bottom-10 left-0 right-0 z-[1200] flex flex-col items-center space-y-3 px-6 pointer-events-auto"><div class="bg-slate-800/80 backdrop-blur text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">Move map to position pin</div><div class="flex w-full gap-3 max-w-sm"><button onClick=${cancelPicking} class="flex-1 bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform">Cancel</button><button onClick=${confirmLocation} class="flex-[2] bg-slate-800 dark:bg-zinc-600 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform">Confirm Location</button></div></div>`}
                     <div id="map" ref=${mapRef} class="transition-opacity duration-500"></div>
-                    
-                    ${(view === 'list' || isListExiting) && html`<div class="list-wrapper p-4 pb-24 safe-pb bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">
-                        ${inAreaLocs.length === 0 && furtherLocs.length === 0 && html`<div class="text-center text-slate-400 dark:text-zinc-600 mt-20"><div class="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-zinc-700 opacity-50 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div><p class="font-brand text-lg">No spots visible.</p></div>`}
-                        ${inAreaLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} />`)}
-                        ${furtherLocs.length > 0 && html`
-                            <div class="py-4 flex items-center gap-4 animate-stagger-fade" style=${{ animationDelay: '300ms' }}>
-                                <div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div>
-                                <span class="text-xs font-bold text-slate-400 dark:text-zinc-600 uppercase tracking-wider">Further Afield</span>
-                                <div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div>
-                            </div>
-                            ${furtherLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i + inAreaLocs.length} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} />`)}
-                        `}
-                    </div>`}
+                    ${(view === 'list' || isListExiting) && html`<div class="list-wrapper p-4 pb-24 safe-pb bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">${inAreaLocs.length === 0 && furtherLocs.length === 0 && html`<div class="text-center text-slate-400 dark:text-zinc-600 mt-20"><div class="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-zinc-700 opacity-50 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div><p class="font-brand text-lg">No spots visible.</p></div>`}${inAreaLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} />`)}${furtherLocs.length > 0 && html`<div class="py-4 flex items-center gap-4 animate-stagger-fade" style=${{ animationDelay: '300ms' }}><div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div><span class="text-xs font-bold text-slate-400 dark:text-zinc-600 uppercase tracking-wider">Further Afield</span><div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div></div>${furtherLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i + inAreaLocs.length} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} />`)}`}</div>`}
                 </div>
-                
-                ${!isPickingLocation && !selectedLoc && html`
-                    ${(gpsStatus !== 'idle' || loading) && html`
-                        <div class="absolute right-5 bottom-40 w-14 h-14 bg-white dark:bg-zinc-800 rounded-full shadow-lg z-[1000] flex items-center justify-center animate-pop-in border border-slate-100 dark:border-zinc-700">
-                            ${(() => {
-                                if (gpsStatus === 'success') return html`<div class="w-5 h-5 text-emerald-500 flex items-center justify-center animate-scale-in" dangerouslySetInnerHTML=${{__html: ICONS.check}}></div>`;
-                                if (gpsStatus === 'searching') return html`<span class="material-symbols-rounded animate-pulse-fast text-sky-500 text-xl">my_location</span>`;
-                                if (loading) return html`<div class="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>`;
-                                return null;
-                            })()}
-                        </div>
-                    `}
-                    <button onClick=${startPickingLocation} class="absolute right-5 w-14 h-14 bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-full shadow-lg flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 bottom-24" dangerouslySetInnerHTML=${{__html: ICONS.plus}}></button>
-                    <button onClick=${handleGPS} class="absolute right-5 w-14 h-14 bg-slate-800 dark:bg-zinc-700 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 bottom-8" dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>
-                `}
-                
+                ${!isPickingLocation && !selectedLoc && html`${(gpsStatus !== 'idle' || loading) && html`<div class="absolute right-5 bottom-40 w-14 h-14 bg-white dark:bg-zinc-800 rounded-full shadow-lg z-[1000] flex items-center justify-center animate-pop-in border border-slate-100 dark:border-zinc-700">${(() => { if (gpsStatus === 'success') return html`<div class="w-5 h-5 text-emerald-500 flex items-center justify-center animate-scale-in" dangerouslySetInnerHTML=${{__html: ICONS.check}}></div>`; if (gpsStatus === 'searching') return html`<span class="material-symbols-rounded animate-pulse-fast text-sky-500 text-xl">my_location</span>`; if (loading) return html`<div class="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>`; return null; })()}</div>`}<button onClick=${startPickingLocation} class="absolute right-5 w-14 h-14 bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-full shadow-lg flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 bottom-24" dangerouslySetInnerHTML=${{__html: ICONS.plus}}></button><button onClick=${handleGPS} class="absolute right-5 w-14 h-14 bg-slate-800 dark:bg-zinc-700 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all duration-300 bottom-8" dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>`}
                 ${showFilters && html`<${FilterSheet} ref=${filterSheetRef} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navAppDrive=${navAppDrive} setNavAppDrive=${setNavAppDrive} navAppWalk=${navAppWalk} setNavAppWalk=${setNavAppWalk} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} />`}
                 ${showAbout && html`<${AboutModal} onClose=${() => setShowAbout(false)} onShowToast=${showToast} />`}
                 ${showContribute && contributeCoords && html`<${ContributeSheet} lat=${contributeCoords.lat} lon=${contributeCoords.lon} onClose=${() => setShowContribute(false)} onShowToast=${showToast} />`}
