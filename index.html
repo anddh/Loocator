@@ -61,6 +61,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-C5W3F59SDX"></script>
     <script>
@@ -141,6 +142,10 @@
         const html = htm.bind(React.createElement);
         const { useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } = React;
 
+        const supabaseUrl = 'https://jnjovmqfbelouittlvhh.supabase.co';
+        const supabaseKey = 'sb_publishable_SYpOip4dUTH0yT6MNUYF6A_94uy9Snd';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
         const ICONS = {
             toilet: `<span class="material-symbols-rounded icon-sm">wc</span>`,
             water: `<span class="material-symbols-rounded icon-sm">water_drop</span>`,
@@ -173,7 +178,6 @@
 
         const TYPE_COLORS = { toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8' };
         
-        // --- SAFE STORAGE HELPER ---
         const safeParse = (key, fallback) => {
             try {
                 const item = localStorage.getItem(key);
@@ -183,7 +187,6 @@
             }
         };
 
-        // --- ADDRESS CACHE ---
         let ADDRESS_CACHE = safeParse('loocator_addr_cache', {});
 
         const saveToAddrCache = (id, address) => {
@@ -194,7 +197,6 @@
             try { localStorage.setItem('loocator_addr_cache', JSON.stringify(ADDRESS_CACHE)); } catch(e) {}
         };
 
-        // --- MAP DATA CACHE (OVERPASS RESULTS) ---
         let MAP_CACHE = safeParse('loocator_map_cache', {});
         try {
             const now = Date.now();
@@ -446,7 +448,7 @@
             </div>`;
         }
 
-        const DetailsCard = ({ loc, userLoc, navAppDrive, navAppWalk, onClose, minimized, setMinimized, onReport, onShowToast }) => {
+        const DetailsCard = ({ loc, userLoc, navAppDrive, navAppWalk, onClose, minimized, setMinimized, onReport, onShowToast, onReportStatus, statusData }) => {
             if (!loc) return null;
             const [address, setAddress] = useState('Loading...');
             const [imageUrl, setImageUrl] = useState(null);
@@ -497,6 +499,8 @@
                                 ${openStatus && openStatus.color && html`<div class=${`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide ${openStatus.color}`}><span class="w-1.5 h-1.5 rounded-full bg-current mr-1.5 animate-pulse"></span>${openStatus.text}</div>`}
                             </div>
                             <h2 class="text-2xl font-brand font-semibold text-slate-800 dark:text-zinc-100 leading-tight">${loc.name}</h2>
+                            ${statusData && statusData.status === 'working' && html`<div class="flex items-center gap-1 mt-1 text-emerald-600 dark:text-emerald-400 text-xs font-bold"><span class="material-symbols-rounded text-sm">verified</span> Verified working</div>`}
+                            ${statusData && statusData.status === 'broken' && html`<div class="flex items-center gap-1 mt-1 text-rose-500 dark:text-rose-400 text-xs font-bold"><span class="material-symbols-rounded text-sm">warning</span> Reported broken</div>`}
                         </div>
                         <div class="mb-5">
                             <div class="flex items-start space-x-2 text-slate-500 dark:text-zinc-400"><div class="w-4 h-4 mt-0.5 shrink-0 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.pin}}></div><p class="text-sm font-medium leading-tight">${address}</p></div>
@@ -520,6 +524,12 @@
                                 ${loc.hasBaby && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-rose-50 text-rose-700 border border-rose-100 dark:bg-rose-900/30 dark:text-rose-200 dark:border-rose-900/50 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.baby}}></span> Baby Change</div>`}
                                 ${loc.hasShower && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-sky-50 text-sky-700 border border-sky-100 dark:bg-sky-900/30 dark:text-sky-200 dark:border-sky-900/50 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.shower}}></span> Shower</div>`}
                             </div>
+                            
+                            <div class="flex gap-2 mb-4">
+                                <button onClick=${() => onReportStatus(loc.id, 'working')} class="flex-1 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold border border-emerald-100 dark:border-emerald-800 active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-sm"><span class="material-symbols-rounded text-sm">check_circle</span> Working</button>
+                                <button onClick=${() => onReportStatus(loc.id, 'broken')} class="flex-1 py-3 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold border border-rose-100 dark:border-rose-800 active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-sm"><span class="material-symbols-rounded text-sm">cancel</span> Broken</button>
+                            </div>
+
                             <div class="space-y-3 mb-2">
                                 <div class="flex gap-2">
                                     <button onClick=${handleDrive} class="flex-1 bg-slate-800 text-white dark:bg-zinc-700 font-semibold font-brand text-lg py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"><div class="w-6 h-6 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.car}}></div><span>Drive</span></button>
@@ -549,7 +559,7 @@
                 </div>`;
         };
 
-        const ListItem = ({ loc, onClick, userPos, index, isExiting }) => {
+        const ListItem = ({ loc, onClick, userPos, index, isExiting, statusData }) => {
             let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet;
             const types = [];
             if (loc.isToilet) types.push('toilet'); if (loc.isWater) types.push('water'); if (loc.hasBaby) types.push('baby'); if (loc.hasShower) types.push('shower'); if (loc.isBlack) types.push('black'); if (loc.isGrey) types.push('grey'); if (types.length === 0) types.push('toilet');
@@ -589,7 +599,10 @@
                             ${openStatus && openStatus.color && html`<div class=${`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-zinc-900 ${openStatus.color.split(' ')[0].replace('text-', 'bg-')}`}></div>`}
                         </div>
                         <div class="flex flex-col overflow-hidden min-w-0">
-                            <h4 class="font-semibold text-slate-700 dark:text-zinc-200 font-brand text-base leading-tight truncate">${loc.name}</h4>
+                            <div class="flex items-center gap-1">
+                                <h4 class="font-semibold text-slate-700 dark:text-zinc-200 font-brand text-base leading-tight truncate">${loc.name}</h4>
+                                ${statusData && statusData.status === 'working' && html`<span class="material-symbols-rounded text-emerald-500 text-sm">verified</span>`}
+                            </div>
                             ${displayAddress ? html`<p class="text-xs text-slate-400 dark:text-zinc-500 truncate mt-0.5">${displayAddress}</p>` : html`<div class="h-3 w-24 bg-slate-100 dark:bg-zinc-800 rounded animate-pulse mt-1"></div>`}
                         </div>
                     </div>
@@ -608,6 +621,7 @@
             const [zoomWarning, setZoomWarning] = useState(false);
             const [showFilters, setShowFilters] = useState(false);
             const [isCamperMode, setIsCamperMode] = useState(localStorage.getItem('loocator_van_mode') === 'true');
+            const [statuses, setStatuses] = useState({});
             
             const [stdFilters, setStdFilters] = useState(() => safeParse('loocator_std_filters', { toilet: true, water: true, baby: true }));
             const [vanFilters, setVanFilters] = useState(() => safeParse('loocator_van_filters', { black: true, grey: true, water: true, shower: true }));
@@ -664,6 +678,42 @@
             const sharedId = params.get('id');
             const [targetId, setTargetId] = useState(sharedId);
 
+            // Fetch Statuses logic
+            const fetchStatuses = async () => {
+                const { data } = await supabase.from('amenity_status').select('*');
+                const statusMap = {};
+                if(data) data.forEach(s => { statusMap[s.id] = s; });
+                setStatuses(statusMap);
+            };
+
+            useEffect(() => {
+                fetchStatuses();
+                const channel = supabase.channel('status_updates')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'amenity_status' }, (payload) => {
+                        setStatuses(prev => ({ ...prev, [payload.new.id]: payload.new }));
+                    })
+                    .subscribe();
+                return () => supabase.removeChannel(channel);
+            }, []);
+
+            const reportStatus = async (osmId, newStatus) => {
+                triggerHaptic();
+                const { error } = await supabase.from('amenity_status').upsert({ 
+                    id: String(osmId), 
+                    status: newStatus, 
+                    last_verified: new Date().toISOString() 
+                });
+                if (!error) {
+                    showToast(newStatus === 'working' ? "Verified working!" : "Reported as broken");
+                    setStatuses(prev => ({ 
+                        ...prev, 
+                        [osmId]: { id: String(osmId), status: newStatus, last_verified: new Date().toISOString() } 
+                    }));
+                } else {
+                    showToast("Error saving status.");
+                }
+            };
+
             // --- BREADCRUMB LOGIC (Aggressive OSRM) ---
             useEffect(() => {
                 if (!mapInstanceRef.current || !selectedLoc || !userPos) {
@@ -686,9 +736,6 @@
                 }
 
                 // 2. Aggressive API Call
-                // - alternatives=true: Ask for up to 3 paths.
-                // - continue_straight=false: Allows sharp turns (common in parks/malls).
-                // - overview=full: Maximum detail.
                 const url = `https://router.project-osrm.org/route/v1/foot/${userPos[1]},${userPos[0]};${selectedLoc.lon},${selectedLoc.lat}?overview=full&geometries=geojson&alternatives=true&continue_straight=false`;
 
                 fetch(url)
@@ -698,13 +745,10 @@
 
                         if (data.routes && data.routes.length > 0) {
                             // 3. AGGRESSIVE SORTING:
-                            // Ignore OSRM's "duration" recommendation. 
-                            // Pick the absolute shortest distance (usually the direct path through a park/mall).
                             bestRoute = data.routes.sort((a, b) => a.distance - b.distance)[0];
                         }
 
-                        // Fallback: If OSRM fails (e.g., inside a building with no mapped path),
-                        // create a straight line so the user still has a heading.
+                        // Fallback
                         const coords = bestRoute 
                             ? bestRoute.geometry.coordinates.map(c => [c[1], c[0]]) 
                             : [[userPos[0], userPos[1]], [selectedLoc.lat, selectedLoc.lon]];
@@ -882,8 +926,43 @@
                 }
             }, [allLocations, targetId]);
 
-            // UPDATED: Now uses goToLoc on Marker click to trigger Smart Zoom
-            useEffect(() => { if (!markersRef.current) return; markersRef.current.clearLayers(); visibleLocations.forEach(loc => { let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet; const types = []; if (loc.isToilet) types.push('toilet'); if (loc.isWater) types.push('water'); if (loc.hasBaby) types.push('baby'); if (loc.hasShower) types.push('shower'); if (loc.isBlack) types.push('black'); if (loc.isGrey) types.push('grey'); if (types.length === 0) types.push('toilet'); let backgroundStyle = ''; if (types.length === 1) { backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`; } else { const segmentSize = 100 / types.length; const gradientParts = types.map((t, i) => { const color = TYPE_COLORS[t]; const start = i * segmentSize; const end = (i + 1) * segmentSize; return `${color} ${start}% ${end}%`; }); backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`; } L.marker([loc.lat, loc.lon], { icon: L.divIcon({ className: '', html: `<div class="relative w-9 h-9"><div class="w-9 h-9 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-700 text-white z-10 relative shadow-sm" style="${backgroundStyle}"><div class="pie-icon flex items-center justify-center">${iconHtml}</div></div></div>`, iconSize: [36, 36], iconAnchor: [18, 36] }) }).addTo(markersRef.current).on('click', () => { goToLoc(loc); triggerHaptic(); }); }); }, [visibleLocations, isDarkMode]);
+            // UPDATED: Marker rendering with Supabase status glow
+            useEffect(() => { 
+                if (!markersRef.current) return; 
+                markersRef.current.clearLayers(); 
+                visibleLocations.forEach(loc => { 
+                    let iconHtml = loc.displayType === 'black' ? ICONS.trash : loc.displayType === 'grey' ? ICONS.drop : ICONS[loc.displayType] || ICONS.toilet; 
+                    const types = []; 
+                    if (loc.isToilet) types.push('toilet'); if (loc.isWater) types.push('water'); if (loc.hasBaby) types.push('baby'); if (loc.hasShower) types.push('shower'); if (loc.isBlack) types.push('black'); if (loc.isGrey) types.push('grey'); if (types.length === 0) types.push('toilet'); 
+                    
+                    let backgroundStyle = ''; 
+                    if (types.length === 1) { backgroundStyle = `background-color: ${TYPE_COLORS[types[0]]};`; } else { const segmentSize = 100 / types.length; const gradientParts = types.map((t, i) => { const color = TYPE_COLORS[t]; const start = i * segmentSize; const end = (i + 1) * segmentSize; return `${color} ${start}% ${end}%`; }); backgroundStyle = `background: conic-gradient(${gradientParts.join(', ')});`; } 
+                    
+                    // --- STATUS STYLING LOGIC ---
+                    const status = statuses[loc.id] ? statuses[loc.id].status : null;
+                    let borderClass = 'border-white dark:border-zinc-700';
+                    let glowStyle = '';
+                    let opacityStyle = '';
+
+                    if (status === 'working') {
+                        borderClass = 'border-emerald-500';
+                        glowStyle = 'box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);';
+                    } else if (status === 'broken') {
+                        borderClass = 'border-slate-500';
+                        opacityStyle = 'opacity: 0.6; filter: grayscale(100%);';
+                    }
+                    // ---------------------------
+
+                    L.marker([loc.lat, loc.lon], { 
+                        icon: L.divIcon({ 
+                            className: '', 
+                            html: `<div class="relative w-9 h-9" style="${opacityStyle}"><div class="w-9 h-9 rounded-full flex items-center justify-center border-2 ${borderClass} text-white z-10 relative shadow-sm" style="${backgroundStyle} ${glowStyle}"><div class="pie-icon flex items-center justify-center">${iconHtml}</div></div></div>`, 
+                            iconSize: [36, 36], 
+                            iconAnchor: [18, 36] 
+                        }) 
+                    }).addTo(markersRef.current).on('click', () => { goToLoc(loc); triggerHaptic(); }); 
+                }); 
+            }, [visibleLocations, isDarkMode, statuses]); // Re-render when statuses change
             
             const handleSearch = async (e) => { e.preventDefault(); if (!searchTerm) return; setLoading(true); try { const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(searchTerm)); const data = await res.json(); if (data && data.length > 0) { const result = data[0]; mapInstanceRef.current.flyTo([result.lat, result.lon], 16); addToHistory(searchTerm); setSearchTerm(''); setShowHistory(false); showToast(`Welcome to ${result.display_name.split(',')[0]}`); } else { showToast('Place not found.'); } } catch (err) { showToast('Search failed.'); } finally { setLoading(false); } };
             const handleHistoryClick = (term) => { setSearchTerm(term); setTimeout(() => { searchWithTerm(term); }, 0); };
@@ -965,14 +1044,14 @@
                     </div>
                     ${isPickingLocation && html`<div class="absolute inset-0 z-[1100] pointer-events-none flex items-center justify-center"><div class="text-slate-800 dark:text-zinc-200 drop-shadow-xl -translate-y-1/2"><span class="material-symbols-rounded text-6xl">location_on</span></div></div><div class="absolute bottom-10 left-0 right-0 z-[1200] flex flex-col items-center space-y-3 px-6 pointer-events-auto"><div class="bg-slate-800/80 backdrop-blur text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">Move map to position pin</div><div class="flex w-full gap-3 max-w-sm"><button onClick=${cancelPicking} class="flex-1 bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform">Cancel</button><button onClick=${confirmLocation} class="flex-[2] bg-slate-800 dark:bg-zinc-600 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform">Confirm Location</button></div></div>`}
                     <div id="map" ref=${mapRef} class="transition-opacity duration-500"></div>
-                    ${(view === 'list' || isListExiting) && html`<div class="list-wrapper p-4 pb-24 safe-pb bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">${inAreaLocs.length === 0 && furtherLocs.length === 0 && html`<div class="text-center text-slate-400 dark:text-zinc-600 mt-20"><div class="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-zinc-700 opacity-50 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div><p class="font-brand text-lg">No spots visible.</p></div>`}${inAreaLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} />`)}${furtherLocs.length > 0 && html`<div class="py-4 flex items-center gap-4 animate-stagger-fade" style=${{ animationDelay: '300ms' }}><div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div><span class="text-xs font-bold text-slate-400 dark:text-zinc-600 uppercase tracking-wider">Further Afield</span><div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div></div>${furtherLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i + inAreaLocs.length} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} />`)}`}</div>`}
+                    ${(view === 'list' || isListExiting) && html`<div class="list-wrapper p-4 pb-24 safe-pb bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">${inAreaLocs.length === 0 && furtherLocs.length === 0 && html`<div class="text-center text-slate-400 dark:text-zinc-600 mt-20"><div class="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-zinc-700 opacity-50 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div><p class="font-brand text-lg">No spots visible.</p></div>`}${inAreaLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} statusData=${statuses[loc.id]} />`)}${furtherLocs.length > 0 && html`<div class="py-4 flex items-center gap-4 animate-stagger-fade" style=${{ animationDelay: '300ms' }}><div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div><span class="text-xs font-bold text-slate-400 dark:text-zinc-600 uppercase tracking-wider">Further Afield</span><div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div></div>${furtherLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i + inAreaLocs.length} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} statusData=${statuses[loc.id]} />`)}`}</div>`}
                 </div>
                 ${!isPickingLocation && !selectedLoc && html`${(gpsStatus !== 'idle' || loading) && html`<div class="absolute right-5 bottom-40 w-14 h-14 bg-white dark:bg-zinc-800 rounded-full shadow-lg z-[1000] flex items-center justify-center animate-pop-in border border-slate-100 dark:border-zinc-700">${(() => { if (gpsStatus === 'success') return html`<div class="w-5 h-5 text-emerald-500 flex items-center justify-center animate-scale-in" dangerouslySetInnerHTML=${{__html: ICONS.check}}></div>`; if (gpsStatus === 'searching') return html`<span class="material-symbols-rounded animate-pulse-fast text-sky-500 text-xl">my_location</span>`; if (loading) return html`<div class="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>`; return null; })()}</div>`}<button onClick=${() => { triggerHaptic(); closeAllMenus(); setIsPickingLocation(true); if (mapInstanceRef.current.getZoom() < 18) mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18); }} class="absolute right-5 w-14 h-14 bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-full shadow-lg flex items-center justify-center z-[1000] active:scale-90 transition-all bottom-24" dangerouslySetInnerHTML=${{__html: ICONS.plus}}></button><button onClick=${handleGPS} class="absolute right-5 w-14 h-14 bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all bottom-8" dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>`}
                 ${showFilters && html`<${FilterSheet} ref=${filterSheetRef} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navAppDrive=${navAppDrive} setNavAppDrive=${setNavAppDrive} navAppWalk=${navAppWalk} setNavAppWalk=${setNavAppWalk} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} isCamperMode=${isCamperMode} toggleMode=${toggleMode} />`}
                 ${showAbout && html`<${AboutModal} onClose=${() => setShowAbout(false)} onShowToast=${showToast} />`}
                 ${showContribute && contributeCoords && html`<${ContributeSheet} lat=${contributeCoords.lat} lon=${contributeCoords.lon} onClose=${() => setShowContribute(false)} onShowToast=${showToast} />`}
                 ${showCorrection && correctionData && html`<${ContributeSheet} lat=${correctionData.lat} lon=${correctionData.lon} isCorrection=${true} correctionId=${correctionData.id} correctionName=${correctionData.name} onClose=${() => setShowCorrection(false)} onShowToast=${showToast} />`}
-                ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} userLoc=${userPos} navAppDrive=${navAppDrive} navAppWalk=${navAppWalk} onClose=${() => setSelectedLoc(null)} minimized=${cardMinimized} setMinimized=${setCardMinimized} onReport=${openReport} onShowToast=${showToast} />`}
+                ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} userLoc=${userPos} navAppDrive=${navAppDrive} navAppWalk=${navAppWalk} onClose=${() => setSelectedLoc(null)} minimized=${cardMinimized} setMinimized=${setCardMinimized} onReport=${openReport} onShowToast=${showToast} onReportStatus=${reportStatus} statusData=${statuses[selectedLoc.id]} />`}
                 <${Toast} msg=${toast.msg} visible=${toast.visible} />
             `;
         }
