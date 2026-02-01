@@ -61,7 +61,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-C5W3F59SDX"></script>
     <script>
@@ -141,28 +141,6 @@
     <script>
         const html = htm.bind(React.createElement);
         const { useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } = React;
-
-        // --- SAFE SUPABASE INITIALIZATION ---
-        // This block prevents the app from crashing if Supabase loads slowly or fails
-        const supabaseUrl = 'https://jnjovmqfbelouittlvhh.supabase.co';
-        const supabaseKey = 'sb_publishable_SYpOip4dUTH0yT6MNUYF6A_94uy9Snd';
-        
-        const getSupabase = () => {
-            try {
-                if (window.supabase && window.supabase.createClient) {
-                    return window.supabase.createClient(supabaseUrl, supabaseKey);
-                }
-            } catch (e) { console.error("Supabase init error", e); }
-            
-            // Return a "Dummy" client if real one fails, so buttons don't crash app
-            return {
-                from: () => ({ select: async () => ({ data: [] }), upsert: async () => ({ error: 'Offline mode' }) }),
-                channel: () => ({ on: () => ({ subscribe: () => {} }) }),
-                removeChannel: () => {}
-            };
-        };
-        const supabase = getSupabase();
-        // -------------------------------------
 
         const ICONS = {
             toilet: `<span class="material-symbols-rounded icon-sm">wc</span>`,
@@ -640,6 +618,7 @@
             const [showFilters, setShowFilters] = useState(false);
             const [isCamperMode, setIsCamperMode] = useState(localStorage.getItem('loocator_van_mode') === 'true');
             const [statuses, setStatuses] = useState({});
+            const [dbClient, setDbClient] = useState(supabase);
             
             const [stdFilters, setStdFilters] = useState(() => safeParse('loocator_std_filters', { toilet: true, water: true, baby: true }));
             const [vanFilters, setVanFilters] = useState(() => safeParse('loocator_van_filters', { black: true, grey: true, water: true, shower: true }));
@@ -696,9 +675,19 @@
             const sharedId = params.get('id');
             const [targetId, setTargetId] = useState(sharedId);
 
+            // Re-initialize real client if window.supabase loads late
+            useEffect(() => {
+                if (window.supabase && window.supabase.createClient && dbClient === supabase) {
+                    try {
+                        const realClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+                        setDbClient(realClient);
+                    } catch(e) {}
+                }
+            }, []);
+
             // Fetch Statuses logic
             const fetchStatuses = async () => {
-                const { data } = await supabase.from('amenity_status').select('*');
+                const { data } = await dbClient.from('amenity_status').select('*');
                 const statusMap = {};
                 if(data) data.forEach(s => { statusMap[s.id] = s; });
                 setStatuses(statusMap);
@@ -706,17 +695,17 @@
 
             useEffect(() => {
                 fetchStatuses();
-                const channel = supabase.channel('status_updates')
+                const channel = dbClient.channel('status_updates')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'amenity_status' }, (payload) => {
                         setStatuses(prev => ({ ...prev, [payload.new.id]: payload.new }));
                     })
                     .subscribe();
-                return () => supabase.removeChannel(channel);
-            }, []);
+                return () => dbClient.removeChannel(channel);
+            }, [dbClient]); // Depend on dbClient update
 
             const reportStatus = async (osmId, newStatus) => {
                 triggerHaptic();
-                const { error } = await supabase.from('amenity_status').upsert({ 
+                const { error } = await dbClient.from('amenity_status').upsert({ 
                     id: String(osmId), 
                     status: newStatus, 
                     last_verified: new Date().toISOString() 
@@ -728,7 +717,8 @@
                         [osmId]: { id: String(osmId), status: newStatus, last_verified: new Date().toISOString() } 
                     }));
                 } else {
-                    showToast("Error saving status.");
+                    if (dbClient === supabase) showToast("Offline mode: status not saved.");
+                    else showToast("Error saving status.");
                 }
             };
 
