@@ -146,14 +146,14 @@
         const supabaseUrl = 'https://jnjovmqfbelouittlvhh.supabase.co';
         const supabaseKey = 'sb_publishable_SYpOip4dUTH0yT6MNUYF6A_94uy9Snd';
         
-        // Check if window.supabase exists to prevent crash
         let supabase;
         try {
+            // Check if global supabase object exists from the CDN script
             if (window.supabase && window.supabase.createClient) {
                 supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
             } else {
                 console.warn("Supabase library not loaded. Status features disabled.");
-                // Fallback mock client so app doesn't crash
+                // Fallback mock client so app doesn't crash if offline/blocked
                 supabase = {
                     from: () => ({ select: async () => ({ data: [] }), upsert: async () => ({ error: 'Supabase offline' }) }),
                     channel: () => ({ on: () => ({ subscribe: () => {} }) }),
@@ -162,6 +162,11 @@
             }
         } catch (e) {
             console.error("Supabase init error", e);
+            supabase = {
+                from: () => ({ select: async () => ({ data: [] }), upsert: async () => ({ error: 'Init error' }) }),
+                channel: () => ({ on: () => ({ subscribe: () => {} }) }),
+                removeChannel: () => {}
+            };
         }
         // -------------------------------------
 
