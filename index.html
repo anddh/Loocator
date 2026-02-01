@@ -354,7 +354,7 @@
                 </div>`;
         }
 
-        const FilterSheet = forwardRef(({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, accessOnly, setAccessOnly, keyOnly, setKeyOnly, navAppDrive, setNavAppDrive, navAppWalk, setNavAppWalk, clearHistory, onClose }, ref) => {
+        const FilterSheet = forwardRef(({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, accessOnly, setAccessOnly, keyOnly, setKeyOnly, navAppDrive, setNavAppDrive, navAppWalk, setNavAppWalk, clearHistory, onClose, isCamperMode, toggleMode }, ref) => {
             const [isClosing, setIsClosing] = useState(false);
             const triggerClose = () => { setIsClosing(true); setTimeout(onClose, 300); };
             useImperativeHandle(ref, () => ({ triggerClose }));
@@ -368,6 +368,12 @@
                         <h2 className="text-xl font-bold font-brand text-slate-800 dark:text-zinc-100">Options</h2>
                         <button onClick=${triggerClose} className="p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
                     </div>
+
+                    <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">App Mode</h3>
+                    <div class="grid grid-cols-1 gap-3 mb-6">
+                        <${ToggleCard} label="Camper Mode" subtext="Show chemical disposal, showers & tank refill" icon="airport_shuttle" active=${isCamperMode} onClick=${toggleMode} />
+                    </div>
+
                     <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3 px-1">Map Filters</h3>
                     <div class="grid grid-cols-2 gap-3 mb-8">
                         <${ToggleCard} label="Free Use" icon="savings" active=${freeOnly} onClick=${() => setFreeOnly(!freeOnly)} />
@@ -723,10 +729,8 @@
                 camperModeRef.current = isCamperMode; 
                 localStorage.setItem('loocator_van_mode', isCamperMode);
 
-                // --- NEW FIX START ---
                 setSelectedLoc(null);
                 setCardMinimized(false);
-                // --- NEW FIX END ---
 
                 if (mapInstanceRef.current) { 
                     setLoading(true); 
@@ -905,7 +909,6 @@
                         <h1 onClick=${handleAboutClick} class="text-2xl font-brand font-semibold text-slate-700 dark:text-zinc-100 tracking-tight cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors">Loocator</h1>
                         <div class="flex gap-2">
                             ${showInstallButton && html`<button onClick=${handleInstall} class="bg-slate-200 dark:bg-zinc-700 text-slate-800 dark:text-zinc-200 px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2"><div class="flex items-center justify-center w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.download}}></div><span>Install</span></button>`}
-                            <button onClick=${() => { triggerHaptic(); toggleMode(); }} class=${'px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-colors ' + (isCamperMode ? 'bg-slate-800 text-white dark:bg-zinc-200 dark:text-zinc-900' : 'bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400')}><div class="flex items-center justify-center w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.van}}></div><span>${isCamperMode ? 'Van On' : 'Van Mode'}</span></button>
                             <button onClick=${handleFilterClick} class="bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 px-3 py-2 rounded-full text-xs font-bold"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.filter}}></div></button>
                             <button onClick=${handleViewToggle} class="bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 px-3 py-2 rounded-full text-xs font-bold"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: view === 'map' ? ICONS.list : ICONS.map}}></div></button>
                         </div>
@@ -937,7 +940,7 @@
                     ${(view === 'list' || isListExiting) && html`<div class="list-wrapper p-4 pb-24 safe-pb bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">${inAreaLocs.length === 0 && furtherLocs.length === 0 && html`<div class="text-center text-slate-400 dark:text-zinc-600 mt-20"><div class="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-zinc-700 opacity-50 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div><p class="font-brand text-lg">No spots visible.</p></div>`}${inAreaLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} />`)}${furtherLocs.length > 0 && html`<div class="py-4 flex items-center gap-4 animate-stagger-fade" style=${{ animationDelay: '300ms' }}><div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div><span class="text-xs font-bold text-slate-400 dark:text-zinc-600 uppercase tracking-wider">Further Afield</span><div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div></div>${furtherLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i + inAreaLocs.length} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} />`)}`}</div>`}
                 </div>
                 ${!isPickingLocation && !selectedLoc && html`${(gpsStatus !== 'idle' || loading) && html`<div class="absolute right-5 bottom-40 w-14 h-14 bg-white dark:bg-zinc-800 rounded-full shadow-lg z-[1000] flex items-center justify-center animate-pop-in border border-slate-100 dark:border-zinc-700">${(() => { if (gpsStatus === 'success') return html`<div class="w-5 h-5 text-emerald-500 flex items-center justify-center animate-scale-in" dangerouslySetInnerHTML=${{__html: ICONS.check}}></div>`; if (gpsStatus === 'searching') return html`<span class="material-symbols-rounded animate-pulse-fast text-sky-500 text-xl">my_location</span>`; if (loading) return html`<div class="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>`; return null; })()}</div>`}<button onClick=${() => { triggerHaptic(); closeAllMenus(); setIsPickingLocation(true); if (mapInstanceRef.current.getZoom() < 18) mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18); }} class="absolute right-5 w-14 h-14 bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-full shadow-lg flex items-center justify-center z-[1000] active:scale-90 transition-all bottom-24" dangerouslySetInnerHTML=${{__html: ICONS.plus}}></button><button onClick=${handleGPS} class="absolute right-5 w-14 h-14 bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all bottom-8" dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>`}
-                ${showFilters && html`<${FilterSheet} ref=${filterSheetRef} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navAppDrive=${navAppDrive} setNavAppDrive=${setNavAppDrive} navAppWalk=${navAppWalk} setNavAppWalk=${setNavAppWalk} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} />`}
+                ${showFilters && html`<${FilterSheet} ref=${filterSheetRef} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navAppDrive=${navAppDrive} setNavAppDrive=${setNavAppDrive} navAppWalk=${navAppWalk} setNavAppWalk=${setNavAppWalk} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} isCamperMode=${isCamperMode} toggleMode=${toggleMode} />`}
                 ${showAbout && html`<${AboutModal} onClose=${() => setShowAbout(false)} onShowToast=${showToast} />`}
                 ${showContribute && contributeCoords && html`<${ContributeSheet} lat=${contributeCoords.lat} lon=${contributeCoords.lon} onClose=${() => setShowContribute(false)} onShowToast=${showToast} />`}
                 ${showCorrection && correctionData && html`<${ContributeSheet} lat=${correctionData.lat} lon=${correctionData.lon} isCorrection=${true} correctionId=${correctionData.id} correctionName=${correctionData.name} onClose=${() => setShowCorrection(false)} onShowToast=${showToast} />`}
