@@ -65,7 +65,8 @@
     <script crossorigin src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-C5W3F59SDX"></script>
     <script>
@@ -128,6 +129,11 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
+
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body class="bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 transition-colors duration-300" ontouchstart="">
     <div id="root">
@@ -144,11 +150,15 @@
         // --- GLOBAL SUPABASE INIT (Fault Tolerant) ---
         const SB_URL = 'https://jnjovmqfbelouittlvhh.supabase.co';
         const SB_KEY = 'sb_publishable_SYpOip4dUTH0yT6MNUYF6A_94uy9Snd';
-        let supabaseClient = null;
+        
+        // Fix: Assign to window so React can find it
+        window.supabaseClient = null;
 
         try {
             if (window.supabase) {
-                supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+                window.supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+            } else {
+                console.warn("Supabase script not loaded");
             }
         } catch (e) { console.error("Supabase load failed", e); }
         // ---------------------------------------------
@@ -180,7 +190,7 @@
             report: `<span class="material-symbols-rounded icon-sm">flag</span>`,
             share: `<span class="material-symbols-rounded icon-sm">share</span>`, 
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
         const TYPE_COLORS = { toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8' };
@@ -319,7 +329,7 @@
                     <div class="text-center mb-6">
                         <div class="inline-block w-24 h-24 rounded-3xl bg-slate-100 dark:bg-zinc-800 mb-4 shadow-sm overflow-hidden"><img src="icon.png" class="w-full h-full object-cover" alt="Loocator" /></div>
                         <h2 class="text-2xl font-bold font-brand text-slate-800 dark:text-zinc-100">Loocator</h2>
-                        <p class="text-slate-500 dark:text-zinc-400 text-sm mt-1">v0.2.5</p>
+                        <p class="text-slate-500 dark:text-zinc-400 text-sm mt-1">v0.2.6</p>
                     </div>
                     <div class="space-y-4 text-center">
                         <div class="bg-slate-50 dark:bg-zinc-800 p-4 rounded-xl border border-slate-100 dark:border-zinc-700"><p class="text-slate-600 dark:text-zinc-300 font-medium text-sm">Made with love in Tenerife + England ❤️</p></div>
@@ -1038,7 +1048,7 @@
                         <div class="flex gap-2">
                             ${showInstallButton && html`<button onClick=${handleInstall} class="bg-slate-200 dark:bg-zinc-700 text-slate-800 dark:text-zinc-200 px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2"><div class="flex items-center justify-center w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.download}}></div><span>Install</span></button>`}
                             <button onClick=${handleFilterClick} class="bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 px-3 py-2 rounded-full text-xs font-bold"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.filter}}></div></button>
-                            <button onClick=${handleViewToggle} class="bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 px-3 py-2 rounded-full text-xs font-bold"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: view === 'map' ? ICONS.list : ICONS.map}}></div></button>
+                            <button onClick=${handleViewToggle} class="bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 px-3 py-2 rounded-full text-xs font-bold"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.list}} : ICONS.map}}></div></button>
                         </div>
                     </div>
                     <div class="px-4 pb-2 relative z-[1001]">
