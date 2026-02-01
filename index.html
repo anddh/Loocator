@@ -62,9 +62,11 @@
 
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-C5W3F59SDX"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -72,6 +74,60 @@
         gtag('js', new Date());
         gtag('config', 'G-C5W3F59SDX');
     </script>
+    <style>
+        body, html { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f8fafc; font-family: 'Fredoka', sans-serif; }
+        * { -webkit-tap-highlight-color: transparent; }
+        @media (prefers-color-scheme: dark) {
+            body, html { background-color: #09090b; }
+            .leaflet-container { background: #09090b !important; }
+        }
+        #root { height: 100%; display: flex; flex-direction: column; }
+        .map-wrapper { position: relative; flex-grow: 1; width: 100%; height: 100%; overflow: hidden; }
+        #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; background: transparent; }
+        .list-wrapper { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 50; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .leaflet-container { background: #d4dadc; }
+        .pie-icon { text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+        .user-pin-ring { position: absolute; width: 20px; height: 20px; border-radius: 50%; background-color: #475569; opacity: 0.7; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
+        .user-pin-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background-color: white; border: 2px solid #475569; top: 5px; left: 5px; animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.4s infinite; z-index: 2; }
+        
+        /* --- ANIMATED BREADCRUMB CSS --- */
+        .marching-ants {
+            stroke: #0ea5e9; /* Tailwind Sky-500 */
+            stroke-width: 4;
+            stroke-dasharray: 12 12;
+            animation: march 1s linear infinite;
+            filter: drop-shadow(0 0 3px rgba(14, 165, 233, 0.5));
+        }
+        @media (prefers-color-scheme: dark) {
+            .marching-ants { stroke: #38bdf8; } /* Sky-400 for dark mode */
+        }
+        @keyframes march {
+            to { stroke-dashoffset: -24; }
+        }
+        
+        .user-beam {
+            position: absolute;
+            top: -90px;  
+            left: -40px; 
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.4), transparent 70%);
+            transform-origin: 50% 100%; 
+            clip-path: polygon(0 0, 100% 0, 50% 100%); 
+            pointer-events: none;
+            z-index: -1;
+            transition: transform 0.1s linear; 
+            display: none;
+        }
+
+        @media (prefers-color-scheme: dark) { .user-pin-ring { background-color: #a1a1aa; } .user-pin-dot { border-color: #a1a1aa; } }
+        @keyframes pulse-ring { 0% { transform: scale(0.33); opacity: 1; } 80%, 100% { opacity: 0; } }
+        @keyframes pulse-dot { 0% { transform: scale(0.8); } 50% { transform: scale(1); } 100% { transform: scale(0.8); } }
+        .safe-pt { padding-top: env(safe-area-inset-top); }
+        .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
 <body class="bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 transition-colors duration-300" ontouchstart="">
     <div id="root">
@@ -81,17 +137,21 @@
         </div>
     </div>
 
-    <script type="module">
-        import htm from 'https://unpkg.com/htm@3.1.1/dist/htm.module.js?module';
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
+    <script>
         const html = htm.bind(React.createElement);
         const { useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } = React;
 
-        // --- SUPABASE SETUP ---
-        const supabaseUrl = 'https://jnjovmqfbelouittlvhh.supabase.co';
-        const supabaseKey = 'sb_publishable_SYpOip4dUTH0yT6MNUYF6A_94uy9Snd';
-        const supabase = createClient(supabaseUrl, supabaseKey);
+        // --- GLOBAL SUPABASE INIT (Fault Tolerant) ---
+        const SB_URL = 'https://jnjovmqfbelouittlvhh.supabase.co';
+        const SB_KEY = 'sb_publishable_SYpOip4dUTH0yT6MNUYF6A_94uy9Snd';
+        let supabaseClient = null;
+
+        try {
+            if (window.supabase) {
+                supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+            }
+        } catch (e) { console.error("Supabase load failed", e); }
+        // ---------------------------------------------
 
         const ICONS = {
             toilet: `<span class="material-symbols-rounded icon-sm">wc</span>`,
@@ -259,7 +319,7 @@
                     <div class="text-center mb-6">
                         <div class="inline-block w-24 h-24 rounded-3xl bg-slate-100 dark:bg-zinc-800 mb-4 shadow-sm overflow-hidden"><img src="icon.png" class="w-full h-full object-cover" alt="Loocator" /></div>
                         <h2 class="text-2xl font-bold font-brand text-slate-800 dark:text-zinc-100">Loocator</h2>
-                        <p class="text-slate-500 dark:text-zinc-400 text-sm mt-1">v0.2.4</p>
+                        <p class="text-slate-500 dark:text-zinc-400 text-sm mt-1">v0.2.5</p>
                     </div>
                     <div class="space-y-4 text-center">
                         <div class="bg-slate-50 dark:bg-zinc-800 p-4 rounded-xl border border-slate-100 dark:border-zinc-700"><p class="text-slate-600 dark:text-zinc-300 font-medium text-sm">Made with love in Tenerife + England ❤️</p></div>
@@ -433,6 +493,9 @@
             // FIX: Disable slide-up animation if card is minimized on mount
             const animClass = isClosing ? 'animate-slide-down-card' : (minimized ? '' : (animationFinished ? '' : 'animate-slide-up-card'));
 
+            // Show status buttons for van-specific types: Black/Grey disposal, Water, Showers
+            const isVanFacility = loc.isBlack || loc.isGrey || loc.isWater || loc.hasShower;
+
             return html`
                 <div onClick=${handleContainerClick} style=${{ transform: minimized ? 'translateY(calc(100% - 160px))' : 'translateY(0)' }} 
                     class=${`fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl z-[1500] flex flex-col max-h-[85vh] safe-pb transition-transform duration-300 ease-in-out ${animClass} ${minimized ? 'cursor-pointer' : ''}`}>
@@ -446,8 +509,8 @@
                                 ${openStatus && openStatus.color && html`<div class=${`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide ${openStatus.color}`}><span class="w-1.5 h-1.5 rounded-full bg-current mr-1.5 animate-pulse"></span>${openStatus.text}</div>`}
                             </div>
                             <h2 class="text-2xl font-brand font-semibold text-slate-800 dark:text-zinc-100 leading-tight">${loc.name}</h2>
-                            ${statusData && statusData.status === 'working' && html`<div class="flex items-center gap-1 mt-1 text-emerald-600 dark:text-emerald-400 text-xs font-bold"><span class="material-symbols-rounded text-sm">verified</span> Verified working</div>`}
-                            ${statusData && statusData.status === 'broken' && html`<div class="flex items-center gap-1 mt-1 text-rose-500 dark:text-rose-400 text-xs font-bold"><span class="material-symbols-rounded text-sm">warning</span> Reported broken</div>`}
+                            ${statusData && statusData.status === 'working' && isVanFacility && html`<div class="flex items-center gap-1 mt-1 text-emerald-600 dark:text-emerald-400 text-xs font-bold"><span class="material-symbols-rounded text-sm">verified</span> Verified working</div>`}
+                            ${statusData && statusData.status === 'broken' && isVanFacility && html`<div class="flex items-center gap-1 mt-1 text-rose-500 dark:text-rose-400 text-xs font-bold"><span class="material-symbols-rounded text-sm">warning</span> Reported broken</div>`}
                         </div>
                         <div class="mb-5">
                             <div class="flex items-start space-x-2 text-slate-500 dark:text-zinc-400"><div class="w-4 h-4 mt-0.5 shrink-0 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.pin}}></div><p class="text-sm font-medium leading-tight">${address}</p></div>
@@ -472,10 +535,12 @@
                                 ${loc.hasShower && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-sky-50 text-sky-700 border border-sky-100 dark:bg-sky-900/30 dark:text-sky-200 dark:border-sky-900/50 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.shower}}></span> Shower</div>`}
                             </div>
                             
-                            <div class="flex gap-2 mb-4">
-                                <button onClick=${() => onReportStatus(loc.id, 'working')} class="flex-1 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold border border-emerald-100 dark:border-emerald-800 active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-sm"><span class="material-symbols-rounded text-sm">check_circle</span> Working</button>
-                                <button onClick=${() => onReportStatus(loc.id, 'broken')} class="flex-1 py-3 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold border border-rose-100 dark:border-rose-800 active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-sm"><span class="material-symbols-rounded text-sm">cancel</span> Broken</button>
-                            </div>
+                            ${isVanFacility && html`
+                                <div class="flex gap-2 mb-4">
+                                    <button onClick=${() => onReportStatus(loc.id, 'working')} class="flex-1 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold border border-emerald-100 dark:border-emerald-800 active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-sm"><span class="material-symbols-rounded text-sm">check_circle</span> Working</button>
+                                    <button onClick=${() => onReportStatus(loc.id, 'broken')} class="flex-1 py-3 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold border border-rose-100 dark:border-rose-800 active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-sm"><span class="material-symbols-rounded text-sm">cancel</span> Broken</button>
+                                </div>
+                            `}
 
                             <div class="space-y-3 mb-2">
                                 <div class="flex gap-2">
@@ -570,35 +635,6 @@
             const [isCamperMode, setIsCamperMode] = useState(localStorage.getItem('loocator_van_mode') === 'true');
             const [statuses, setStatuses] = useState({});
             
-            // --- SUPABASE CLIENT STATE ---
-            // Use state for the db client to ensure reactivity if it loads late
-            const [dbClient, setDbClient] = useState(() => {
-                try {
-                    if (window.supabase && window.supabase.createClient) {
-                        return window.supabase.createClient('https://jnjovmqfbelouittlvhh.supabase.co', 'sb_publishable_SYpOip4dUTH0yT6MNUYF6A_94uy9Snd');
-                    }
-                } catch(e) {}
-                // Initial Dummy
-                return {
-                    from: () => ({ select: async () => ({ data: [] }), upsert: async () => ({ error: 'Loading...' }) }),
-                    channel: () => ({ on: () => ({ subscribe: () => {} }) }),
-                    removeChannel: () => {}
-                };
-            });
-
-            // Effect to upgrade dummy client to real client if script loads late
-            useEffect(() => {
-                if (dbClient.from().select().then) { // Check if it's the dummy
-                    const interval = setInterval(() => {
-                        if (window.supabase && window.supabase.createClient) {
-                            setDbClient(window.supabase.createClient('https://jnjovmqfbelouittlvhh.supabase.co', 'sb_publishable_SYpOip4dUTH0yT6MNUYF6A_94uy9Snd'));
-                            clearInterval(interval);
-                        }
-                    }, 500);
-                    return () => clearInterval(interval);
-                }
-            }, []);
-            
             const [stdFilters, setStdFilters] = useState(() => safeParse('loocator_std_filters', { toilet: true, water: true, baby: true }));
             const [vanFilters, setVanFilters] = useState(() => safeParse('loocator_van_filters', { black: true, grey: true, water: true, shower: true }));
             const [freeOnly, setFreeOnly] = useState(localStorage.getItem('loocator_filter_free') === 'true');
@@ -656,25 +692,33 @@
 
             // Fetch Statuses logic
             const fetchStatuses = async () => {
-                const { data } = await dbClient.from('amenity_status').select('*');
-                const statusMap = {};
-                if(data) data.forEach(s => { statusMap[s.id] = s; });
-                setStatuses(statusMap);
+                if(!window.supabaseClient) return; // Silent fail if offline
+                try {
+                    const { data } = await window.supabaseClient.from('amenity_status').select('*');
+                    const statusMap = {};
+                    if(data) data.forEach(s => { statusMap[s.id] = s; });
+                    setStatuses(statusMap);
+                } catch(e) { console.warn("Fetch failed"); }
             };
 
             useEffect(() => {
+                if(!window.supabaseClient) return;
                 fetchStatuses();
-                const channel = dbClient.channel('status_updates')
+                const channel = window.supabaseClient.channel('status_updates')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'amenity_status' }, (payload) => {
                         setStatuses(prev => ({ ...prev, [payload.new.id]: payload.new }));
                     })
                     .subscribe();
-                return () => dbClient.removeChannel(channel);
-            }, [dbClient]); // Depend on dbClient update
+                return () => window.supabaseClient.removeChannel(channel);
+            }, []);
 
             const reportStatus = async (osmId, newStatus) => {
                 triggerHaptic();
-                const { error } = await dbClient.from('amenity_status').upsert({ 
+                if (!window.supabaseClient) {
+                    showToast("Offline mode: status not saved.");
+                    return;
+                }
+                const { error } = await window.supabaseClient.from('amenity_status').upsert({ 
                     id: String(osmId), 
                     status: newStatus, 
                     last_verified: new Date().toISOString() 
@@ -686,7 +730,8 @@
                         [osmId]: { id: String(osmId), status: newStatus, last_verified: new Date().toISOString() } 
                     }));
                 } else {
-                    showToast("Status saved locally (Online sync pending)");
+                    console.error("Supabase Error:", error);
+                    showToast("Error saving status.");
                 }
             };
 
