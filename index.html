@@ -61,7 +61,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-C5W3F59SDX"></script>
     <script>
@@ -142,9 +142,28 @@
         const html = htm.bind(React.createElement);
         const { useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } = React;
 
+        // --- SAFE SUPABASE INITIALIZATION ---
         const supabaseUrl = 'https://jnjovmqfbelouittlvhh.supabase.co';
         const supabaseKey = 'sb_publishable_SYpOip4dUTH0yT6MNUYF6A_94uy9Snd';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        // Check if window.supabase exists to prevent crash
+        let supabase;
+        try {
+            if (window.supabase && window.supabase.createClient) {
+                supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+            } else {
+                console.warn("Supabase library not loaded. Status features disabled.");
+                // Fallback mock client so app doesn't crash
+                supabase = {
+                    from: () => ({ select: async () => ({ data: [] }), upsert: async () => ({ error: 'Supabase offline' }) }),
+                    channel: () => ({ on: () => ({ subscribe: () => {} }) }),
+                    removeChannel: () => {}
+                };
+            }
+        } catch (e) {
+            console.error("Supabase init error", e);
+        }
+        // -------------------------------------
 
         const ICONS = {
             toilet: `<span class="material-symbols-rounded icon-sm">wc</span>`,
