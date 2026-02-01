@@ -143,31 +143,25 @@
         const { useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } = React;
 
         // --- SAFE SUPABASE INITIALIZATION ---
+        // This block prevents the app from crashing if Supabase loads slowly or fails
         const supabaseUrl = 'https://jnjovmqfbelouittlvhh.supabase.co';
         const supabaseKey = 'sb_publishable_SYpOip4dUTH0yT6MNUYF6A_94uy9Snd';
         
-        let supabase;
-        try {
-            // Check if global supabase object exists from the CDN script
-            if (window.supabase && window.supabase.createClient) {
-                supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-            } else {
-                console.warn("Supabase library not loaded. Status features disabled.");
-                // Fallback mock client so app doesn't crash if offline/blocked
-                supabase = {
-                    from: () => ({ select: async () => ({ data: [] }), upsert: async () => ({ error: 'Supabase offline' }) }),
-                    channel: () => ({ on: () => ({ subscribe: () => {} }) }),
-                    removeChannel: () => {}
-                };
-            }
-        } catch (e) {
-            console.error("Supabase init error", e);
-            supabase = {
-                from: () => ({ select: async () => ({ data: [] }), upsert: async () => ({ error: 'Init error' }) }),
+        const getSupabase = () => {
+            try {
+                if (window.supabase && window.supabase.createClient) {
+                    return window.supabase.createClient(supabaseUrl, supabaseKey);
+                }
+            } catch (e) { console.error("Supabase init error", e); }
+            
+            // Return a "Dummy" client if real one fails, so buttons don't crash app
+            return {
+                from: () => ({ select: async () => ({ data: [] }), upsert: async () => ({ error: 'Offline mode' }) }),
                 channel: () => ({ on: () => ({ subscribe: () => {} }) }),
                 removeChannel: () => {}
             };
-        }
+        };
+        const supabase = getSupabase();
         // -------------------------------------
 
         const ICONS = {
