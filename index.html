@@ -664,7 +664,7 @@
             const sharedId = params.get('id');
             const [targetId, setTargetId] = useState(sharedId);
 
-            // --- BREADCRUMB LOGIC ---
+            // --- BREADCRUMB LOGIC (Aggressive OSRM) ---
             useEffect(() => {
                 if (!mapInstanceRef.current || !selectedLoc || !userPos) {
                     if (routeLayerRef.current) {
@@ -675,8 +675,9 @@
                 }
 
                 const dist = calculateDistance(userPos[0], userPos[1], selectedLoc.lat, selectedLoc.lon);
-                // Only draw if within 2km
-                if (dist.km > 2) {
+                
+                // 1. Sanity Check: Don't route if > 5km (waste of bandwidth)
+                if (dist.km > 5) {
                     if (routeLayerRef.current) {
                         mapInstanceRef.current.removeLayer(routeLayerRef.current);
                         routeLayerRef.current = null;
@@ -684,25 +685,47 @@
                     return;
                 }
 
-                // Fetch OSRM route
-                fetch(`https://router.project-osrm.org/route/v1/foot/${userPos[1]},${userPos[0]};${selectedLoc.lon},${selectedLoc.lat}?overview=full&geometries=geojson`)
+                // 2. Aggressive API Call
+                // - alternatives=true: Ask for up to 3 paths.
+                // - continue_straight=false: Allows sharp turns (common in parks/malls).
+                // - overview=full: Maximum detail.
+                const url = `https://router.project-osrm.org/route/v1/foot/${userPos[1]},${userPos[0]};${selectedLoc.lon},${selectedLoc.lat}?overview=full&geometries=geojson&alternatives=true&continue_straight=false`;
+
+                fetch(url)
                     .then(res => res.json())
                     .then(data => {
-                        if (!data.routes || data.routes.length === 0) return;
-                        
-                        // OSRM returns [lon, lat], Leaflet needs [lat, lon]
-                        const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                        let bestRoute = null;
+
+                        if (data.routes && data.routes.length > 0) {
+                            // 3. AGGRESSIVE SORTING:
+                            // Ignore OSRM's "duration" recommendation. 
+                            // Pick the absolute shortest distance (usually the direct path through a park/mall).
+                            bestRoute = data.routes.sort((a, b) => a.distance - b.distance)[0];
+                        }
+
+                        // Fallback: If OSRM fails (e.g., inside a building with no mapped path),
+                        // create a straight line so the user still has a heading.
+                        const coords = bestRoute 
+                            ? bestRoute.geometry.coordinates.map(c => [c[1], c[0]]) 
+                            : [[userPos[0], userPos[1]], [selectedLoc.lat, selectedLoc.lon]];
 
                         if (routeLayerRef.current) {
                             mapInstanceRef.current.removeLayer(routeLayerRef.current);
                         }
 
                         routeLayerRef.current = L.polyline(coords, {
-                            className: 'marching-ants', // Add the animation class
-                            interactive: false
+                            className: 'marching-ants', // Uses your CSS animation
+                            interactive: false,
+                            opacity: 0.8,
+                            weight: 5
                         }).addTo(mapInstanceRef.current);
                     })
-                    .catch(err => console.error("Routing failed", err));
+                    .catch(err => {
+                        // Fallback on error (e.g. server busy): Draw straight line
+                        const coords = [[userPos[0], userPos[1]], [selectedLoc.lat, selectedLoc.lon]];
+                        if (routeLayerRef.current) mapInstanceRef.current.removeLayer(routeLayerRef.current);
+                        routeLayerRef.current = L.polyline(coords, { className: 'marching-ants', interactive: false }).addTo(mapInstanceRef.current);
+                    });
 
             }, [selectedLoc, userPos]); 
 
