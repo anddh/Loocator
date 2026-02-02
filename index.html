@@ -65,7 +65,7 @@
     <script crossorigin src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-C5W3F59SDX"></script>
     <script>
@@ -105,22 +105,6 @@
             to { stroke-dashoffset: -24; }
         }
         
-        .user-beam {
-            position: absolute;
-            top: -90px;  
-            left: -40px; 
-            width: 100px;
-            height: 100px;
-            background: radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.4), transparent 70%);
-            transform-origin: 50% 100%; 
-            clip-path: polygon(0 0, 100% 0, 50% 100%); 
-            pointer-events: none;
-            z-index: -1;
-            transition: transform 0.1s linear; 
-            display: none;
-        }
-
-        @media (prefers-color-scheme: dark) { .user-pin-ring { background-color: #a1a1aa; } .user-pin-dot { border-color: #a1a1aa; } }
         @keyframes pulse-ring { 0% { transform: scale(0.33); opacity: 1; } 80%, 100% { opacity: 0; } }
         @keyframes pulse-dot { 0% { transform: scale(0.8); } 50% { transform: scale(1); } 100% { transform: scale(0.8); } }
         .safe-pt { padding-top: env(safe-area-inset-top); }
@@ -141,17 +125,19 @@
         const html = htm.bind(React.createElement);
         const { useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } = React;
 
-        // --- GLOBAL SUPABASE INIT (Fault Tolerant) ---
+        // --- SAFE SUPABASE INITIALIZATION ---
         const SB_URL = 'https://jnjovmqfbelouittlvhh.supabase.co';
         const SB_KEY = 'sb_publishable_SYpOip4dUTH0yT6MNUYF6A_94uy9Snd';
+        
         let supabaseClient = null;
-
         try {
             if (window.supabase) {
                 supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+            } else {
+                console.warn("Supabase script not loaded");
             }
         } catch (e) { console.error("Supabase load failed", e); }
-        // ---------------------------------------------
+        // -------------------------------------
 
         const ICONS = {
             toilet: `<span class="material-symbols-rounded icon-sm">wc</span>`,
@@ -180,7 +166,8 @@
             report: `<span class="material-symbols-rounded icon-sm">flag</span>`,
             share: `<span class="material-symbols-rounded icon-sm">share</span>`, 
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`,
+            alert: `<span class="material-symbols-rounded icon-md">warning</span>`
         };
 
         const TYPE_COLORS = { toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8' };
@@ -229,23 +216,6 @@
             const a = data.address || {};
             return (a.road || a.pedestrian || '') + (a.house_number ? ', ' + a.house_number : '') + (a.suburb ? ' (' + a.suburb + ')' : '');
         };
-
-        // --- NEW TIME HELPER ---
-        const formatTimeAgo = (dateString) => {
-            if (!dateString) return '';
-            const date = new Date(dateString);
-            const now = new Date();
-            const seconds = Math.floor((now - date) / 1000);
-            const minutes = Math.floor(seconds / 60);
-            const hours = Math.floor(minutes / 60);
-            const days = Math.floor(hours / 24);
-
-            if (days > 0) return days === 1 ? 'yesterday' : `${days}d ago`;
-            if (hours > 0) return `${hours}h ago`;
-            if (minutes > 0) return `${minutes}m ago`;
-            return 'just now';
-        };
-        // -----------------------
 
         const triggerHaptic = () => { if (navigator.vibrate) navigator.vibrate(10); };
         const triggerSuccess = () => { if (navigator.vibrate) navigator.vibrate(50); };
@@ -354,14 +324,6 @@
                                 <button onClick=${handleClearCache} class="w-full mt-2 py-2 text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-900/20 rounded-lg uppercase tracking-wider">Clear Storage</button>
                             `}
                         </div>
-
-                        <div class="text-xs text-slate-400 dark:text-zinc-500 space-y-2">
-                            <p>Map Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">OpenStreetMap</a> contributors</p>
-                            <p>Tiles courtesy of <a href="https://carto.com/attributions" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">CARTO</a></p>
-                            <p>Powered by <a href="https://leafletjs.com" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">Leaflet</a> <span aria-label="Ukraine Flag">🇺🇦</span></p>
-                            <p>Data available under ODbL.</p>
-                            <p class="mt-4">© ${new Date().getFullYear()} Loocator</p>
-                        </div>
                     </div>
                 </div>
             </div>`;
@@ -380,7 +342,32 @@
                 </div>`;
         }
 
-        const FilterSheet = forwardRef(({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, accessOnly, setAccessOnly, keyOnly, setKeyOnly, navAppDrive, setNavAppDrive, navAppWalk, setNavAppWalk, clearHistory, onClose, isCamperMode, toggleMode }, ref) => {
+        // --- NEW COMPONENT: CAMPER WARNING MODAL ---
+        const CamperWarningModal = ({ onConfirm, onCancel }) => {
+            const [isClosing, setIsClosing] = useState(false);
+            const handleCancel = () => { setIsClosing(true); setTimeout(onCancel, 200); };
+            const handleConfirm = () => { setIsClosing(true); setTimeout(onConfirm, 200); };
+            return html`
+            <div class="fixed inset-0 z-[1800] flex items-center justify-center p-6">
+                <div class=${`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${handleCancel}></div>
+                <div class=${`bg-white dark:bg-zinc-900 w-full max-w-sm rounded-3xl shadow-2xl p-6 relative ${isClosing ? 'animate-scale-out' : 'animate-scale-in'}`}>
+                    <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mb-4"><span class="material-symbols-rounded text-2xl">warning</span></div>
+                    <h2 class="text-xl font-bold font-brand text-slate-800 dark:text-zinc-100 mb-2">Camper Mode Beta</h2>
+                    <p class="text-slate-500 dark:text-zinc-400 text-sm mb-6 leading-relaxed">
+                        Data comes from OpenStreetMap. Some locations may be inaccessible to large vehicles (narrow lanes, height limits, or canal paths).
+                        <br/><br/>
+                        <strong>Always check signs and verify access visually.</strong>
+                    </p>
+                    <div class="flex gap-3">
+                        <button onClick=${handleCancel} class="flex-1 py-3 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 font-bold rounded-xl">Cancel</button>
+                        <button onClick=${handleConfirm} class="flex-1 py-3 bg-slate-800 dark:bg-zinc-200 text-white dark:text-zinc-900 font-bold rounded-xl">I Understand</button>
+                    </div>
+                </div>
+            </div>`;
+        };
+        // -------------------------------------------
+
+        const FilterSheet = forwardRef(({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, accessOnly, setAccessOnly, keyOnly, setKeyOnly, navAppDrive, setNavAppDrive, navAppWalk, setNavAppWalk, clearHistory, onClose, isCamperMode, handleCamperToggle }, ref) => {
             const [isClosing, setIsClosing] = useState(false);
             const triggerClose = () => { setIsClosing(true); setTimeout(onClose, 300); };
             useImperativeHandle(ref, () => ({ triggerClose }));
@@ -397,7 +384,7 @@
 
                     <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-2 px-1">App Mode</h3>
                     <div class="grid grid-cols-1 gap-2 mb-5">
-                        <${ToggleCard} label="Camper Mode" subtext="Show chemical disposal, showers & tank refill" icon="airport_shuttle" active=${isCamperMode} onClick=${toggleMode} />
+                        <${ToggleCard} label="Camper Mode (Beta)" subtext="Chemical disposal, showers & tank refill" icon="airport_shuttle" active=${isCamperMode} onClick=${handleCamperToggle} />
                     </div>
 
                     <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-2 px-1">Map Filters</h3>
@@ -526,18 +513,8 @@
                                 ${openStatus && openStatus.color && html`<div class=${`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide ${openStatus.color}`}><span class="w-1.5 h-1.5 rounded-full bg-current mr-1.5 animate-pulse"></span>${openStatus.text}</div>`}
                             </div>
                             <h2 class="text-2xl font-brand font-semibold text-slate-800 dark:text-zinc-100 leading-tight">${loc.name}</h2>
-                            ${statusData && statusData.status === 'working' && isVanFacility && html`
-                                <div class="flex items-center gap-1 mt-1 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
-                                    <span class="material-symbols-rounded text-sm">verified</span>
-                                    <span>Verified working ${formatTimeAgo(statusData.last_verified)}</span>
-                                </div>
-                            `}
-                            ${statusData && statusData.status === 'broken' && isVanFacility && html`
-                                <div class="flex items-center gap-1 mt-1 text-rose-500 dark:text-rose-400 text-xs font-bold">
-                                    <span class="material-symbols-rounded text-sm">warning</span>
-                                    <span>Reported broken ${formatTimeAgo(statusData.last_verified)}</span>
-                                </div>
-                            `}
+                            ${statusData && statusData.status === 'working' && isVanFacility && html`<div class="flex items-center gap-1 mt-1 text-emerald-600 dark:text-emerald-400 text-xs font-bold"><span class="material-symbols-rounded text-sm">verified</span> Verified working</div>`}
+                            ${statusData && statusData.status === 'broken' && isVanFacility && html`<div class="flex items-center gap-1 mt-1 text-rose-500 dark:text-rose-400 text-xs font-bold"><span class="material-symbols-rounded text-sm">warning</span> Reported broken</div>`}
                         </div>
                         <div class="mb-5">
                             <div class="flex items-start space-x-2 text-slate-500 dark:text-zinc-400"><div class="w-4 h-4 mt-0.5 shrink-0 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.pin}}></div><p class="text-sm font-medium leading-tight">${address}</p></div>
@@ -661,6 +638,9 @@
             const [showFilters, setShowFilters] = useState(false);
             const [isCamperMode, setIsCamperMode] = useState(localStorage.getItem('loocator_van_mode') === 'true');
             const [statuses, setStatuses] = useState({});
+            const [dbClient, setDbClient] = useState(window.supabaseClient); // Use global
+            const [showCamperAlert, setShowCamperAlert] = useState(false);
+
             
             const [stdFilters, setStdFilters] = useState(() => safeParse('loocator_std_filters', { toilet: true, water: true, baby: true }));
             const [vanFilters, setVanFilters] = useState(() => safeParse('loocator_van_filters', { black: true, grey: true, water: true, shower: true }));
@@ -680,8 +660,10 @@
             const [navAppDrive, setNavAppDriveState] = useState('google');
             const [navAppWalk, setNavAppWalkState] = useState('google');
             const [searchTerm, setSearchTerm] = useState('');
-            const [mapCenter, setMapCenter] = useState([51.505, -0.09]); 
-            const [userPos, setUserPos] = useState([51.505, -0.09]); 
+            // Use Camberley Default
+            const [mapCenter, setMapCenter] = useState([51.3364, -0.7437]); 
+            const [userPos, setUserPos] = useState([51.3364, -0.7437]); 
+            
             const [deferredPrompt, setDeferredPrompt] = useState(null);
             const [searchBounds, setSearchBounds] = useState(null); 
             const [isInstalled, setIsInstalled] = useState(false);
@@ -717,48 +699,56 @@
             const sharedId = params.get('id');
             const [targetId, setTargetId] = useState(sharedId);
 
+            // Re-initialize client if window.supabase loads late
+            useEffect(() => {
+                if (window.supabase && window.supabase.createClient && !dbClient) {
+                    try {
+                        const realClient = window.supabase.createClient(SB_URL, SB_KEY);
+                        setDbClient(realClient);
+                        window.supabaseClient = realClient;
+                    } catch(e) {}
+                }
+            }, []);
+
             // Fetch Statuses logic
             const fetchStatuses = async () => {
-                if(!supabaseClient) return; // Silent fail if offline
-                try {
-                    const { data } = await supabaseClient.from('amenity_status').select('*');
-                    const statusMap = {};
-                    if(data) data.forEach(s => { statusMap[s.id] = s; });
-                    setStatuses(statusMap);
-                } catch(e) { console.warn("Fetch failed"); }
+                if(!dbClient) return; 
+                const { data } = await dbClient.from('amenity_status').select('*');
+                const statusMap = {};
+                if(data) data.forEach(s => { statusMap[s.id] = s; });
+                setStatuses(statusMap);
             };
 
             useEffect(() => {
-                if(!supabaseClient) return;
+                if(!dbClient) return;
                 fetchStatuses();
-                const channel = supabaseClient.channel('status_updates')
+                const channel = dbClient.channel('status_updates')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'amenity_status' }, (payload) => {
                         setStatuses(prev => ({ ...prev, [payload.new.id]: payload.new }));
                     })
                     .subscribe();
-                return () => supabaseClient.removeChannel(channel);
-            }, []);
+                return () => dbClient.removeChannel(channel);
+            }, [dbClient]);
 
             const reportStatus = async (osmId, newStatus) => {
                 triggerHaptic();
-                if (!supabaseClient) {
+                if (!dbClient) {
                     showToast("Offline mode: status not saved.");
                     return;
                 }
-                const { error } = await supabaseClient.from('amenity_status').upsert({ 
+                const { error } = await dbClient.from('amenity_status').upsert({ 
                     id: String(osmId), 
                     status: newStatus, 
                     last_verified: new Date().toISOString() 
                 });
                 if (!error) {
                     showToast(newStatus === 'working' ? "Verified working!" : "Reported as broken");
-                    // Optimistic UI update
                     setStatuses(prev => ({ 
                         ...prev, 
                         [osmId]: { id: String(osmId), status: newStatus, last_verified: new Date().toISOString() } 
                     }));
                 } else {
-                    console.error("Supabase Error:", error);
+                    console.log(error);
                     showToast("Error saving status.");
                 }
             };
@@ -877,7 +867,19 @@
                 setCardMinimized(false);
             };
 
-            const toggleMode = () => { setIsCamperMode(!isCamperMode); };
+            // NEW: Camper Toggle Logic
+            const handleCamperToggle = () => {
+                if (!isCamperMode) {
+                    setShowCamperAlert(true);
+                } else {
+                    setIsCamperMode(false);
+                }
+            };
+            const confirmCamperMode = () => {
+                setShowCamperAlert(false);
+                setIsCamperMode(true);
+            };
+
             const handleFilterClick = () => { if (showFilters) { if (filterSheetRef.current) { filterSheetRef.current.triggerClose(); } } else { closeAllMenus(); setShowFilters(true); } };
             const handleAboutClick = () => { if (showAbout) { setShowAbout(false); } else { closeAllMenus(); setShowAbout(true); } };
             const handleViewToggle = () => { if (view === 'list') { setIsListExiting(true); setTimeout(() => { setIsListExiting(false); setView('map'); }, 300); } else { closeAllMenus(); setView('list'); } };
@@ -911,8 +913,20 @@
                 // Construct optimized query based on mode to allow larger scan area without timeout
                 let queryBody = '';
                 if (isVan) {
-                    // Van mode: Search only dump stations, water, showers. Skip generic toilets to save load.
-                    queryBody = `(nwr["amenity"="sanitary_dump_station"]${queryArea};nwr["amenity"="water_point"]${queryArea};nwr["amenity"="drinking_water"]${queryArea};nwr["amenity"="shower"]${queryArea};);`;
+                    // CAMPER MODE: Targeted, high-quality infrastructure only, EXCLUDING rural/canal trash
+                    queryBody = `(
+                        nwr["amenity"="sanitary_dump_station"]${queryArea};
+                        nwr["amenity"="water_point"]${queryArea};
+                        nwr["amenity"="drinking_water"]["location"="fuel"]${queryArea};
+                        nwr["amenity"="drinking_water"]["access"~"yes|permissive"]${queryArea};
+                        nwr["amenity"="shower"]${queryArea};
+                    ) - (
+                        nwr["waterway"]${queryArea};
+                        nwr["mooring"]${queryArea};
+                        nwr["seamark:type"]${queryArea};
+                        nwr["landuse"~"cemetery|graveyard"]${queryArea};
+                        nwr["amenity"~"grave_yard|place_of_worship"]${queryArea};
+                    );`;
                 } else {
                     // Standard mode: Search toilets, baby change, showers, water.
                     queryBody = `(nwr["amenity"="toilets"]["access"!~"customers|private|no|employees|permit"]${queryArea};nwr["amenity"="drinking_water"]${queryArea};nwr["amenity"="water_point"]${queryArea};nwr["amenity"="shower"]${queryArea};nwr["diaper"]${queryArea};nwr["changing_table"]${queryArea};);`;
@@ -965,7 +979,25 @@
                 const handleMove = () => { if (map.getZoom() < 13) { setZoomWarning(true); setAllLocations([]); markersRef.current.clearLayers(); } else { setZoomWarning(false); setLoading(true); const b = map.getBounds(); setSearchBounds(b); debouncedFetch(b); } }; 
                 map.on('click', () => { if (selectedLocRef.current) { setCardMinimized(!cardMinimizedRef.current); } });
                 map.on('moveend', handleMove); 
-                if (sharedLat) { setLoading(true); debouncedFetch(map.getBounds()); } else { setLoading(true); const findLocation = async () => { let gpsResolved = false; try { const res = await fetch('https://ipapi.co/json/'); if (res.ok) { const data = await res.json(); if (!gpsResolved && data.latitude && data.longitude) { updateUserLocation([data.latitude, data.longitude], 'IP'); } } } catch (e) { console.log('IP Loc failed'); } navigator.geolocation.getCurrentPosition( (pos) => { gpsResolved = true; updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => { console.log('GPS denied'); }, { enableHighAccuracy: true, timeout: 10000 } ); }; findLocation(); }
+                
+                // Active Watching like Google Maps
+                const watchId = navigator.geolocation.watchPosition(
+                    (pos) => {
+                        const coords = [pos.coords.latitude, pos.coords.longitude];
+                        setUserPos(coords);
+                        if(userMarkerRef.current) {
+                            userMarkerRef.current.setLatLng(coords);
+                        } else {
+                             userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div><div class="user-beam" id="user-heading-beam"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current);
+                        }
+                    },
+                    (err) => console.log('GPS Error', err),
+                    { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+                );
+
+                if (sharedLat) { setLoading(true); debouncedFetch(map.getBounds()); } else { setLoading(true); debouncedFetch(map.getBounds()); }
+
+                return () => navigator.geolocation.clearWatch(watchId);
             }, []);
             
             useEffect(() => {
@@ -1096,7 +1128,8 @@
                     ${(view === 'list' || isListExiting) && html`<div class="list-wrapper p-4 pb-24 safe-pb bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">${inAreaLocs.length === 0 && furtherLocs.length === 0 && html`<div class="text-center text-slate-400 dark:text-zinc-600 mt-20"><div class="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-zinc-700 opacity-50 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div><p class="font-brand text-lg">No spots visible.</p></div>`}${inAreaLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} statusData=${statuses[loc.id]} />`)}${furtherLocs.length > 0 && html`<div class="py-4 flex items-center gap-4 animate-stagger-fade" style=${{ animationDelay: '300ms' }}><div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div><span class="text-xs font-bold text-slate-400 dark:text-zinc-600 uppercase tracking-wider">Further Afield</span><div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div></div>${furtherLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i + inAreaLocs.length} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} statusData=${statuses[loc.id]} />`)}`}</div>`}
                 </div>
                 ${!isPickingLocation && !selectedLoc && html`${(gpsStatus !== 'idle' || loading) && html`<div class="absolute right-5 bottom-40 w-14 h-14 bg-white dark:bg-zinc-800 rounded-full shadow-lg z-[1000] flex items-center justify-center animate-pop-in border border-slate-100 dark:border-zinc-700">${(() => { if (gpsStatus === 'success') return html`<div class="w-5 h-5 text-emerald-500 flex items-center justify-center animate-scale-in" dangerouslySetInnerHTML=${{__html: ICONS.check}}></div>`; if (gpsStatus === 'searching') return html`<span class="material-symbols-rounded animate-pulse-fast text-sky-500 text-xl">my_location</span>`; if (loading) return html`<div class="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>`; return null; })()}</div>`}<button onClick=${() => { triggerHaptic(); closeAllMenus(); setIsPickingLocation(true); if (mapInstanceRef.current.getZoom() < 18) mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18); }} class="absolute right-5 w-14 h-14 bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-full shadow-lg flex items-center justify-center z-[1000] active:scale-90 transition-all bottom-24" dangerouslySetInnerHTML=${{__html: ICONS.plus}}></button><button onClick=${handleGPS} class="absolute right-5 w-14 h-14 bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all bottom-8" dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>`}
-                ${showFilters && html`<${FilterSheet} ref=${filterSheetRef} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navAppDrive=${navAppDrive} setNavAppDrive=${setNavAppDrive} navAppWalk=${navAppWalk} setNavAppWalk=${setNavAppWalk} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} isCamperMode=${isCamperMode} toggleMode=${toggleMode} />`}
+                ${showFilters && html`<${FilterSheet} ref=${filterSheetRef} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navAppDrive=${navAppDrive} setNavAppDrive=${setNavAppDrive} navAppWalk=${navAppWalk} setNavAppWalk=${setNavAppWalk} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} isCamperMode=${isCamperMode} toggleMode=${handleCamperToggle} />`}
+                ${showCamperAlert && html`<${CamperWarningModal} onConfirm=${confirmCamperMode} onCancel=${() => setShowCamperAlert(false)} />`}
                 ${showAbout && html`<${AboutModal} onClose=${() => setShowAbout(false)} onShowToast=${showToast} />`}
                 ${showContribute && contributeCoords && html`<${ContributeSheet} lat=${contributeCoords.lat} lon=${contributeCoords.lon} onClose=${() => setShowContribute(false)} onShowToast=${showToast} />`}
                 ${showCorrection && correctionData && html`<${ContributeSheet} lat=${correctionData.lat} lon=${correctionData.lon} isCorrection=${true} correctionId=${correctionData.id} correctionName=${correctionData.name} onClose=${() => setShowCorrection(false)} onShowToast=${showToast} />`}
