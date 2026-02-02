@@ -65,7 +65,7 @@
     <script crossorigin src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-C5W3F59SDX"></script>
     <script>
@@ -105,6 +105,22 @@
             to { stroke-dashoffset: -24; }
         }
         
+        .user-beam {
+            position: absolute;
+            top: -90px;  
+            left: -40px; 
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.4), transparent 70%);
+            transform-origin: 50% 100%; 
+            clip-path: polygon(0 0, 100% 0, 50% 100%); 
+            pointer-events: none;
+            z-index: -1;
+            transition: transform 0.1s linear; 
+            display: none;
+        }
+
+        @media (prefers-color-scheme: dark) { .user-pin-ring { background-color: #a1a1aa; } .user-pin-dot { border-color: #a1a1aa; } }
         @keyframes pulse-ring { 0% { transform: scale(0.33); opacity: 1; } 80%, 100% { opacity: 0; } }
         @keyframes pulse-dot { 0% { transform: scale(0.8); } 50% { transform: scale(1); } 100% { transform: scale(0.8); } }
         .safe-pt { padding-top: env(safe-area-inset-top); }
@@ -125,16 +141,14 @@
         const html = htm.bind(React.createElement);
         const { useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } = React;
 
-        // --- GLOBAL SUPABASE INIT ---
+        // --- GLOBAL SUPABASE INIT (Fault Tolerant) ---
         const SB_URL = 'https://jnjovmqfbelouittlvhh.supabase.co';
         const SB_KEY = 'sb_publishable_SYpOip4dUTH0yT6MNUYF6A_94uy9Snd';
-        
-        window.supabaseClient = null;
+        let supabaseClient = null;
+
         try {
             if (window.supabase) {
-                window.supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
-            } else {
-                console.warn("Supabase script pending...");
+                supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
             }
         } catch (e) { console.error("Supabase load failed", e); }
         // ---------------------------------------------
@@ -216,6 +230,23 @@
             return (a.road || a.pedestrian || '') + (a.house_number ? ', ' + a.house_number : '') + (a.suburb ? ' (' + a.suburb + ')' : '');
         };
 
+        // --- NEW TIME HELPER ---
+        const formatTimeAgo = (dateString) => {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            const now = new Date();
+            const seconds = Math.floor((now - date) / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+
+            if (days > 0) return days === 1 ? 'yesterday' : `${days}d ago`;
+            if (hours > 0) return `${hours}h ago`;
+            if (minutes > 0) return `${minutes}m ago`;
+            return 'just now';
+        };
+        // -----------------------
+
         const triggerHaptic = () => { if (navigator.vibrate) navigator.vibrate(10); };
         const triggerSuccess = () => { if (navigator.vibrate) navigator.vibrate(50); };
 
@@ -226,22 +257,6 @@
                 clearTimeout(timeout);
                 timeout = setTimeout(later, wait);
             };
-        }
-
-        function timeAgo(dateParam) {
-            if (!dateParam) return null;
-            const date = typeof dateParam === 'object' ? dateParam : new Date(dateParam);
-            const today = new Date();
-            const seconds = Math.round((today - date) / 1000);
-            const minutes = Math.round(seconds / 60);
-            const hours = Math.round(minutes / 60);
-            const days = Math.round(hours / 24);
-
-            if (seconds < 60) return 'Just now';
-            else if (minutes < 60) return `${minutes}m ago`;
-            else if (hours < 24) return `${hours}h ago`;
-            else if (days < 7) return `${days}d ago`;
-            else return 'A while ago';
         }
 
         function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -316,65 +331,41 @@
             return html`
             <div class="fixed inset-0 z-[2000] flex items-center justify-center p-4">
                 <div class=${`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${handleClose}></div>
-                <div class=${`bg-white dark:bg-zinc-900 w-full max-w-sm rounded-3xl shadow-2xl p-6 relative ${isClosing ? 'animate-scale-out' : 'animate-scale-in'} max-h-[85vh] overflow-y-auto`}>
+                <div class=${`bg-white dark:bg-zinc-900 w-full max-w-sm rounded-3xl shadow-2xl p-6 relative ${isClosing ? 'animate-scale-out' : 'animate-scale-in'}`}>
                     <button onClick=${handleClose} class="absolute top-4 right-4 p-2 bg-slate-50 dark:bg-zinc-800 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 transition-colors"><div class="w-5 h-5 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.x}}></div></button>
-                    
                     <div class="text-center mb-6">
-                        <div class="inline-block w-20 h-20 rounded-3xl bg-slate-100 dark:bg-zinc-800 mb-3 shadow-sm overflow-hidden"><img src="icon.png" class="w-full h-full object-cover" alt="Loocator" /></div>
+                        <div class="inline-block w-24 h-24 rounded-3xl bg-slate-100 dark:bg-zinc-800 mb-4 shadow-sm overflow-hidden"><img src="icon.png" class="w-full h-full object-cover" alt="Loocator" /></div>
                         <h2 class="text-2xl font-bold font-brand text-slate-800 dark:text-zinc-100">Loocator</h2>
-                        <p class="text-slate-500 dark:text-zinc-400 text-xs font-bold uppercase tracking-wider mt-1">Version 0.2.12</p>
+                        <p class="text-slate-500 dark:text-zinc-400 text-sm mt-1">v0.2.7</p>
                     </div>
-
-                    <div class="space-y-6">
-                        <div>
-                            <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-2">Storage</h3>
-                            <div class="bg-slate-50 dark:bg-zinc-800 p-3 rounded-xl border border-slate-100 dark:border-zinc-700">
-                                <div class="flex justify-between items-center px-2 py-1">
-                                    <span class="text-xs text-slate-500 dark:text-zinc-400">Offline Addresses</span>
-                                    <span class="text-xs font-bold text-slate-700 dark:text-zinc-200">${counts.addr}</span>
-                                </div>
-                                <div class="flex justify-between items-center px-2 py-1">
-                                    <span class="text-xs text-slate-500 dark:text-zinc-400">Map Tiles Cached</span>
-                                    <span class="text-xs font-bold text-slate-700 dark:text-zinc-200">${counts.map}</span>
-                                </div>
-                                ${(counts.addr > 0 || counts.map > 0) && html`
-                                    <button onClick=${handleClearCache} class="w-full mt-3 py-2 text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-900/20 rounded-lg uppercase tracking-wider hover:bg-rose-100 transition-colors">Clear Storage</button>
-                                `}
+                    <div class="space-y-4 text-center">
+                        <div class="bg-slate-50 dark:bg-zinc-800 p-4 rounded-xl border border-slate-100 dark:border-zinc-700"><p class="text-slate-600 dark:text-zinc-300 font-medium text-sm">Made with love in Tenerife + England ❤️</p></div>
+                        
+                        <div class="bg-slate-50 dark:bg-zinc-800 p-3 rounded-xl border border-slate-100 dark:border-zinc-700 space-y-2">
+                            <div class="flex justify-between items-center px-2">
+                                <span class="text-xs text-slate-500 dark:text-zinc-400">Offline Addresses</span>
+                                <span class="text-xs font-bold text-slate-700 dark:text-zinc-200">${counts.addr}</span>
                             </div>
+                            <div class="flex justify-between items-center px-2">
+                                <span class="text-xs text-slate-500 dark:text-zinc-400">Map Tiles Cached</span>
+                                <span class="text-xs font-bold text-slate-700 dark:text-zinc-200">${counts.map}</span>
+                            </div>
+                            ${(counts.addr > 0 || counts.map > 0) && html`
+                                <button onClick=${handleClearCache} class="w-full mt-2 py-2 text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-900/20 rounded-lg uppercase tracking-wider">Clear Storage</button>
+                            `}
                         </div>
 
-                        <div class="text-[10px] text-slate-400 dark:text-zinc-600 text-center space-y-1">
-                            <p>Map Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" class="underline">OpenStreetMap</a></p>
-                            <p>Tiles courtesy of <a href="https://carto.com/attributions" target="_blank" class="underline">CARTO</a></p>
-                            <p>© ${new Date().getFullYear()} Loocator</p>
+                        <div class="text-xs text-slate-400 dark:text-zinc-500 space-y-2">
+                            <p>Map Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">OpenStreetMap</a> contributors</p>
+                            <p>Tiles courtesy of <a href="https://carto.com/attributions" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">CARTO</a></p>
+                            <p>Powered by <a href="https://leafletjs.com" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">Leaflet</a> <span aria-label="Ukraine Flag">🇺🇦</span></p>
+                            <p>Data available under ODbL.</p>
+                            <p class="mt-4">© ${new Date().getFullYear()} Loocator</p>
                         </div>
                     </div>
                 </div>
             </div>`;
         }
-
-        const CamperWarningModal = ({ onConfirm, onCancel }) => {
-            const [isClosing, setIsClosing] = useState(false);
-            const handleCancel = () => { setIsClosing(true); setTimeout(onCancel, 200); };
-            const handleConfirm = () => { setIsClosing(true); setTimeout(onConfirm, 200); };
-            return html`
-            <div class="fixed inset-0 z-[2500] flex items-center justify-center p-6">
-                <div class=${`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${handleCancel}></div>
-                <div class=${`bg-rose-50 dark:bg-rose-950 w-full max-w-sm rounded-3xl shadow-2xl p-6 relative border-2 border-rose-100 dark:border-rose-900 ${isClosing ? 'animate-scale-out' : 'animate-scale-in'}`}>
-                    <div class="w-12 h-12 bg-rose-200 dark:bg-rose-900 text-rose-700 dark:text-rose-200 rounded-full flex items-center justify-center mb-4"><span class="material-symbols-rounded text-2xl">warning</span></div>
-                    <h2 class="text-xl font-bold font-brand text-rose-900 dark:text-rose-100 mb-2">Camper Mode (Beta)</h2>
-                    <p class="text-rose-800 dark:text-rose-200/80 text-sm mb-6 leading-relaxed font-medium">
-                        This data is community-sourced. Some locations may be inaccessible to large vehicles due to narrow lanes, height barriers, or canal paths.
-                        <br/><br/>
-                        <strong>Always check signs and verify access visually.</strong>
-                    </p>
-                    <div class="flex gap-3">
-                        <button onClick=${handleCancel} class="flex-1 py-3 bg-white/50 dark:bg-black/20 text-rose-900 dark:text-rose-200 font-bold rounded-xl hover:bg-white/80 transition-colors">Cancel</button>
-                        <button onClick=${handleConfirm} class="flex-1 py-3 bg-rose-600 dark:bg-rose-600 text-white font-bold rounded-xl shadow-lg hover:bg-rose-700 transition-transform active:scale-95">I Understand</button>
-                    </div>
-                </div>
-            </div>`;
-        };
 
         const ToggleCard = ({ label, subtext, icon, active, onClick, color }) => {
             const activeClass = active ? 'bg-slate-800 text-white border-slate-800 dark:bg-zinc-600 dark:border-zinc-500 transform' : 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transform';
@@ -406,7 +397,7 @@
 
                     <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-2 px-1">App Mode</h3>
                     <div class="grid grid-cols-1 gap-2 mb-5">
-                        <${ToggleCard} label="Camper Mode (Beta)" subtext="Show chemical disposal, showers & tank refill" icon="airport_shuttle" active=${isCamperMode} onClick=${toggleMode} />
+                        <${ToggleCard} label="Camper Mode" subtext="Show chemical disposal, showers & tank refill" icon="airport_shuttle" active=${isCamperMode} onClick=${toggleMode} />
                     </div>
 
                     <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-2 px-1">Map Filters</h3>
@@ -515,9 +506,11 @@
             const contentClass = `transition-opacity duration-300 ${minimized ? 'opacity-0 pointer-events-none' : 'opacity-100 delay-100'}`;
             
             const openStatus = checkOpeningStatus(loc.tags.opening_hours);
-            const verifiedTime = statusData ? timeAgo(statusData.last_verified) : '';
 
+            // FIX: Disable slide-up animation if card is minimized on mount
             const animClass = isClosing ? 'animate-slide-down-card' : (minimized ? '' : (animationFinished ? '' : 'animate-slide-up-card'));
+
+            // Show status buttons for van-specific types: Black/Grey disposal, Water, Showers
             const isVanFacility = loc.isBlack || loc.isGrey || loc.isWater || loc.hasShower;
 
             return html`
@@ -533,8 +526,18 @@
                                 ${openStatus && openStatus.color && html`<div class=${`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide ${openStatus.color}`}><span class="w-1.5 h-1.5 rounded-full bg-current mr-1.5 animate-pulse"></span>${openStatus.text}</div>`}
                             </div>
                             <h2 class="text-2xl font-brand font-semibold text-slate-800 dark:text-zinc-100 leading-tight">${loc.name}</h2>
-                            ${statusData && statusData.status === 'working' && isVanFacility && html`<div class="flex items-center gap-1 mt-1 text-emerald-600 dark:text-emerald-400 text-xs font-bold"><span class="material-symbols-rounded text-sm">verified</span> Verified working ${verifiedTime ? '• ' + verifiedTime : ''}</div>`}
-                            ${statusData && statusData.status === 'broken' && isVanFacility && html`<div class="flex items-center gap-1 mt-1 text-rose-500 dark:text-rose-400 text-xs font-bold"><span class="material-symbols-rounded text-sm">warning</span> Reported broken ${verifiedTime ? '• ' + verifiedTime : ''}</div>`}
+                            ${statusData && statusData.status === 'working' && isVanFacility && html`
+                                <div class="flex items-center gap-1 mt-1 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+                                    <span class="material-symbols-rounded text-sm">verified</span>
+                                    <span>Verified working ${formatTimeAgo(statusData.last_verified)}</span>
+                                </div>
+                            `}
+                            ${statusData && statusData.status === 'broken' && isVanFacility && html`
+                                <div class="flex items-center gap-1 mt-1 text-rose-500 dark:text-rose-400 text-xs font-bold">
+                                    <span class="material-symbols-rounded text-sm">warning</span>
+                                    <span>Reported broken ${formatTimeAgo(statusData.last_verified)}</span>
+                                </div>
+                            `}
                         </div>
                         <div class="mb-5">
                             <div class="flex items-start space-x-2 text-slate-500 dark:text-zinc-400"><div class="w-4 h-4 mt-0.5 shrink-0 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.pin}}></div><p class="text-sm font-medium leading-tight">${address}</p></div>
@@ -658,11 +661,6 @@
             const [showFilters, setShowFilters] = useState(false);
             const [isCamperMode, setIsCamperMode] = useState(localStorage.getItem('loocator_van_mode') === 'true');
             const [statuses, setStatuses] = useState({});
-            const [dbClient, setDbClient] = useState(window.supabaseClient); // Use global
-            const [showCamperAlert, setShowCamperAlert] = useState(false);
-            // 1. ADDED: Ref to track if we have already auto-zoomed to the user
-            const hasZoomedToUser = useRef(false);
-
             
             const [stdFilters, setStdFilters] = useState(() => safeParse('loocator_std_filters', { toilet: true, water: true, baby: true }));
             const [vanFilters, setVanFilters] = useState(() => safeParse('loocator_van_filters', { black: true, grey: true, water: true, shower: true }));
@@ -682,10 +680,8 @@
             const [navAppDrive, setNavAppDriveState] = useState('google');
             const [navAppWalk, setNavAppWalkState] = useState('google');
             const [searchTerm, setSearchTerm] = useState('');
-            // Use Camberley Default
-            const [mapCenter, setMapCenter] = useState([51.3364, -0.7437]); 
-            const [userPos, setUserPos] = useState([51.3364, -0.7437]); 
-            
+            const [mapCenter, setMapCenter] = useState([51.505, -0.09]); 
+            const [userPos, setUserPos] = useState([51.505, -0.09]); 
             const [deferredPrompt, setDeferredPrompt] = useState(null);
             const [searchBounds, setSearchBounds] = useState(null); 
             const [isInstalled, setIsInstalled] = useState(false);
@@ -721,56 +717,48 @@
             const sharedId = params.get('id');
             const [targetId, setTargetId] = useState(sharedId);
 
-            // Re-initialize client if window.supabase loads late
-            useEffect(() => {
-                if (window.supabase && window.supabase.createClient && !dbClient) {
-                    try {
-                        const realClient = window.supabase.createClient(SB_URL, SB_KEY);
-                        setDbClient(realClient);
-                        window.supabaseClient = realClient;
-                    } catch(e) {}
-                }
-            }, []);
-
             // Fetch Statuses logic
             const fetchStatuses = async () => {
-                if(!dbClient) return; 
-                const { data } = await dbClient.from('amenity_status').select('*');
-                const statusMap = {};
-                if(data) data.forEach(s => { statusMap[s.id] = s; });
-                setStatuses(statusMap);
+                if(!supabaseClient) return; // Silent fail if offline
+                try {
+                    const { data } = await supabaseClient.from('amenity_status').select('*');
+                    const statusMap = {};
+                    if(data) data.forEach(s => { statusMap[s.id] = s; });
+                    setStatuses(statusMap);
+                } catch(e) { console.warn("Fetch failed"); }
             };
 
             useEffect(() => {
-                if(!dbClient) return;
+                if(!supabaseClient) return;
                 fetchStatuses();
-                const channel = dbClient.channel('status_updates')
+                const channel = supabaseClient.channel('status_updates')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'amenity_status' }, (payload) => {
                         setStatuses(prev => ({ ...prev, [payload.new.id]: payload.new }));
                     })
                     .subscribe();
-                return () => dbClient.removeChannel(channel);
-            }, [dbClient]);
+                return () => supabaseClient.removeChannel(channel);
+            }, []);
 
             const reportStatus = async (osmId, newStatus) => {
                 triggerHaptic();
-                if (!dbClient) {
+                if (!supabaseClient) {
                     showToast("Offline mode: status not saved.");
                     return;
                 }
-                const { error } = await dbClient.from('amenity_status').upsert({ 
+                const { error } = await supabaseClient.from('amenity_status').upsert({ 
                     id: String(osmId), 
                     status: newStatus, 
                     last_verified: new Date().toISOString() 
                 });
                 if (!error) {
                     showToast(newStatus === 'working' ? "Verified working!" : "Reported as broken");
+                    // Optimistic UI update
                     setStatuses(prev => ({ 
                         ...prev, 
                         [osmId]: { id: String(osmId), status: newStatus, last_verified: new Date().toISOString() } 
                     }));
                 } else {
-                    console.log(error);
+                    console.error("Supabase Error:", error);
                     showToast("Error saving status.");
                 }
             };
@@ -889,35 +877,13 @@
                 setCardMinimized(false);
             };
 
-            // NEW: Camper Toggle Logic
-            const handleCamperToggle = () => {
-                if (!isCamperMode) {
-                    setShowCamperAlert(true);
-                } else {
-                    setIsCamperMode(false);
-                }
-            };
-            const confirmCamperMode = () => {
-                setShowCamperAlert(false);
-                setIsCamperMode(true);
-            };
-
+            const toggleMode = () => { setIsCamperMode(!isCamperMode); };
             const handleFilterClick = () => { if (showFilters) { if (filterSheetRef.current) { filterSheetRef.current.triggerClose(); } } else { closeAllMenus(); setShowFilters(true); } };
             const handleAboutClick = () => { if (showAbout) { setShowAbout(false); } else { closeAllMenus(); setShowAbout(true); } };
             const handleViewToggle = () => { if (view === 'list') { setIsListExiting(true); setTimeout(() => { setIsListExiting(false); setView('map'); }, 300); } else { closeAllMenus(); setView('list'); } };
             const handleViewChange = () => { closeAllMenus(); setView('list'); }
 
-            const visibleLocations = useMemo(() => { return allLocations.filter(loc => { if (freeOnly && (loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no'))) return false; if (bottleOnly && loc.isWater && !loc.isToilet && !loc.hasBaby) { if (loc.tags.amenity !== 'drinking_water' && loc.tags.bottle !== 'yes') return false; } if (accessOnly) { const w = loc.tags.wheelchair; if (w !== 'yes' && w !== 'limited' && w !== 'designated') return false; } if (keyOnly) { const radar = loc.tags.radar_key; const central = loc.tags.centralkey; if (radar !== 'yes' && !central) return false; } 
-                // Enhanced Camper Filtering (Client-side)
-                if (isCamperMode) {
-                    // Hide anything specifically tagged as a waterway or cemetery
-                    if (loc.tags.waterway || loc.tags.mooring || loc.tags.landuse === 'cemetery' || loc.tags.amenity === 'grave_yard') return false;
-                    
-                    return (vanFilters.black && loc.isBlack) || (vanFilters.grey && loc.isGrey) || (vanFilters.water && loc.isWater) || (vanFilters.shower && loc.hasShower);
-                } else {
-                    return (stdFilters.toilet && loc.isToilet) || (stdFilters.water && loc.isWater) || (stdFilters.baby && loc.hasBaby);
-                }
-            }).map(loc => { let displayType = loc.baseType; if (isCamperMode) { if (vanFilters.black && loc.isBlack) displayType = 'black'; else if (vanFilters.grey && loc.isGrey) displayType = 'grey'; else if (vanFilters.shower && loc.hasShower) displayType = 'shower'; else if (vanFilters.water && loc.isWater) displayType = 'water'; } else if (stdFilters.baby && loc.hasBaby && !stdFilters.toilet) displayType = 'baby'; return { ...loc, displayType }; }).sort((a, b) => calculateDistance(userPos[0], userPos[1], a.lat, a.lon).km - calculateDistance(userPos[0], userPos[1], b.lat, b.lon).km); }, [allLocations, isCamperMode, stdFilters, vanFilters, userPos, freeOnly, bottleOnly, accessOnly, keyOnly]);
+            const visibleLocations = useMemo(() => { return allLocations.filter(loc => { if (freeOnly && (loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no'))) return false; if (bottleOnly && loc.isWater && !loc.isToilet && !loc.hasBaby) { if (loc.tags.amenity !== 'drinking_water' && loc.tags.bottle !== 'yes') return false; } if (accessOnly) { const w = loc.tags.wheelchair; if (w !== 'yes' && w !== 'limited' && w !== 'designated') return false; } if (keyOnly) { const radar = loc.tags.radar_key; const central = loc.tags.centralkey; if (radar !== 'yes' && !central) return false; } return isCamperMode ? (vanFilters.black && loc.isBlack) || (vanFilters.grey && loc.isGrey) || (vanFilters.water && loc.isWater) || (vanFilters.shower && loc.hasShower) : (stdFilters.toilet && loc.isToilet) || (stdFilters.water && loc.isWater) || (stdFilters.baby && loc.hasBaby); }).map(loc => { let displayType = loc.baseType; if (isCamperMode) { if (vanFilters.black && loc.isBlack) displayType = 'black'; else if (vanFilters.grey && loc.isGrey) displayType = 'grey'; else if (vanFilters.shower && loc.hasShower) displayType = 'shower'; else if (vanFilters.water && loc.isWater) displayType = 'water'; } else if (stdFilters.baby && loc.hasBaby && !stdFilters.toilet) displayType = 'baby'; return { ...loc, displayType }; }).sort((a, b) => calculateDistance(userPos[0], userPos[1], a.lat, a.lon).km - calculateDistance(userPos[0], userPos[1], b.lat, b.lon).km); }, [allLocations, isCamperMode, stdFilters, vanFilters, userPos, freeOnly, bottleOnly, accessOnly, keyOnly]);
             const [inAreaLocs, furtherLocs] = useMemo(() => { if (!searchBounds) return [visibleLocations, []]; const inArea = []; const further = []; visibleLocations.forEach(loc => { if (searchBounds.contains([loc.lat, loc.lon])) { inArea.push(loc); } else { further.push(loc); } }); return [inArea, further]; }, [visibleLocations, searchBounds]);
             const showListHint = !loading && view === 'map' && visibleLocations.length > 0 && inAreaLocs.length === 0;
 
@@ -945,14 +911,8 @@
                 // Construct optimized query based on mode to allow larger scan area without timeout
                 let queryBody = '';
                 if (isVan) {
-                    // CAMPER MODE: Targeted, high-quality infrastructure only, EXCLUDING rural/canal trash
-                    // Simplified for reliability: Get everything, filter in JS
-                    queryBody = `(
-                        nwr["amenity"="sanitary_dump_station"]${queryArea};
-                        nwr["amenity"="water_point"]${queryArea};
-                        nwr["amenity"="drinking_water"]${queryArea};
-                        nwr["amenity"="shower"]${queryArea};
-                    );`;
+                    // Van mode: Search only dump stations, water, showers. Skip generic toilets to save load.
+                    queryBody = `(nwr["amenity"="sanitary_dump_station"]${queryArea};nwr["amenity"="water_point"]${queryArea};nwr["amenity"="drinking_water"]${queryArea};nwr["amenity"="shower"]${queryArea};);`;
                 } else {
                     // Standard mode: Search toilets, baby change, showers, water.
                     queryBody = `(nwr["amenity"="toilets"]["access"!~"customers|private|no|employees|permit"]${queryArea};nwr["amenity"="drinking_water"]${queryArea};nwr["amenity"="water_point"]${queryArea};nwr["amenity"="shower"]${queryArea};nwr["diaper"]${queryArea};nwr["changing_table"]${queryArea};);`;
@@ -1005,33 +965,7 @@
                 const handleMove = () => { if (map.getZoom() < 13) { setZoomWarning(true); setAllLocations([]); markersRef.current.clearLayers(); } else { setZoomWarning(false); setLoading(true); const b = map.getBounds(); setSearchBounds(b); debouncedFetch(b); } }; 
                 map.on('click', () => { if (selectedLocRef.current) { setCardMinimized(!cardMinimizedRef.current); } });
                 map.on('moveend', handleMove); 
-                
-                // Active Watching like Google Maps
-                const watchId = navigator.geolocation.watchPosition(
-                    (pos) => {
-                        const coords = [pos.coords.latitude, pos.coords.longitude];
-                        setUserPos(coords);
-                        setGpsStatus('success');
-
-                        // 2. UPDATED: Only flyTo user once, on the very first GPS fix
-                        if (!hasZoomedToUser.current && mapInstanceRef.current) {
-                            mapInstanceRef.current.flyTo(coords, 17, { animate: true, duration: 1.5 });
-                            hasZoomedToUser.current = true; // Prevents subsequent auto-zooms
-                        }
-
-                        if(userMarkerRef.current) {
-                            userMarkerRef.current.setLatLng(coords);
-                        } else {
-                             userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div><div class="user-beam" id="user-heading-beam"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current);
-                        }
-                    },
-                    (err) => console.log('GPS Error', err),
-                    { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-                );
-
-                if (sharedLat) { setLoading(true); debouncedFetch(map.getBounds()); } else { setLoading(true); debouncedFetch(map.getBounds()); }
-
-                return () => navigator.geolocation.clearWatch(watchId);
+                if (sharedLat) { setLoading(true); debouncedFetch(map.getBounds()); } else { setLoading(true); const findLocation = async () => { let gpsResolved = false; try { const res = await fetch('https://ipapi.co/json/'); if (res.ok) { const data = await res.json(); if (!gpsResolved && data.latitude && data.longitude) { updateUserLocation([data.latitude, data.longitude], 'IP'); } } } catch (e) { console.log('IP Loc failed'); } navigator.geolocation.getCurrentPosition( (pos) => { gpsResolved = true; updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => { console.log('GPS denied'); }, { enableHighAccuracy: true, timeout: 10000 } ); }; findLocation(); }
             }, []);
             
             useEffect(() => {
@@ -1128,10 +1062,7 @@
             return html`
                 <div class="bg-white/95 dark:bg-zinc-900/95 backdrop-blur z-[1700] shadow-sm safe-pt transition-colors duration-300">
                     <div class="flex items-center justify-between px-5 pt-4 pb-2">
-                        <h1 onClick=${handleAboutClick} class="text-2xl font-brand font-semibold text-slate-700 dark:text-zinc-100 tracking-tight cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors flex items-center">
-                            Loocator
-                            ${isCamperMode && html`<span class="ml-2 bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-md font-bold tracking-wider uppercase shadow-sm">Beta</span>`}
-                        </h1>
+                        <h1 onClick=${handleAboutClick} class="text-2xl font-brand font-semibold text-slate-700 dark:text-zinc-100 tracking-tight cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors">Loocator</h1>
                         <div class="flex gap-2">
                             ${showInstallButton && html`<button onClick=${handleInstall} class="bg-slate-200 dark:bg-zinc-700 text-slate-800 dark:text-zinc-200 px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2"><div class="flex items-center justify-center w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.download}}></div><span>Install</span></button>`}
                             <button onClick=${handleFilterClick} class="bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 px-3 py-2 rounded-full text-xs font-bold"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.filter}}></div></button>
@@ -1165,8 +1096,7 @@
                     ${(view === 'list' || isListExiting) && html`<div class="list-wrapper p-4 pb-24 safe-pb bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">${inAreaLocs.length === 0 && furtherLocs.length === 0 && html`<div class="text-center text-slate-400 dark:text-zinc-600 mt-20"><div class="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-zinc-700 opacity-50 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.search}}></div><p class="font-brand text-lg">No spots visible.</p></div>`}${inAreaLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} statusData=${statuses[loc.id]} />`)}${furtherLocs.length > 0 && html`<div class="py-4 flex items-center gap-4 animate-stagger-fade" style=${{ animationDelay: '300ms' }}><div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div><span class="text-xs font-bold text-slate-400 dark:text-zinc-600 uppercase tracking-wider">Further Afield</span><div class="h-px bg-slate-200 dark:bg-zinc-800 flex-1"></div></div>${furtherLocs.map((loc, i) => html`<${ListItem} key=${loc.id} loc=${loc} userPos=${userPos} index=${i + inAreaLocs.length} isExiting=${isListExiting} onClick=${() => goToLoc(loc)} statusData=${statuses[loc.id]} />`)}`}</div>`}
                 </div>
                 ${!isPickingLocation && !selectedLoc && html`${(gpsStatus !== 'idle' || loading) && html`<div class="absolute right-5 bottom-40 w-14 h-14 bg-white dark:bg-zinc-800 rounded-full shadow-lg z-[1000] flex items-center justify-center animate-pop-in border border-slate-100 dark:border-zinc-700">${(() => { if (gpsStatus === 'success') return html`<div class="w-5 h-5 text-emerald-500 flex items-center justify-center animate-scale-in" dangerouslySetInnerHTML=${{__html: ICONS.check}}></div>`; if (gpsStatus === 'searching') return html`<span class="material-symbols-rounded animate-pulse-fast text-sky-500 text-xl">my_location</span>`; if (loading) return html`<div class="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>`; return null; })()}</div>`}<button onClick=${() => { triggerHaptic(); closeAllMenus(); setIsPickingLocation(true); if (mapInstanceRef.current.getZoom() < 18) mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18); }} class="absolute right-5 w-14 h-14 bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-full shadow-lg flex items-center justify-center z-[1000] active:scale-90 transition-all bottom-24" dangerouslySetInnerHTML=${{__html: ICONS.plus}}></button><button onClick=${handleGPS} class="absolute right-5 w-14 h-14 bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all bottom-8" dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>`}
-                ${showFilters && html`<${FilterSheet} ref=${filterSheetRef} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navAppDrive=${navAppDrive} setNavAppDrive=${setNavAppDrive} navAppWalk=${navAppWalk} setNavAppWalk=${setNavAppWalk} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} isCamperMode=${isCamperMode} toggleMode=${handleCamperToggle} />`}
-                ${showCamperAlert && html`<${CamperWarningModal} onConfirm=${confirmCamperMode} onCancel=${() => setShowCamperAlert(false)} />`}
+                ${showFilters && html`<${FilterSheet} ref=${filterSheetRef} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navAppDrive=${navAppDrive} setNavAppDrive=${setNavAppDrive} navAppWalk=${navAppWalk} setNavAppWalk=${setNavAppWalk} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} isCamperMode=${isCamperMode} toggleMode=${toggleMode} />`}
                 ${showAbout && html`<${AboutModal} onClose=${() => setShowAbout(false)} onShowToast=${showToast} />`}
                 ${showContribute && contributeCoords && html`<${ContributeSheet} lat=${contributeCoords.lat} lon=${contributeCoords.lon} onClose=${() => setShowContribute(false)} onShowToast=${showToast} />`}
                 ${showCorrection && correctionData && html`<${ContributeSheet} lat=${correctionData.lat} lon=${correctionData.lon} isCorrection=${true} correctionId=${correctionData.id} correctionName=${correctionData.name} onClose=${() => setShowCorrection(false)} onShowToast=${showToast} />`}
