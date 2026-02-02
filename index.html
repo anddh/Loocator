@@ -876,6 +876,10 @@
             useEffect(() => { const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)'); const handleChange = (e) => setIsDarkMode(e.matches); mediaQuery.addEventListener('change', handleChange); return () => mediaQuery.removeEventListener('change', handleChange); }, []);
             useEffect(() => { if (view === 'map' && mapInstanceRef.current) setTimeout(() => mapInstanceRef.current.invalidateSize(), 100); }, [view]);
             
+            // Add this ref to track userPos without triggering effects
+            const userPosRef = useRef(userPos);
+            useEffect(() => { userPosRef.current = userPos; }, [userPos]);
+
             useEffect(() => { 
                 camperModeRef.current = isCamperMode; 
                 localStorage.setItem('loocator_van_mode', isCamperMode);
@@ -884,7 +888,14 @@
                 setCardMinimized(false);
 
                 if (mapInstanceRef.current) { 
-                    setLoading(true); 
+                    setLoading(true);
+                    
+                    // Fly to user location if available
+                    if (userPosRef.current) {
+                        mapInstanceRef.current.flyTo(userPosRef.current, 16);
+                    }
+
+                    // Fetch for current bounds (moveend will trigger update for destination)
                     debouncedFetch(mapInstanceRef.current.getBounds()); 
                 } 
             }, [isCamperMode]);
