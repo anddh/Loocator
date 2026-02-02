@@ -168,7 +168,7 @@
             report: `<span class="material-symbols-rounded icon-sm">flag</span>`,
             share: `<span class="material-symbols-rounded icon-sm">share</span>`, 
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
         const TYPE_COLORS = { toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8' };
@@ -330,7 +330,7 @@
             </div>`;
         }
 
-        // --- NEW: RED STYLED CAMPER MODAL ---
+        // --- RED STYLED CAMPER MODAL ---
         const CamperWarningModal = ({ onConfirm, onCancel }) => {
             const [isClosing, setIsClosing] = useState(false);
             const handleCancel = () => { setIsClosing(true); setTimeout(onCancel, 200); };
@@ -1097,7 +1097,7 @@
                     <div class="flex items-center justify-between px-5 pt-4 pb-2">
                         <h1 onClick=${handleAboutClick} class="text-2xl font-brand font-semibold text-slate-700 dark:text-zinc-100 tracking-tight cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors flex items-center">
                             Loocator
-                            ${isCamperMode && html`<span class="ml-2 bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-md font-bold tracking-wider uppercase shadow-sm">Beta</span>`}
+                            ${isCamperMode && html`<span class="ml-2 bg-rose-500 text-white text-[9px] px-2 py-0.5 rounded-full font-bold tracking-wide uppercase shadow-sm align-middle">Beta</span>`}
                         </h1>
                         <div class="flex gap-2">
                             ${showInstallButton && html`<button onClick=${handleInstall} class="bg-slate-200 dark:bg-zinc-700 text-slate-800 dark:text-zinc-200 px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2"><div class="flex items-center justify-center w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.download}}></div><span>Install</span></button>`}
