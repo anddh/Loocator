@@ -304,6 +304,35 @@
         const AlertPill = ({ msg }) => html`<div class="px-4 py-2 rounded-full shadow-lg text-sm font-medium font-brand z-[1000] bg-orange-100 text-orange-800 border-2 border-white/50 dark:bg-orange-900/80 dark:text-orange-200 dark:border-orange-800/50">${msg}</div>`;
         const Toast = ({ msg, visible }) => html`<div class=${'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-slate-800/95 dark:bg-zinc-800/95 backdrop-blur text-slate-100 px-6 py-3 rounded-full shadow-xl transition-all duration-300 z-[2000] flex items-center space-x-2 font-brand ' + (visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none')}><span>${msg}</span></div>`;
 
+        // --- NEW COMPONENT: CamperDisclaimerModal ---
+        const CamperDisclaimerModal = ({ onClose, onAccept }) => {
+            const [isClosing, setIsClosing] = useState(false);
+            const handleClose = () => { setIsClosing(true); setTimeout(onClose, 200); };
+            const handleAccept = () => { setIsClosing(true); setTimeout(onAccept, 200); };
+
+            return html`
+            <div class="fixed inset-0 z-[2100] flex items-center justify-center p-4">
+                <div class=${`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${handleClose}></div>
+                <div class=${`bg-rose-50 dark:bg-rose-950/20 w-full max-w-sm rounded-3xl shadow-2xl p-6 relative border-2 border-rose-100 dark:border-rose-900 ${isClosing ? 'animate-scale-out' : 'animate-scale-in'}`}>
+                    <div class="flex flex-col items-center text-center space-y-4">
+                        <div class="w-16 h-16 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                            <span class="material-symbols-rounded text-3xl">airport_shuttle</span>
+                        </div>
+                        <h2 class="text-2xl font-bold font-brand text-rose-800 dark:text-rose-200">Camper Mode (Beta)</h2>
+                        <div class="text-slate-600 dark:text-rose-200/80 text-sm leading-relaxed">
+                            <p class="mb-2">You are entering experimental territory.</p>
+                            <p>Data regarding chemical disposal and water points may be <strong>incomplete or inaccurate</strong>.</p>
+                        </div>
+                        <div class="flex flex-col w-full gap-2 mt-2">
+                            <button onClick=${handleAccept} class="w-full py-3 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 active:scale-95 transition-all">I Understand, Enable It</button>
+                            <button onClick=${handleClose} class="w-full py-3 text-rose-600 dark:text-rose-300 font-bold hover:bg-rose-100/50 dark:hover:bg-rose-900/20 rounded-xl transition-colors">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
+        // ---------------------------------------------
+
         const AboutModal = ({ onClose, onShowToast }) => {
             const [isClosing, setIsClosing] = useState(false);
             const [counts, setCounts] = useState({ addr: 0, map: 0 });
@@ -660,6 +689,7 @@
             const [zoomWarning, setZoomWarning] = useState(false);
             const [showFilters, setShowFilters] = useState(false);
             const [isCamperMode, setIsCamperMode] = useState(localStorage.getItem('loocator_van_mode') === 'true');
+            const [showCamperDisclaimer, setShowCamperDisclaimer] = useState(false);
             const [statuses, setStatuses] = useState({});
             
             const [stdFilters, setStdFilters] = useState(() => safeParse('loocator_std_filters', { toilet: true, water: true, baby: true }));
@@ -877,7 +907,20 @@
                 setCardMinimized(false);
             };
 
-            const toggleMode = () => { setIsCamperMode(!isCamperMode); };
+            const toggleMode = () => {
+                if (isCamperMode) {
+                    setIsCamperMode(false);
+                } else {
+                    // Trigger the disclaimer modal instead of switching immediately
+                    setShowCamperDisclaimer(true);
+                }
+            };
+            
+            const confirmCamperMode = () => {
+                setIsCamperMode(true);
+                setShowCamperDisclaimer(false);
+            };
+
             const handleFilterClick = () => { if (showFilters) { if (filterSheetRef.current) { filterSheetRef.current.triggerClose(); } } else { closeAllMenus(); setShowFilters(true); } };
             const handleAboutClick = () => { if (showAbout) { setShowAbout(false); } else { closeAllMenus(); setShowAbout(true); } };
             const handleViewToggle = () => { if (view === 'list') { setIsListExiting(true); setTimeout(() => { setIsListExiting(false); setView('map'); }, 300); } else { closeAllMenus(); setView('list'); } };
@@ -1062,7 +1105,12 @@
             return html`
                 <div class="bg-white/95 dark:bg-zinc-900/95 backdrop-blur z-[1700] shadow-sm safe-pt transition-colors duration-300">
                     <div class="flex items-center justify-between px-5 pt-4 pb-2">
-                        <h1 onClick=${handleAboutClick} class="text-2xl font-brand font-semibold text-slate-700 dark:text-zinc-100 tracking-tight cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors">Loocator</h1>
+                        <div class="flex items-center">
+                            <h1 onClick=${handleAboutClick} class="text-2xl font-brand font-semibold text-slate-700 dark:text-zinc-100 tracking-tight cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors">Loocator</h1>
+                            ${isCamperMode && html`
+                                <div class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500 text-white leading-none self-start mt-1">BETA</div>
+                            `}
+                        </div>
                         <div class="flex gap-2">
                             ${showInstallButton && html`<button onClick=${handleInstall} class="bg-slate-200 dark:bg-zinc-700 text-slate-800 dark:text-zinc-200 px-3 py-2 rounded-full text-xs font-bold flex items-center gap-2"><div class="flex items-center justify-center w-4 h-4" dangerouslySetInnerHTML=${{__html: ICONS.download}}></div><span>Install</span></button>`}
                             <button onClick=${handleFilterClick} class="bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 px-3 py-2 rounded-full text-xs font-bold"><div class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.filter}}></div></button>
@@ -1098,6 +1146,7 @@
                 ${!isPickingLocation && !selectedLoc && html`${(gpsStatus !== 'idle' || loading) && html`<div class="absolute right-5 bottom-40 w-14 h-14 bg-white dark:bg-zinc-800 rounded-full shadow-lg z-[1000] flex items-center justify-center animate-pop-in border border-slate-100 dark:border-zinc-700">${(() => { if (gpsStatus === 'success') return html`<div class="w-5 h-5 text-emerald-500 flex items-center justify-center animate-scale-in" dangerouslySetInnerHTML=${{__html: ICONS.check}}></div>`; if (gpsStatus === 'searching') return html`<span class="material-symbols-rounded animate-pulse-fast text-sky-500 text-xl">my_location</span>`; if (loading) return html`<div class="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>`; return null; })()}</div>`}<button onClick=${() => { triggerHaptic(); closeAllMenus(); setIsPickingLocation(true); if (mapInstanceRef.current.getZoom() < 18) mapInstanceRef.current.flyTo(mapInstanceRef.current.getCenter(), 18); }} class="absolute right-5 w-14 h-14 bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-full shadow-lg flex items-center justify-center z-[1000] active:scale-90 transition-all bottom-24" dangerouslySetInnerHTML=${{__html: ICONS.plus}}></button><button onClick=${handleGPS} class="absolute right-5 w-14 h-14 bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center z-[1000] active:scale-90 transition-all bottom-8" dangerouslySetInnerHTML=${{__html: ICONS.target}}></button>`}
                 ${showFilters && html`<${FilterSheet} ref=${filterSheetRef} freeOnly=${freeOnly} setFreeOnly=${setFreeOnly} bottleOnly=${bottleOnly} setBottleOnly=${setBottleOnly} accessOnly=${accessOnly} setAccessOnly=${setAccessOnly} keyOnly=${keyOnly} setKeyOnly=${setKeyOnly} navAppDrive=${navAppDrive} setNavAppDrive=${setNavAppDrive} navAppWalk=${navAppWalk} setNavAppWalk=${setNavAppWalk} clearHistory=${clearHistory} onClose=${() => setShowFilters(false)} isCamperMode=${isCamperMode} toggleMode=${toggleMode} />`}
                 ${showAbout && html`<${AboutModal} onClose=${() => setShowAbout(false)} onShowToast=${showToast} />`}
+                ${showCamperDisclaimer && html`<${CamperDisclaimerModal} onClose=${() => setShowCamperDisclaimer(false)} onAccept=${confirmCamperMode} />`}
                 ${showContribute && contributeCoords && html`<${ContributeSheet} lat=${contributeCoords.lat} lon=${contributeCoords.lon} onClose=${() => setShowContribute(false)} onShowToast=${showToast} />`}
                 ${showCorrection && correctionData && html`<${ContributeSheet} lat=${correctionData.lat} lon=${correctionData.lon} isCorrection=${true} correctionId=${correctionData.id} correctionName=${correctionData.name} onClose=${() => setShowCorrection(false)} onShowToast=${showToast} />`}
                 ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} userLoc=${userPos} navAppDrive=${navAppDrive} navAppWalk=${navAppWalk} onClose=${() => setSelectedLoc(null)} minimized=${cardMinimized} setMinimized=${setCardMinimized} onReport=${openReport} onShowToast=${showToast} onReportStatus=${reportStatus} statusData=${statuses[selectedLoc.id]} />`}
