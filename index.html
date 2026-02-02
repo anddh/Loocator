@@ -125,19 +125,21 @@
         const html = htm.bind(React.createElement);
         const { useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } = React;
 
-        // --- SAFE SUPABASE INITIALIZATION ---
+        // --- GLOBAL SUPABASE INIT (Fault Tolerant) ---
         const SB_URL = 'https://jnjovmqfbelouittlvhh.supabase.co';
         const SB_KEY = 'sb_publishable_SYpOip4dUTH0yT6MNUYF6A_94uy9Snd';
         
-        let supabaseClient = null;
+        // Assign to window global immediately
+        window.supabaseClient = null;
         try {
             if (window.supabase) {
-                supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+                window.supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
             } else {
-                console.warn("Supabase script not loaded");
+                // If script loaded late, we try later in the App component
+                console.warn("Supabase script pending...");
             }
         } catch (e) { console.error("Supabase load failed", e); }
-        // -------------------------------------
+        // ---------------------------------------------
 
         const ICONS = {
             toilet: `<span class="material-symbols-rounded icon-sm">wc</span>`,
@@ -166,8 +168,7 @@
             report: `<span class="material-symbols-rounded icon-sm">flag</span>`,
             share: `<span class="material-symbols-rounded icon-sm">share</span>`, 
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`,
-            alert: `<span class="material-symbols-rounded icon-md">warning</span>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
         const TYPE_COLORS = { toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8' };
@@ -306,7 +307,7 @@
                     <div class="text-center mb-6">
                         <div class="inline-block w-24 h-24 rounded-3xl bg-slate-100 dark:bg-zinc-800 mb-4 shadow-sm overflow-hidden"><img src="icon.png" class="w-full h-full object-cover" alt="Loocator" /></div>
                         <h2 class="text-2xl font-bold font-brand text-slate-800 dark:text-zinc-100">Loocator</h2>
-                        <p class="text-slate-500 dark:text-zinc-400 text-sm mt-1">v0.2.7</p>
+                        <p class="text-slate-500 dark:text-zinc-400 text-sm mt-1">v0.2.8</p>
                     </div>
                     <div class="space-y-4 text-center">
                         <div class="bg-slate-50 dark:bg-zinc-800 p-4 rounded-xl border border-slate-100 dark:border-zinc-700"><p class="text-slate-600 dark:text-zinc-300 font-medium text-sm">Made with love in Tenerife + England ❤️</p></div>
@@ -329,6 +330,31 @@
             </div>`;
         }
 
+        // --- NEW: RED STYLED CAMPER MODAL ---
+        const CamperWarningModal = ({ onConfirm, onCancel }) => {
+            const [isClosing, setIsClosing] = useState(false);
+            const handleCancel = () => { setIsClosing(true); setTimeout(onCancel, 200); };
+            const handleConfirm = () => { setIsClosing(true); setTimeout(onConfirm, 200); };
+            return html`
+            <div class="fixed inset-0 z-[2500] flex items-center justify-center p-6">
+                <div class=${`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${handleCancel}></div>
+                <div class=${`bg-rose-50 dark:bg-rose-950 w-full max-w-sm rounded-3xl shadow-2xl p-6 relative border-2 border-rose-100 dark:border-rose-900 ${isClosing ? 'animate-scale-out' : 'animate-scale-in'}`}>
+                    <div class="w-12 h-12 bg-rose-200 dark:bg-rose-900 text-rose-700 dark:text-rose-200 rounded-full flex items-center justify-center mb-4"><span class="material-symbols-rounded text-2xl">warning</span></div>
+                    <h2 class="text-xl font-bold font-brand text-rose-900 dark:text-rose-100 mb-2">Camper Mode (Beta)</h2>
+                    <p class="text-rose-800 dark:text-rose-200/80 text-sm mb-6 leading-relaxed font-medium">
+                        This data is community-sourced. Some locations may be inaccessible to large vehicles due to narrow lanes, height barriers, or canal paths.
+                        <br/><br/>
+                        <strong>Always check signs and verify access visually.</strong>
+                    </p>
+                    <div class="flex gap-3">
+                        <button onClick=${handleCancel} class="flex-1 py-3 bg-white/50 dark:bg-black/20 text-rose-900 dark:text-rose-200 font-bold rounded-xl hover:bg-white/80 transition-colors">Cancel</button>
+                        <button onClick=${handleConfirm} class="flex-1 py-3 bg-rose-600 dark:bg-rose-600 text-white font-bold rounded-xl shadow-lg hover:bg-rose-700 transition-transform active:scale-95">I Understand</button>
+                    </div>
+                </div>
+            </div>`;
+        };
+        // -------------------------------------
+
         const ToggleCard = ({ label, subtext, icon, active, onClick, color }) => {
             const activeClass = active ? 'bg-slate-800 text-white border-slate-800 dark:bg-zinc-600 dark:border-zinc-500 transform' : 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 transform';
             const activeIconBg = active ? 'bg-white/20' : 'bg-slate-200 dark:bg-zinc-700';
@@ -342,32 +368,7 @@
                 </div>`;
         }
 
-        // --- NEW COMPONENT: CAMPER WARNING MODAL ---
-        const CamperWarningModal = ({ onConfirm, onCancel }) => {
-            const [isClosing, setIsClosing] = useState(false);
-            const handleCancel = () => { setIsClosing(true); setTimeout(onCancel, 200); };
-            const handleConfirm = () => { setIsClosing(true); setTimeout(onConfirm, 200); };
-            return html`
-            <div class="fixed inset-0 z-[1800] flex items-center justify-center p-6">
-                <div class=${`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick=${handleCancel}></div>
-                <div class=${`bg-white dark:bg-zinc-900 w-full max-w-sm rounded-3xl shadow-2xl p-6 relative ${isClosing ? 'animate-scale-out' : 'animate-scale-in'}`}>
-                    <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mb-4"><span class="material-symbols-rounded text-2xl">warning</span></div>
-                    <h2 class="text-xl font-bold font-brand text-slate-800 dark:text-zinc-100 mb-2">Camper Mode Beta</h2>
-                    <p class="text-slate-500 dark:text-zinc-400 text-sm mb-6 leading-relaxed">
-                        Data comes from OpenStreetMap. Some locations may be inaccessible to large vehicles (narrow lanes, height limits, or canal paths).
-                        <br/><br/>
-                        <strong>Always check signs and verify access visually.</strong>
-                    </p>
-                    <div class="flex gap-3">
-                        <button onClick=${handleCancel} class="flex-1 py-3 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 font-bold rounded-xl">Cancel</button>
-                        <button onClick=${handleConfirm} class="flex-1 py-3 bg-slate-800 dark:bg-zinc-200 text-white dark:text-zinc-900 font-bold rounded-xl">I Understand</button>
-                    </div>
-                </div>
-            </div>`;
-        };
-        // -------------------------------------------
-
-        const FilterSheet = forwardRef(({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, accessOnly, setAccessOnly, keyOnly, setKeyOnly, navAppDrive, setNavAppDrive, navAppWalk, setNavAppWalk, clearHistory, onClose, isCamperMode, handleCamperToggle }, ref) => {
+        const FilterSheet = forwardRef(({ freeOnly, setFreeOnly, bottleOnly, setBottleOnly, accessOnly, setAccessOnly, keyOnly, setKeyOnly, navAppDrive, setNavAppDrive, navAppWalk, setNavAppWalk, clearHistory, onClose, isCamperMode, toggleMode }, ref) => {
             const [isClosing, setIsClosing] = useState(false);
             const triggerClose = () => { setIsClosing(true); setTimeout(onClose, 300); };
             useImperativeHandle(ref, () => ({ triggerClose }));
@@ -384,7 +385,7 @@
 
                     <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-2 px-1">App Mode</h3>
                     <div class="grid grid-cols-1 gap-2 mb-5">
-                        <${ToggleCard} label="Camper Mode (Beta)" subtext="Chemical disposal, showers & tank refill" icon="airport_shuttle" active=${isCamperMode} onClick=${handleCamperToggle} />
+                        <${ToggleCard} label="Camper Mode (Beta)" subtext="Show chemical disposal, showers & tank refill" icon="airport_shuttle" active=${isCamperMode} onClick=${toggleMode} />
                     </div>
 
                     <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-2 px-1">Map Filters</h3>
