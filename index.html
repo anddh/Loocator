@@ -228,7 +228,6 @@
             };
         }
 
-        // --- TIME AGO HELPER ---
         function timeAgo(dateParam) {
             if (!dateParam) return null;
             const date = typeof dateParam === 'object' ? dateParam : new Date(dateParam);
@@ -323,7 +322,7 @@
                     <div class="text-center mb-6">
                         <div class="inline-block w-20 h-20 rounded-3xl bg-slate-100 dark:bg-zinc-800 mb-3 shadow-sm overflow-hidden"><img src="icon.png" class="w-full h-full object-cover" alt="Loocator" /></div>
                         <h2 class="text-2xl font-bold font-brand text-slate-800 dark:text-zinc-100">Loocator</h2>
-                        <p class="text-slate-500 dark:text-zinc-400 text-xs font-bold uppercase tracking-wider mt-1">Version 0.2.11</p>
+                        <p class="text-slate-500 dark:text-zinc-400 text-xs font-bold uppercase tracking-wider mt-1">Version 0.2.12</p>
                     </div>
 
                     <div class="space-y-6">
@@ -661,6 +660,8 @@
             const [statuses, setStatuses] = useState({});
             const [dbClient, setDbClient] = useState(window.supabaseClient); // Use global
             const [showCamperAlert, setShowCamperAlert] = useState(false);
+            // 1. ADDED: Ref to track if we have already auto-zoomed to the user
+            const hasZoomedToUser = useRef(false);
 
             
             const [stdFilters, setStdFilters] = useState(() => safeParse('loocator_std_filters', { toilet: true, water: true, baby: true }));
@@ -1010,6 +1011,14 @@
                     (pos) => {
                         const coords = [pos.coords.latitude, pos.coords.longitude];
                         setUserPos(coords);
+                        setGpsStatus('success');
+
+                        // 2. UPDATED: Only flyTo user once, on the very first GPS fix
+                        if (!hasZoomedToUser.current && mapInstanceRef.current) {
+                            mapInstanceRef.current.flyTo(coords, 17, { animate: true, duration: 1.5 });
+                            hasZoomedToUser.current = true; // Prevents subsequent auto-zooms
+                        }
+
                         if(userMarkerRef.current) {
                             userMarkerRef.current.setLatLng(coords);
                         } else {
