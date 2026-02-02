@@ -125,7 +125,7 @@
         const html = htm.bind(React.createElement);
         const { useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } = React;
 
-        // --- GLOBAL SUPABASE INIT (Fault Tolerant) ---
+        // --- GLOBAL SUPABASE INIT ---
         const SB_URL = 'https://jnjovmqfbelouittlvhh.supabase.co';
         const SB_KEY = 'sb_publishable_SYpOip4dUTH0yT6MNUYF6A_94uy9Snd';
         
@@ -228,7 +228,7 @@
             };
         }
 
-        // --- NEW: TIME AGO HELPER ---
+        // --- TIME AGO HELPER ---
         function timeAgo(dateParam) {
             if (!dateParam) return null;
             const date = typeof dateParam === 'object' ? dateParam : new Date(dateParam);
@@ -244,7 +244,6 @@
             else if (days < 7) return `${days}d ago`;
             else return 'A while ago';
         }
-        // ----------------------------
 
         function calculateDistance(lat1, lon1, lat2, lon2) {
             if (!lat1 || !lon1 || !lat2 || !lon2) return { text: 'Unknown', km: 99999 };
@@ -291,7 +290,6 @@
         const AlertPill = ({ msg }) => html`<div class="px-4 py-2 rounded-full shadow-lg text-sm font-medium font-brand z-[1000] bg-orange-100 text-orange-800 border-2 border-white/50 dark:bg-orange-900/80 dark:text-orange-200 dark:border-orange-800/50">${msg}</div>`;
         const Toast = ({ msg, visible }) => html`<div class=${'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-slate-800/95 dark:bg-zinc-800/95 backdrop-blur text-slate-100 px-6 py-3 rounded-full shadow-xl transition-all duration-300 z-[2000] flex items-center space-x-2 font-brand ' + (visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none')}><span>${msg}</span></div>`;
 
-        // --- ENHANCED ABOUT MODAL (Restored) ---
         const AboutModal = ({ onClose, onShowToast }) => {
             const [isClosing, setIsClosing] = useState(false);
             const [counts, setCounts] = useState({ addr: 0, map: 0 });
@@ -329,10 +327,6 @@
                     </div>
 
                     <div class="space-y-6">
-                        <div class="bg-slate-50 dark:bg-zinc-800 p-4 rounded-xl border border-slate-100 dark:border-zinc-700">
-                            <p class="text-slate-600 dark:text-zinc-300 font-medium text-sm text-center">Made with love in Tenerife + England ❤️</p>
-                        </div>
-                        
                         <div>
                             <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-2">Storage</h3>
                             <div class="bg-slate-50 dark:bg-zinc-800 p-3 rounded-xl border border-slate-100 dark:border-zinc-700">
@@ -351,17 +345,14 @@
                         </div>
 
                         <div class="text-[10px] text-slate-400 dark:text-zinc-600 text-center space-y-1">
-                            <p>Map Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">OpenStreetMap</a> contributors</p>
-                            <p>Tiles courtesy of <a href="https://carto.com/attributions" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">CARTO</a></p>
-                            <p>Powered by <a href="https://leafletjs.com" target="_blank" class="underline hover:text-slate-600 dark:hover:text-zinc-300">Leaflet</a> <span aria-label="Ukraine Flag">🇺🇦</span></p>
-                            <p>Data available under ODbL.</p>
-                            <p class="mt-4">© ${new Date().getFullYear()} Loocator</p>
+                            <p>Map Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" class="underline">OpenStreetMap</a></p>
+                            <p>Tiles courtesy of <a href="https://carto.com/attributions" target="_blank" class="underline">CARTO</a></p>
+                            <p>© ${new Date().getFullYear()} Loocator</p>
                         </div>
                     </div>
                 </div>
             </div>`;
         }
-        // ---------------------------------------------
 
         const CamperWarningModal = ({ onConfirm, onCancel }) => {
             const [isClosing, setIsClosing] = useState(false);
@@ -915,7 +906,17 @@
             const handleViewToggle = () => { if (view === 'list') { setIsListExiting(true); setTimeout(() => { setIsListExiting(false); setView('map'); }, 300); } else { closeAllMenus(); setView('list'); } };
             const handleViewChange = () => { closeAllMenus(); setView('list'); }
 
-            const visibleLocations = useMemo(() => { return allLocations.filter(loc => { if (freeOnly && (loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no'))) return false; if (bottleOnly && loc.isWater && !loc.isToilet && !loc.hasBaby) { if (loc.tags.amenity !== 'drinking_water' && loc.tags.bottle !== 'yes') return false; } if (accessOnly) { const w = loc.tags.wheelchair; if (w !== 'yes' && w !== 'limited' && w !== 'designated') return false; } if (keyOnly) { const radar = loc.tags.radar_key; const central = loc.tags.centralkey; if (radar !== 'yes' && !central) return false; } return isCamperMode ? (vanFilters.black && loc.isBlack) || (vanFilters.grey && loc.isGrey) || (vanFilters.water && loc.isWater) || (vanFilters.shower && loc.hasShower) : (stdFilters.toilet && loc.isToilet) || (stdFilters.water && loc.isWater) || (stdFilters.baby && loc.hasBaby); }).map(loc => { let displayType = loc.baseType; if (isCamperMode) { if (vanFilters.black && loc.isBlack) displayType = 'black'; else if (vanFilters.grey && loc.isGrey) displayType = 'grey'; else if (vanFilters.shower && loc.hasShower) displayType = 'shower'; else if (vanFilters.water && loc.isWater) displayType = 'water'; } else if (stdFilters.baby && loc.hasBaby && !stdFilters.toilet) displayType = 'baby'; return { ...loc, displayType }; }).sort((a, b) => calculateDistance(userPos[0], userPos[1], a.lat, a.lon).km - calculateDistance(userPos[0], userPos[1], b.lat, b.lon).km); }, [allLocations, isCamperMode, stdFilters, vanFilters, userPos, freeOnly, bottleOnly, accessOnly, keyOnly]);
+            const visibleLocations = useMemo(() => { return allLocations.filter(loc => { if (freeOnly && (loc.tags.fee === 'yes' || (loc.tags.fee && loc.tags.fee !== 'no'))) return false; if (bottleOnly && loc.isWater && !loc.isToilet && !loc.hasBaby) { if (loc.tags.amenity !== 'drinking_water' && loc.tags.bottle !== 'yes') return false; } if (accessOnly) { const w = loc.tags.wheelchair; if (w !== 'yes' && w !== 'limited' && w !== 'designated') return false; } if (keyOnly) { const radar = loc.tags.radar_key; const central = loc.tags.centralkey; if (radar !== 'yes' && !central) return false; } 
+                // Enhanced Camper Filtering (Client-side)
+                if (isCamperMode) {
+                    // Hide anything specifically tagged as a waterway or cemetery
+                    if (loc.tags.waterway || loc.tags.mooring || loc.tags.landuse === 'cemetery' || loc.tags.amenity === 'grave_yard') return false;
+                    
+                    return (vanFilters.black && loc.isBlack) || (vanFilters.grey && loc.isGrey) || (vanFilters.water && loc.isWater) || (vanFilters.shower && loc.hasShower);
+                } else {
+                    return (stdFilters.toilet && loc.isToilet) || (stdFilters.water && loc.isWater) || (stdFilters.baby && loc.hasBaby);
+                }
+            }).map(loc => { let displayType = loc.baseType; if (isCamperMode) { if (vanFilters.black && loc.isBlack) displayType = 'black'; else if (vanFilters.grey && loc.isGrey) displayType = 'grey'; else if (vanFilters.shower && loc.hasShower) displayType = 'shower'; else if (vanFilters.water && loc.isWater) displayType = 'water'; } else if (stdFilters.baby && loc.hasBaby && !stdFilters.toilet) displayType = 'baby'; return { ...loc, displayType }; }).sort((a, b) => calculateDistance(userPos[0], userPos[1], a.lat, a.lon).km - calculateDistance(userPos[0], userPos[1], b.lat, b.lon).km); }, [allLocations, isCamperMode, stdFilters, vanFilters, userPos, freeOnly, bottleOnly, accessOnly, keyOnly]);
             const [inAreaLocs, furtherLocs] = useMemo(() => { if (!searchBounds) return [visibleLocations, []]; const inArea = []; const further = []; visibleLocations.forEach(loc => { if (searchBounds.contains([loc.lat, loc.lon])) { inArea.push(loc); } else { further.push(loc); } }); return [inArea, further]; }, [visibleLocations, searchBounds]);
             const showListHint = !loading && view === 'map' && visibleLocations.length > 0 && inAreaLocs.length === 0;
 
@@ -944,18 +945,12 @@
                 let queryBody = '';
                 if (isVan) {
                     // CAMPER MODE: Targeted, high-quality infrastructure only, EXCLUDING rural/canal trash
+                    // Simplified for reliability: Get everything, filter in JS
                     queryBody = `(
                         nwr["amenity"="sanitary_dump_station"]${queryArea};
                         nwr["amenity"="water_point"]${queryArea};
-                        nwr["amenity"="drinking_water"]["location"="fuel"]${queryArea};
-                        nwr["amenity"="drinking_water"]["access"~"yes|permissive"]${queryArea};
+                        nwr["amenity"="drinking_water"]${queryArea};
                         nwr["amenity"="shower"]${queryArea};
-                    ) - (
-                        nwr["waterway"]${queryArea};
-                        nwr["mooring"]${queryArea};
-                        nwr["seamark:type"]${queryArea};
-                        nwr["landuse"~"cemetery|graveyard"]${queryArea};
-                        nwr["amenity"~"grave_yard|place_of_worship"]${queryArea};
                     );`;
                 } else {
                     // Standard mode: Search toilets, baby change, showers, water.
