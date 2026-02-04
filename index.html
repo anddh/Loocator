@@ -230,7 +230,6 @@
             return (a.road || a.pedestrian || '') + (a.house_number ? ', ' + a.house_number : '') + (a.suburb ? ' (' + a.suburb + ')' : '');
         };
 
-        // --- NEW TIME HELPER ---
         const formatTimeAgo = (dateString) => {
             if (!dateString) return '';
             const date = new Date(dateString);
@@ -245,7 +244,6 @@
             if (minutes > 0) return `${minutes}m ago`;
             return 'just now';
         };
-        // -----------------------
 
         const triggerHaptic = () => { if (navigator.vibrate) navigator.vibrate(10); };
         const triggerSuccess = () => { if (navigator.vibrate) navigator.vibrate(50); };
@@ -304,7 +302,6 @@
         const AlertPill = ({ msg }) => html`<div class="px-4 py-2 rounded-full shadow-lg text-sm font-medium font-brand z-[1000] bg-orange-100 text-orange-800 border-2 border-white/50 dark:bg-orange-900/80 dark:text-orange-200 dark:border-orange-800/50">${msg}</div>`;
         const Toast = ({ msg, visible }) => html`<div class=${'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-slate-800/95 dark:bg-zinc-800/95 backdrop-blur text-slate-100 px-6 py-3 rounded-full shadow-xl transition-all duration-300 z-[2000] flex items-center space-x-2 font-brand ' + (visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none')}><span>${msg}</span></div>`;
 
-        // --- NEW COMPONENT: CamperDisclaimerModal ---
         const CamperDisclaimerModal = ({ onClose, onAccept }) => {
             const [isClosing, setIsClosing] = useState(false);
             const handleClose = () => { setIsClosing(true); setTimeout(onClose, 200); };
@@ -331,7 +328,6 @@
                 </div>
             </div>`;
         }
-        // ---------------------------------------------
 
         const AboutModal = ({ onClose, onShowToast }) => {
             const [isClosing, setIsClosing] = useState(false);
@@ -507,10 +503,20 @@
             const [imageUrl, setImageUrl] = useState(null);
             const [isClosing, setIsClosing] = useState(false);
             const [animationFinished, setAnimationFinished] = useState(false);
+            
+            // New state for Review/Rating menu
+            const [isRatingMode, setIsRatingMode] = useState(false);
+            const [userRating, setUserRating] = useState(0);
+            const [userStatus, setUserStatus] = useState('working');
+
             useEffect(() => {
                 const timer = setTimeout(() => setAnimationFinished(true), 500);
                 return () => clearTimeout(timer);
             }, []);
+
+            // Reset rating mode when location changes
+            useEffect(() => { setIsRatingMode(false); setUserRating(0); setUserStatus('working'); }, [loc.id]);
+
             const handleClose = () => { setIsClosing(true); setTimeout(onClose, 300); };
             const handleContainerClick = () => { if (minimized) setMinimized(false); };
             
@@ -525,6 +531,12 @@
                 }
             };
 
+            const handleSubmitReview = () => {
+                if (userRating === 0) { onShowToast("Please tap a star to rate"); return; }
+                onReportStatus(loc.id, userStatus, userRating);
+                setIsRatingMode(false);
+            };
+
             const handleDrive = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const {lat, lon} = loc; if (navAppDrive === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`; else if (navAppDrive === 'waze') url = `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`; window.open(url, '_blank'); };
             const handleWalk = (e) => { e.preventDefault(); e.stopPropagation(); let url = ''; const {lat, lon} = loc; if (navAppWalk === 'apple') url = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=w`; else url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=walking`; window.open(url, '_blank'); };
             useEffect(() => { if (ADDRESS_CACHE[loc.id]) { setAddress(ADDRESS_CACHE[loc.id]); return; } const fetchAddr = async () => { try { const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.lat}&lon=${loc.lon}&zoom=18&addressdetails=1`); const data = await res.json(); const formatted = formatAddressFromData(data); setAddress(formatted || "Address unavailable"); ADDRESS_CACHE[loc.id] = formatted || "Address unavailable"; } catch (e) { setAddress("Address unavailable"); } }; fetchAddr(); }, [loc]);
@@ -535,12 +547,7 @@
             const contentClass = `transition-opacity duration-300 ${minimized ? 'opacity-0 pointer-events-none' : 'opacity-100 delay-100'}`;
             
             const openStatus = checkOpeningStatus(loc.tags.opening_hours);
-
-            // FIX: Disable slide-up animation if card is minimized on mount
             const animClass = isClosing ? 'animate-slide-down-card' : (minimized ? '' : (animationFinished ? '' : 'animate-slide-up-card'));
-
-            // Show status buttons for van-specific types: Black/Grey disposal, Water, Showers
-            const isVanFacility = loc.isBlack || loc.isGrey || loc.isWater || loc.hasShower;
 
             return html`
                 <div onClick=${handleContainerClick} style=${{ transform: minimized ? 'translateY(calc(100% - 160px))' : 'translateY(0)' }} 
@@ -555,16 +562,34 @@
                                 ${openStatus && openStatus.color && html`<div class=${`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide ${openStatus.color}`}><span class="w-1.5 h-1.5 rounded-full bg-current mr-1.5 animate-pulse"></span>${openStatus.text}</div>`}
                             </div>
                             <h2 class="text-2xl font-brand font-semibold text-slate-800 dark:text-zinc-100 leading-tight">${loc.name}</h2>
-                            ${statusData && statusData.status === 'working' && isVanFacility && html`
-                                <div class="flex items-center gap-1 mt-1 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
-                                    <span class="material-symbols-rounded text-sm">verified</span>
-                                    <span>Verified working ${formatTimeAgo(statusData.last_verified)}</span>
+                            ${statusData && statusData.status === 'working' && html`
+                                <div class="flex items-center justify-between mt-1">
+                                    <div class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+                                        <span class="material-symbols-rounded text-sm">verified</span>
+                                        <span>Verified working ${formatTimeAgo(statusData.last_verified)}</span>
+                                    </div>
+                                    ${statusData.rating && html`
+                                         <div class="flex items-center gap-1 text-amber-500 text-xs font-bold bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full">
+                                            <span>${parseFloat(statusData.rating).toFixed(1)}</span>
+                                            <span class="material-symbols-rounded text-xs">star</span>
+                                            ${statusData.rating_count && html`<span class="text-[9px] opacity-70">(${statusData.rating_count})</span>`}
+                                        </div>
+                                    `}
                                 </div>
                             `}
-                            ${statusData && statusData.status === 'broken' && isVanFacility && html`
-                                <div class="flex items-center gap-1 mt-1 text-rose-500 dark:text-rose-400 text-xs font-bold">
-                                    <span class="material-symbols-rounded text-sm">warning</span>
-                                    <span>Reported broken ${formatTimeAgo(statusData.last_verified)}</span>
+                            ${statusData && statusData.status === 'broken' && html`
+                                <div class="flex items-center justify-between mt-1">
+                                    <div class="flex items-center gap-1 text-rose-500 dark:text-rose-400 text-xs font-bold">
+                                        <span class="material-symbols-rounded text-sm">warning</span>
+                                        <span>Reported broken ${formatTimeAgo(statusData.last_verified)}</span>
+                                    </div>
+                                    ${statusData.rating && html`
+                                         <div class="flex items-center gap-1 text-amber-500 text-xs font-bold bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full">
+                                            <span>${parseFloat(statusData.rating).toFixed(1)}</span>
+                                            <span class="material-symbols-rounded text-xs">star</span>
+                                            ${statusData.rating_count && html`<span class="text-[9px] opacity-70">(${statusData.rating_count})</span>`}
+                                        </div>
+                                    `}
                                 </div>
                             `}
                         </div>
@@ -591,12 +616,33 @@
                                 ${loc.hasShower && html`<div class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-sky-50 text-sky-700 border border-sky-100 dark:bg-sky-900/30 dark:text-sky-200 dark:border-sky-900/50 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center" dangerouslySetInnerHTML=${{__html: ICONS.shower}}></span> Shower</div>`}
                             </div>
                             
-                            ${isVanFacility && html`
-                                <div class="flex gap-2 mb-4">
-                                    <button onClick=${() => onReportStatus(loc.id, 'working')} class="flex-1 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold border border-emerald-100 dark:border-emerald-800 active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-sm"><span class="material-symbols-rounded text-sm">check_circle</span> Working</button>
-                                    <button onClick=${() => onReportStatus(loc.id, 'broken')} class="flex-1 py-3 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold border border-rose-100 dark:border-rose-800 active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-sm"><span class="material-symbols-rounded text-sm">cancel</span> Broken</button>
-                                </div>
-                            `}
+                            <div class="mb-4">
+                                ${!isRatingMode ? html`
+                                    <button onClick=${() => setIsRatingMode(true)} class="w-full py-3 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 rounded-xl text-sm font-bold border border-slate-200 dark:border-zinc-700 active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-sm hover:bg-slate-200 dark:hover:bg-zinc-700">
+                                        <span class="material-symbols-rounded text-lg text-amber-400">star</span>
+                                        <span>Verify & Rate</span>
+                                    </button>
+                                ` : html`
+                                    <div class="bg-slate-50 dark:bg-zinc-800/50 rounded-xl p-4 border border-slate-200 dark:border-zinc-700 animate-scale-in">
+                                        <div class="flex justify-between items-center mb-3">
+                                            <span class="text-xs font-bold uppercase text-slate-400 tracking-wider">Verification</span>
+                                            <button onClick=${() => setIsRatingMode(false)} class="text-slate-400 hover:text-slate-600"><span class="material-symbols-rounded">close</span></button>
+                                        </div>
+                                        <div class="flex justify-center gap-2 mb-4">
+                                            ${[1,2,3,4,5].map(star => html`
+                                                <button onClick=${() => { triggerHaptic(); setUserRating(star); }} class="focus:outline-none transition-transform active:scale-90">
+                                                    <span class=${`material-symbols-rounded text-3xl ${star <= userRating ? 'text-amber-400' : 'text-slate-300 dark:text-zinc-600'}`}>star</span>
+                                                </button>
+                                            `)}
+                                        </div>
+                                        <div class="flex gap-2 mb-4">
+                                            <button onClick=${() => { triggerHaptic(); setUserStatus('working'); }} class=${`flex-1 py-2 rounded-lg text-xs font-bold border transition-colors ${userStatus === 'working' ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-600'}`}>Working</button>
+                                            <button onClick=${() => { triggerHaptic(); setUserStatus('broken'); }} class=${`flex-1 py-2 rounded-lg text-xs font-bold border transition-colors ${userStatus === 'broken' ? 'bg-rose-500 text-white border-rose-500' : 'bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-600'}`}>Broken</button>
+                                        </div>
+                                        <button onClick=${handleSubmitReview} class="w-full py-3 bg-slate-800 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg font-bold text-sm shadow-lg active:scale-95 transition-transform">Submit Report</button>
+                                    </div>
+                                `}
+                            </div>
 
                             <div class="space-y-3 mb-2">
                                 <div class="flex gap-2">
@@ -769,23 +815,44 @@
                 return () => supabaseClient.removeChannel(channel);
             }, []);
 
-            const reportStatus = async (osmId, newStatus) => {
+            const reportStatus = async (osmId, newStatus, rating = null) => {
                 triggerHaptic();
                 if (!supabaseClient) {
                     showToast("Offline mode: status not saved.");
                     return;
                 }
-                const { error } = await supabaseClient.from('amenity_status').upsert({ 
+                
+                // Get current data from local state to calculate average
+                const current = statuses[osmId] || { rating_sum: 0, rating_count: 0 };
+                
+                let payload = { 
                     id: String(osmId), 
                     status: newStatus, 
                     last_verified: new Date().toISOString() 
-                });
+                };
+
+                if (rating) {
+                    const newCount = (current.rating_count || 0) + 1;
+                    const newSum = (current.rating_sum || 0) + rating;
+                    const newAvg = newSum / newCount;
+                    
+                    payload.rating_count = newCount;
+                    payload.rating_sum = newSum;
+                    payload.rating = newAvg; 
+                } else {
+                     // Preserve old rating data if just toggling status
+                     if (current.rating) payload.rating = current.rating;
+                     if (current.rating_count) payload.rating_count = current.rating_count;
+                     if (current.rating_sum) payload.rating_sum = current.rating_sum;
+                }
+
+                const { error } = await supabaseClient.from('amenity_status').upsert(payload);
                 if (!error) {
                     showToast(newStatus === 'working' ? "Verified working!" : "Reported as broken");
                     // Optimistic UI update
                     setStatuses(prev => ({ 
                         ...prev, 
-                        [osmId]: { id: String(osmId), status: newStatus, last_verified: new Date().toISOString() } 
+                        [osmId]: payload
                     }));
                 } else {
                     console.error("Supabase Error:", error);
@@ -795,6 +862,15 @@
 
             // --- BREADCRUMB LOGIC (Aggressive OSRM) ---
             useEffect(() => {
+                // FIX: If in camper mode, remove/don't show marching ants to avoid driving/walking conflict
+                if (camperModeRef.current) {
+                    if (routeLayerRef.current && mapInstanceRef.current) {
+                        mapInstanceRef.current.removeLayer(routeLayerRef.current);
+                        routeLayerRef.current = null;
+                    }
+                    return;
+                }
+
                 if (!mapInstanceRef.current || !selectedLoc || !userPos) {
                     if (routeLayerRef.current) {
                         mapInstanceRef.current.removeLayer(routeLayerRef.current);
@@ -850,7 +926,7 @@
                         routeLayerRef.current = L.polyline(coords, { className: 'marching-ants', interactive: false }).addTo(mapInstanceRef.current);
                     });
 
-            }, [selectedLoc, userPos]); 
+            }, [selectedLoc, userPos, isCamperMode]); 
 
             useEffect(() => { selectedLocRef.current = selectedLoc; }, [selectedLoc]);
             useEffect(() => { cardMinimizedRef.current = cardMinimized; }, [cardMinimized]);
