@@ -28,15 +28,11 @@
                     fontFamily: { sans: ['Fredoka', 'sans-serif'], brand: ['Fredoka', 'sans-serif'] },
                     animation: {
                         'scale-in': 'scaleIn 0.2s ease-out forwards',
-                        'scale-out': 'scaleOut 0.2s ease-in forwards',
-                        'slide-up-card': 'slideUpCard 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                        'slide-down-card': 'slideDownCard 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+                        'slide-up-card': 'slideUpCard 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards'
                     },
                     keyframes: {
                         scaleIn: { '0%': { opacity: '0', transform: 'scale(0.95)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
-                        scaleOut: { '0%': { opacity: '1', transform: 'scale(1)' }, '100%': { opacity: '0', transform: 'scale(0.95)' } },
-                        slideUpCard: { '0%': { transform: 'translateY(100%)' }, '100%': { transform: 'translateY(0)' } },
-                        slideDownCard: { '0%': { transform: 'translateY(0)' }, '100%': { transform: 'translateY(100%)' } }
+                        slideUpCard: { '0%': { transform: 'translateY(100%)' }, '100%': { transform: 'translateY(0)' } }
                     }
                 }
             }
@@ -57,7 +53,7 @@
         body, html { 
             height: 100%; margin: 0; padding: 0; overflow: hidden; 
             background-color: #f8fafc; font-family: 'Fredoka', sans-serif;
-            overscroll-behavior-y: none; /* Pull-to-refresh prevention */
+            overscroll-behavior-y: none;
             -webkit-tap-highlight-color: transparent;
         }
         @media (prefers-color-scheme: dark) { body, html { background-color: #09090b; } }
@@ -67,6 +63,7 @@
         .user-pin-ring { position: absolute; width: 24px; height: 24px; border-radius: 50%; background-color: #3b82f6; opacity: 0.3; animation: pulse-ring 2s infinite; }
         .user-pin-dot { position: absolute; width: 14px; height: 14px; border-radius: 50%; background-color: #3b82f6; border: 2.5px solid white; top: 5px; left: 5px; box-shadow: 0 0 8px rgba(0,0,0,0.2); }
         @keyframes pulse-ring { 0% { transform: scale(0.5); opacity: 0.8; } 100% { transform: scale(2.5); opacity: 0; } }
+        .pie-icon { text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">
@@ -76,30 +73,41 @@
         const html = htm.bind(React.createElement);
         const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- SUPABASE ---
         const SB_URL = 'https://jnjovmqfbelouittlvhh.supabase.co';
         const SB_KEY = 'sb_publishable_SYpOip4dUTH0yT6MNUYF6A_94uy9Snd';
         let supabaseClient = null;
         try { if (window.supabase) supabaseClient = window.supabase.createClient(SB_URL, SB_KEY); } catch (e) {}
 
+        const ICONS = {
+            toilet: `<span class="material-symbols-rounded">wc</span>`,
+            water: `<span class="material-symbols-rounded">water_drop</span>`,
+            baby: `<span class="material-symbols-rounded">child_care</span>`,
+            van: `<span class="material-symbols-rounded">airport_shuttle</span>`,
+            shower: `<span class="material-symbols-rounded">shower</span>`,
+            trash: `<span class="material-symbols-rounded">delete</span>`,
+            drop: `<span class="material-symbols-rounded">opacity</span>`
+        };
+
+        const TYPE_COLORS = { toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8' };
+
+        function debounce(func, wait) {
+            let timeout; return function(...args) {
+                const later = () => { clearTimeout(timeout); func(...args); };
+                clearTimeout(timeout); timeout = setTimeout(later, wait);
+            };
+        }
+
         const triggerHaptic = () => { if (navigator.vibrate) navigator.vibrate(12); };
 
         const OfflineBanner = ({ isOffline }) => html`
             <div class=${`fixed top-0 left-0 right-0 z-[4000] bg-rose-500 text-white text-[10px] font-bold text-center py-1.5 safe-pt transition-transform duration-500 ${isOffline ? 'translate-y-0' : '-translate-y-full'}`}>
-                MODO OFFLINE (OFFLINE MODE) — Check local data only
+                OFFLINE MODE — Loading cached data
             </div>`;
 
-        const DetailsCard = ({ loc, userLoc, onClose, minimized, setMinimized, onReportStatus, statusData }) => {
+        const DetailsCard = ({ loc, onClose, minimized, setMinimized, onReportStatus, statusData }) => {
             if (!loc) return null;
             const [isRatingMode, setIsRatingMode] = useState(false);
             const [userRating, setUserRating] = useState(0);
-
-            const handleShare = async (e) => {
-                e.stopPropagation(); triggerHaptic();
-                const url = `${window.location.origin}${window.location.pathname}?lat=${loc.lat}&lon=${loc.lon}&id=${loc.id}`;
-                if (navigator.share) { try { await navigator.share({ title: loc.name, url }); } catch(err){} }
-                else { navigator.clipboard.writeText(url); alert("Link copied!"); }
-            };
 
             const submitReport = (status) => {
                 onReportStatus(loc.id, status, userRating);
@@ -116,26 +124,19 @@
                     <div class="px-6">
                         <div class="flex justify-between items-start mb-4">
                             <h2 class="text-2xl font-bold tracking-tight">${loc.name}</h2>
-                            <button onClick=${onClose} class="p-2 bg-slate-100 dark:bg-zinc-800 rounded-full text-slate-400">
-                                <span class="material-symbols-rounded">close</span>
-                            </button>
+                            <button onClick=${onClose} class="p-2 bg-slate-100 dark:bg-zinc-800 rounded-full text-slate-400"><span class="material-symbols-rounded">close</span></button>
                         </div>
                         
                         <div class="flex items-center justify-between bg-slate-50 dark:bg-zinc-800/50 p-4 rounded-2xl mb-4 border border-slate-100 dark:border-zinc-800">
                             <div>
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Status</span>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Live Status</span>
                                 <div class="flex items-center gap-2">
                                     <span class=${`w-2.5 h-2.5 rounded-full ${statusData?.status === 'broken' ? 'bg-rose-500' : 'bg-emerald-500'}`}></span>
                                     <span class="text-sm font-bold">${statusData?.status === 'broken' ? 'Broken' : 'Working'}</span>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                ${statusData?.rating && html`
-                                    <div class="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-3 py-1 rounded-full font-bold text-sm">
-                                        <span>${parseFloat(statusData.rating).toFixed(1)}</span>
-                                        <span class="material-symbols-rounded text-base">star</span>
-                                    </div>
-                                `}
+                                ${statusData?.rating && html`<div class="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-3 py-1 rounded-full font-bold text-sm"><span>${parseFloat(statusData.rating).toFixed(1)}</span><span class="material-symbols-rounded text-base">star</span></div>`}
                                 <button onClick=${() => setIsRatingMode(!isRatingMode)} class="px-4 py-2 bg-slate-800 dark:bg-zinc-200 text-white dark:text-zinc-900 rounded-xl text-xs font-bold active:scale-95 transition-transform">Verify</button>
                             </div>
                         </div>
@@ -143,11 +144,7 @@
                         ${isRatingMode && html`
                             <div class="mb-4 space-y-4 animate-scale-in bg-slate-100 dark:bg-zinc-800 p-4 rounded-2xl">
                                 <div class="flex justify-center gap-2">
-                                    ${[1,2,3,4,5].map(s => html`
-                                        <button onClick=${() => setUserRating(s)} class=${`text-3xl transition-colors ${s <= userRating ? 'text-amber-400' : 'text-slate-300 dark:text-zinc-600'}`}>
-                                            <span class="material-symbols-rounded text-4xl">star</span>
-                                        </button>
-                                    `)}
+                                    ${[1,2,3,4,5].map(s => html`<button onClick=${() => setUserRating(s)} class=${`text-3xl transition-colors ${s <= userRating ? 'text-amber-400' : 'text-slate-300 dark:text-zinc-600'}`}><span class="material-symbols-rounded text-4xl">star</span></button>`)}
                                 </div>
                                 <div class="flex gap-2">
                                     <button onClick=${() => submitReport('working')} class="flex-1 py-3 bg-emerald-500 text-white rounded-xl font-bold active:scale-95 transition-all">Working</button>
@@ -160,7 +157,6 @@
                             <button onClick=${() => window.open(`http://maps.apple.com/?daddr=${loc.lat},${loc.lon}`)} class="py-4 bg-zinc-100 dark:bg-zinc-800 rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><span class="material-symbols-rounded">directions_car</span> Drive</button>
                             <button onClick=${() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lon}&travelmode=walking`)} class="py-4 bg-zinc-100 dark:bg-zinc-800 rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"><span class="material-symbols-rounded">directions_walk</span> Walk</button>
                         </div>
-                        <button onClick=${handleShare} class="w-full py-4 bg-slate-800 text-white dark:bg-zinc-200 dark:text-zinc-900 rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all mb-4"><span class="material-symbols-rounded">share</span> Share Spot</button>
                     </div>
                 </div>`;
         };
@@ -171,15 +167,32 @@
             const [cardMinimized, setCardMinimized] = useState(false);
             const [statuses, setStatuses] = useState({});
             const [isOffline, setIsOffline] = useState(!navigator.onLine);
+            const [isCamperMode] = useState(localStorage.getItem('loocator_van_mode') === 'true');
             
-            const savedPos = safeParse('loocator_last_pos', [51.505, -0.09]);
+            const savedPos = JSON.parse(localStorage.getItem('loocator_last_pos')) || [51.505, -0.09];
             const [userPos, setUserPos] = useState(savedPos);
             
             const mapRef = useRef(null);
             const mapInstance = useRef(null);
             const markersRef = useRef(null);
 
-            // SYNC STATUSES
+            const fetchOverpass = async (bounds) => {
+                if (!navigator.onLine) return;
+                const c = bounds.getCenter();
+                const query = `[out:json];(nwr["amenity"~"toilets|drinking_water|shower|sanitary_dump_station"](around:5000,${c.lat},${c.lng}););out center;`;
+                try {
+                    const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query) });
+                    const data = await res.json();
+                    setAllLocations(data.elements.map(el => ({
+                        id: el.id, lat: el.lat || el.center.lat, lon: el.lon || el.center.lon,
+                        name: el.tags.name || (el.tags.amenity === 'toilets' ? "Public Toilet" : "Water Point"),
+                        type: el.tags.amenity
+                    })));
+                } catch(e){}
+            };
+
+            const debouncedFetch = useMemo(() => debounce(fetchOverpass, 1000), []);
+
             const fetchStatuses = async () => {
                 if(!supabaseClient || !navigator.onLine) return;
                 const { data } = await supabaseClient.from('amenity_status').select('*');
@@ -189,59 +202,32 @@
             const reportStatus = async (osmId, newStatus, rating = null) => {
                 triggerHaptic();
                 if(!supabaseClient || !navigator.onLine) return;
-
                 const current = statuses[osmId] || { rating_sum: 0, rating_count: 0 };
                 const prevSum = Number(current.rating_sum || 0);
                 const prevCount = Number(current.rating_count || 0);
-
                 let payload = { id: String(osmId), status: newStatus, last_verified: new Date().toISOString() };
                 if (rating) {
-                    const count = prevCount + 1;
-                    const sum = prevSum + rating;
-                    payload.rating_count = count;
-                    payload.rating_sum = sum;
-                    payload.rating = Number((sum / count).toFixed(2));
+                    const count = prevCount + 1; const sum = prevSum + rating;
+                    payload.rating_count = count; payload.rating_sum = sum; payload.rating = sum / count;
                 }
-
                 await supabaseClient.from('amenity_status').upsert(payload);
                 setStatuses(prev => ({ ...prev, [osmId]: payload }));
             };
 
             useEffect(() => {
-                // Register Service Worker
-                if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.register('./sw.js').catch(() => {});
-                }
-
-                // Listen for network changes
+                if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
                 window.addEventListener('online', () => setIsOffline(false));
                 window.addEventListener('offline', () => setIsOffline(true));
 
-                if (!mapRef.current) return;
-                const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(userPos, 15);
+                const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(savedPos, 15);
                 mapInstance.current = map;
-                
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
                 markersRef.current = L.layerGroup().addTo(map);
-
-                const fetchNearby = async () => {
-                    if (!navigator.onLine) return;
-                    const c = map.getCenter();
-                    const query = `[out:json];(nwr["amenity"="toilets"](around:3000,${c.lat},${c.lng}););out center;`;
-                    try {
-                        const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query) });
-                        const data = await res.json();
-                        setAllLocations(data.elements.map(el => ({
-                            id: el.id, lat: el.lat || el.center.lat, lon: el.lon || el.center.lon,
-                            name: el.tags.name || "Public Toilet", tags: el.tags
-                        })));
-                    } catch(e){}
-                };
 
                 map.on('moveend', () => {
                     const c = map.getCenter();
                     localStorage.setItem('loocator_last_pos', JSON.stringify([c.lat, c.lng]));
-                    fetchNearby();
+                    debouncedFetch(map.getBounds());
                 });
 
                 navigator.geolocation.getCurrentPosition(pos => {
@@ -251,7 +237,7 @@
                     L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div>' }) }).addTo(map);
                 });
 
-                fetchNearby(); fetchStatuses();
+                fetchOverpass(map.getBounds()); fetchStatuses();
             }, []);
 
             useEffect(() => {
@@ -259,39 +245,40 @@
                 markersRef.current.clearLayers();
                 allLocations.forEach(loc => {
                     const s = statuses[loc.id]?.status;
-                    const color = s === 'broken' ? '#f43f5e' : '#10b981';
-                    L.circleMarker([loc.lat, loc.lon], { radius: 9, color: 'white', weight: 2.5, fillOpacity: 1, fillColor: color })
-                     .addTo(markersRef.current).on('click', () => { triggerHaptic(); setSelectedLoc(loc); setCardMinimized(false); });
+                    const border = s === 'broken' ? 'border-rose-500' : 'border-white';
+                    const iconType = loc.type === 'drinking_water' ? 'water' : 'toilet';
+                    
+                    L.marker([loc.lat, loc.lon], { 
+                        icon: L.divIcon({
+                            className: '',
+                            html: `<div class="w-9 h-9 rounded-full bg-slate-600 border-2 ${border} flex items-center justify-center text-white shadow-lg pie-icon">${ICONS[iconType]}</div>`,
+                            iconSize: [36, 36], iconAnchor: [18, 18]
+                        })
+                    }).addTo(markersRef.current).on('click', () => { triggerHaptic(); setSelectedLoc(loc); setCardMinimized(false); });
                 });
             }, [allLocations, statuses]);
 
             return html`
                 <div class="bg-white dark:bg-zinc-950 flex-1 flex flex-col overflow-hidden relative">
                     <${OfflineBanner} isOffline=${isOffline} />
-                    
                     <div class="safe-pt px-6 pt-6 pb-2 flex justify-between items-center z-[2000]">
                         <h1 class="text-3xl font-brand font-bold tracking-tighter">Loocator</h1>
                         <button onClick=${() => window.location.reload()} class="p-2 bg-slate-100 dark:bg-zinc-800 rounded-full active:rotate-180 transition-transform duration-500">
                             <span class="material-symbols-rounded">refresh</span>
                         </button>
                     </div>
-
                     <div class="map-wrapper flex-1">
                         <div id="map" ref=${mapRef}></div>
                         <button onClick=${() => mapInstance.current.flyTo(userPos, 18)} class="absolute right-4 bottom-40 z-[1000] w-14 h-14 bg-slate-800 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-all">
                             <span class="material-symbols-rounded text-2xl">my_location</span>
                         </button>
                     </div>
-
-                    ${selectedLoc && html`
-                        <${DetailsCard} loc=${selectedLoc} statusData=${statuses[selectedLoc.id]}
-                            onClose=${() => setSelectedLoc(null)} onReportStatus=${reportStatus}
-                            minimized=${cardMinimized} setMinimized=${setCardMinimized} />
-                    `}
+                    ${selectedLoc && html`<${DetailsCard} loc=${selectedLoc} statusData=${statuses[selectedLoc.id]} onClose=${() => setSelectedLoc(null)} onReportStatus=${reportStatus} minimized=${cardMinimized} setMinimized=${setCardMinimized} />`}
                 </div>`;
         }
 
-        ReactDOM.createRoot(document.getElementById('root')).render(html`<${App} />`);
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(html`<${App} />`);
     </script>
 </body>
 </html>
