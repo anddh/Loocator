@@ -716,6 +716,7 @@
                             <div class="flex items-center gap-1">
                                 <h4 class="font-semibold text-slate-700 dark:text-zinc-200 font-brand text-base leading-tight truncate">${loc.name}</h4>
                                 ${statusData && statusData.status === 'working' && html`<span class="material-symbols-rounded text-emerald-500 text-sm">verified</span>`}
+                                ${statusData && statusData.status === 'broken' && html`<span class="material-symbols-rounded text-rose-500 text-sm">warning</span>`}
                             </div>
                             ${displayAddress ? html`<p class="text-xs text-slate-400 dark:text-zinc-500 truncate mt-0.5">${displayAddress}</p>` : html`<div class="h-3 w-24 bg-slate-100 dark:bg-zinc-800 rounded animate-pulse mt-1"></div>`}
                         </div>
@@ -822,8 +823,8 @@
                     return;
                 }
                 
-                // Get current data from local state to calculate average
-                const current = statuses[osmId] || { rating_sum: 0, rating_count: 0 };
+                // 1. Get the freshest local data for this specific ID
+                const current = statuses[osmId] || { rating_sum: 0, rating_count: 0, rating: 0 };
                 
                 let payload = { 
                     id: String(osmId), 
@@ -831,32 +832,33 @@
                     last_verified: new Date().toISOString() 
                 };
 
-                if (rating) {
-                    const newCount = (current.rating_count || 0) + 1;
-                    const newSum = (current.rating_sum || 0) + rating;
+                if (rating !== null) {
+                    // Use Number() to ensure we aren't doing string concatenation by accident
+                    const prevSum = Number(current.rating_sum || 0);
+                    const prevCount = Number(current.rating_count || 0);
+                    
+                    const newCount = prevCount + 1;
+                    const newSum = prevSum + Number(rating);
                     const newAvg = newSum / newCount;
                     
                     payload.rating_count = newCount;
                     payload.rating_sum = newSum;
-                    payload.rating = newAvg; 
+                    payload.rating = Number(newAvg.toFixed(2)); // Keep it clean for the DB
                 } else {
-                     // Preserve old rating data if just toggling status
-                     if (current.rating) payload.rating = current.rating;
-                     if (current.rating_count) payload.rating_count = current.rating_count;
-                     if (current.rating_sum) payload.rating_sum = current.rating_sum;
+                    // Keep existing rating data if we are just toggling Working/Broken
+                    payload.rating = current.rating || null;
+                    payload.rating_count = current.rating_count || 0;
+                    payload.rating_sum = current.rating_sum || 0;
                 }
 
                 const { error } = await supabaseClient.from('amenity_status').upsert(payload);
+                
                 if (!error) {
-                    showToast(newStatus === 'working' ? "Verified working!" : "Reported as broken");
-                    // Optimistic UI update
-                    setStatuses(prev => ({ 
-                        ...prev, 
-                        [osmId]: payload
-                    }));
+                    showToast(newStatus === 'working' ? "Verified!" : "Reported broken");
+                    setStatuses(prev => ({ ...prev, [osmId]: payload }));
                 } else {
                     console.error("Supabase Error:", error);
-                    showToast("Error saving status.");
+                    showToast(`Save Error: ${error.message}`);
                 }
             };
 
