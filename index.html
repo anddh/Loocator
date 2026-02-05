@@ -1082,20 +1082,32 @@
                     setAllLocations(mapped); saveToMapCache(bounds, mapped, isVan); setLoading(false); } catch (e) { if (e.name !== 'AbortError') { setLoading(false); } } };
             const debouncedFetch = useMemo(() => debounce((b) => fetchOverpass(b), 1000), []);
             
-            // UPDATED: Added savePosition call
-            const updateUserLocation = (coords, source) => { 
+            // UPDATED: Added savePosition call inside moveend
+            const updateUserLocation = (coords, source, shouldPan = true) => { 
                 setUserPos(coords); 
-                setMapCenter(coords);
-                savePosition(coords[0], coords[1]); // SAVE NEW POS 
                 setGpsStatus('success'); 
                 setTimeout(() => setGpsStatus('idle'), 2500); 
-                if (source === 'GPS') { setAllLocations([]); } 
+                
+                if (source === 'GPS') { 
+                    setAllLocations([]); // Clear if moving far
+                } 
+                
                 if (mapInstanceRef.current) { 
-                    const zoom = source === 'GPS' ? 17 : 13; 
-                    mapInstanceRef.current.setView(coords, zoom); 
-                    if (!userMarkerRef.current) { userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div><div class="user-beam" id="user-heading-beam"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current); } else { userMarkerRef.current.setLatLng(coords); } 
-                    setSearchBounds(mapInstanceRef.current.getBounds()); 
-                    debouncedFetch(mapInstanceRef.current.getBounds()); 
+                    if (!userMarkerRef.current) { 
+                        userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div><div class="user-beam" id="user-heading-beam"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current); 
+                    } else { 
+                        userMarkerRef.current.setLatLng(coords); 
+                    } 
+
+                    // Only pan map if requested
+                    if (shouldPan) {
+                        const zoom = source === 'GPS' ? 17 : 13; 
+                        mapInstanceRef.current.setView(coords, zoom); 
+                        setMapCenter(coords);
+                        savePosition(coords[0], coords[1]); // SAVE NEW POS 
+                        setSearchBounds(mapInstanceRef.current.getBounds()); 
+                        debouncedFetch(mapInstanceRef.current.getBounds()); 
+                    }
                 } 
             };
             
@@ -1116,7 +1128,7 @@
             useEffect(() => { if (!mapRef.current || mapInstanceRef.current) return; 
                 // UPDATED: Use mapCenter state (which now defaults to saved pos)
                 const initialCenter = sharedLat && sharedLon ? [parseFloat(sharedLat), parseFloat(sharedLon)] : mapCenter;
-                const initialZoom = sharedLat ? 17 : 13;
+                const initialZoom = sharedLat ? 17 : (savedPos ? 15 : 13); // Zoom in if restoring
                 const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(initialCenter, initialZoom); 
                 mapInstanceRef.current = map; 
                 const tileUrl = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'; 
@@ -1144,7 +1156,45 @@
                 }; 
                 map.on('click', () => { if (selectedLocRef.current) { setCardMinimized(!cardMinimizedRef.current); } });
                 map.on('moveend', handleMove); 
-                if (sharedLat) { setLoading(true); debouncedFetch(map.getBounds()); } else { setLoading(true); const findLocation = async () => { let gpsResolved = false; try { const res = await fetch('https://ipapi.co/json/'); if (res.ok) { const data = await res.json(); if (!gpsResolved && data.latitude && data.longitude) { updateUserLocation([data.latitude, data.longitude], 'IP'); } } } catch (e) { console.log('IP Loc failed'); } navigator.geolocation.getCurrentPosition( (pos) => { gpsResolved = true; updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => { console.log('GPS denied'); }, { enableHighAccuracy: true, timeout: 10000 } ); }; findLocation(); }
+                
+                if (sharedLat) { 
+                    setLoading(true); debouncedFetch(map.getBounds()); 
+                } else { 
+                    // NEW LOGIC: Only run IP lookup if NO saved pos
+                    const hasSavedPos = !!savedPos;
+                    
+                    if (!hasSavedPos) {
+                        setLoading(true); 
+                        const findLocation = async () => { 
+                            let gpsResolved = false; 
+                            try { 
+                                const res = await fetch('https://ipapi.co/json/'); 
+                                if (res.ok) { 
+                                    const data = await res.json(); 
+                                    if (!gpsResolved && data.latitude && data.longitude) { 
+                                        updateUserLocation([data.latitude, data.longitude], 'IP', true); // Pan map
+                                    } 
+                                } 
+                            } catch (e) { console.log('IP Loc failed'); } 
+                        }; 
+                        findLocation(); 
+                    } else {
+                        // Just trigger fetch for saved pos immediately
+                        setLoading(true);
+                        debouncedFetch(map.getBounds());
+                    }
+
+                    // Always start GPS watch, but don't pan map if we restored a session
+                    navigator.geolocation.getCurrentPosition( 
+                        (pos) => { 
+                            // Pan only if we didn't restore a session (i.e. fresh user)
+                            // OR if the user explicitly wants tracking (but this is init)
+                            updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS', !hasSavedPos); 
+                        }, 
+                        (err) => { console.log('GPS denied'); }, 
+                        { enableHighAccuracy: true, timeout: 10000 } 
+                    ); 
+                }
             }, []);
             
             useEffect(() => {
