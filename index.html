@@ -180,7 +180,7 @@
             report: `<span class="material-symbols-rounded icon-sm">flag</span>`,
             share: `<span class="material-symbols-rounded icon-sm">share</span>`, 
             trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 19c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10zM7 5h4V3h2v2h4v2H7V5z"/><circle cx="12" cy="14" r="3" fill="white" opacity="0.3"/></svg>`,
-            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
+            drop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h2v10H7V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7zm4 0h2v10h-2V7z" clip-rule="evenodd"/></svg>`
         };
 
         const TYPE_COLORS = { toilet: '#64748b', water: '#14b8a6', baby: '#fb7185', shower: '#0ea5e9', black: '#1e293b', grey: '#94a3b8' };
@@ -223,6 +223,11 @@
             const keys = Object.keys(MAP_CACHE);
             if (keys.length > 50) delete MAP_CACHE[keys[0]]; 
             try { localStorage.setItem('loocator_map_cache', JSON.stringify(MAP_CACHE)); } catch(e) {}
+        };
+
+        const savePosition = (lat, lon) => {
+            if(!lat || !lon) return;
+            try { localStorage.setItem('loocator_last_pos', JSON.stringify([lat, lon])); } catch(e) {}
         };
 
         const formatAddressFromData = (data) => {
@@ -348,6 +353,7 @@
                     MAP_CACHE = {};
                     localStorage.removeItem('loocator_addr_cache');
                     localStorage.removeItem('loocator_map_cache');
+                    localStorage.removeItem('loocator_last_pos');
                     setCounts({ addr: 0, map: 0 });
                     if(onShowToast) onShowToast("All caches cleared");
                 }
@@ -726,6 +732,7 @@
         }
 
         function App() {
+            // UPDATED: Initial state checks localStorage first
             const [view, setView] = useState('map');
             const [isListExiting, setIsListExiting] = useState(false);
             const [allLocations, setAllLocations] = useState([]);
@@ -757,8 +764,12 @@
             const [navAppDrive, setNavAppDriveState] = useState('google');
             const [navAppWalk, setNavAppWalkState] = useState('google');
             const [searchTerm, setSearchTerm] = useState('');
-            const [mapCenter, setMapCenter] = useState([51.505, -0.09]); 
-            const [userPos, setUserPos] = useState([51.505, -0.09]); 
+            
+            // NEW: Load saved position or default to London
+            const savedPos = safeParse('loocator_last_pos', null);
+            const [mapCenter, setMapCenter] = useState(savedPos || [51.505, -0.09]); 
+            const [userPos, setUserPos] = useState(savedPos || [51.505, -0.09]); 
+            
             const [deferredPrompt, setDeferredPrompt] = useState(null);
             const [searchBounds, setSearchBounds] = useState(null); 
             const [isInstalled, setIsInstalled] = useState(false);
@@ -1070,7 +1081,23 @@
                     const mapped = data.elements.map(el => { const lat = el.lat || (el.center && el.center.lat); const lon = el.lon || (el.center && el.center.lon); if (!lat || !lon) return null; let baseName = "Service Point"; if (el.tags.amenity === 'toilets') baseName = "Public Toilet"; else if (el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point') baseName = "Water Point"; else if (el.tags.amenity === 'shower') baseName = "Public Shower"; else if (el.tags.amenity === 'sanitary_dump_station') baseName = "Chemical Disposal"; else if (el.tags.diaper === 'yes') baseName = "Baby Change"; const street = el.tags['addr:street'] || el.tags['addr:place']; const city = el.tags['addr:city'] || el.tags['addr:town'] || el.tags['addr:village']; const house = el.tags['addr:housenumber']; let rawAddress = ''; if (house) rawAddress += house + ' '; if (street) rawAddress += street; if (city) rawAddress += (rawAddress ? ', ' : '') + city; let finalName = el.tags.name; if (!finalName) { const operator = el.tags.operator; if (street) { finalName = `${street} ${baseName}`; } else if (operator) { finalName = `${operator} ${baseName}`; } else if (el.tags.ref) { finalName = `${baseName} (${el.tags.ref})`; } else if (el.tags.fee) { const feeText = el.tags.fee === 'no' ? 'Free' : 'Paid'; finalName = `${feeText} ${baseName}`; } else if (el.tags.description) { const descWords = el.tags.description.split(' '); if (descWords.length > 0) { finalName = descWords.slice(0, 4).join(' ') + (descWords.length > 4 ? '...' : ''); } else { finalName = baseName; } } else { finalName = baseName; } } return { id: el.id, lat: lat, lon: lon, tags: el.tags, isToilet: el.tags.amenity === 'toilets' || el.tags.toilets === 'yes', isWater: el.tags.amenity === 'drinking_water' || el.tags.amenity === 'water_point' || el.tags.drinking_water === 'yes', hasBaby: el.tags.diaper === 'yes' || el.tags.changing_table === 'yes', hasShower: el.tags.amenity === 'shower' || el.tags.shower === 'yes', isBlack: (el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:chemical_toilet'] !== 'no') || (el.tags.amenity === 'toilets' && el.tags.sanitary_dump_station === 'yes'), isGrey: el.tags.amenity === 'sanitary_dump_station' && el.tags['sanitary_dump_station:grey_water'] !== 'no', baseType: el.tags.amenity === 'sanitary_dump_station' ? 'dump' : el.tags.amenity === 'shower' ? 'shower' : el.tags.amenity === 'drinking_water' ? 'water' : 'toilet', name: finalName, rawAddress: rawAddress }; }).filter(Boolean);
                     setAllLocations(mapped); saveToMapCache(bounds, mapped, isVan); setLoading(false); } catch (e) { if (e.name !== 'AbortError') { setLoading(false); } } };
             const debouncedFetch = useMemo(() => debounce((b) => fetchOverpass(b), 1000), []);
-            const updateUserLocation = (coords, source) => { setUserPos(coords); setMapCenter(coords); setGpsStatus('success'); setTimeout(() => setGpsStatus('idle'), 2500); if (source === 'GPS') { setAllLocations([]); } if (mapInstanceRef.current) { const zoom = source === 'GPS' ? 17 : 13; mapInstanceRef.current.setView(coords, zoom); if (!userMarkerRef.current) { userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div><div class="user-beam" id="user-heading-beam"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current); } else { userMarkerRef.current.setLatLng(coords); } setSearchBounds(mapInstanceRef.current.getBounds()); debouncedFetch(mapInstanceRef.current.getBounds()); } };
+            
+            // UPDATED: Added savePosition call
+            const updateUserLocation = (coords, source) => { 
+                setUserPos(coords); 
+                setMapCenter(coords);
+                savePosition(coords[0], coords[1]); // SAVE NEW POS 
+                setGpsStatus('success'); 
+                setTimeout(() => setGpsStatus('idle'), 2500); 
+                if (source === 'GPS') { setAllLocations([]); } 
+                if (mapInstanceRef.current) { 
+                    const zoom = source === 'GPS' ? 17 : 13; 
+                    mapInstanceRef.current.setView(coords, zoom); 
+                    if (!userMarkerRef.current) { userMarkerRef.current = L.marker(coords, { icon: L.divIcon({ className: '', html: '<div class="user-pin-ring"></div><div class="user-pin-dot"></div><div class="user-beam" id="user-heading-beam"></div>', iconSize: [20, 20] }) }).addTo(mapInstanceRef.current); } else { userMarkerRef.current.setLatLng(coords); } 
+                    setSearchBounds(mapInstanceRef.current.getBounds()); 
+                    debouncedFetch(mapInstanceRef.current.getBounds()); 
+                } 
+            };
             
             // INSTALL PROMPT LOGIC
             useEffect(() => { 
@@ -1087,6 +1114,7 @@
             
             // INITIALIZE MAP & HANDLE SHARED LINKS
             useEffect(() => { if (!mapRef.current || mapInstanceRef.current) return; 
+                // UPDATED: Use mapCenter state (which now defaults to saved pos)
                 const initialCenter = sharedLat && sharedLon ? [parseFloat(sharedLat), parseFloat(sharedLon)] : mapCenter;
                 const initialZoom = sharedLat ? 17 : 13;
                 const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(initialCenter, initialZoom); 
@@ -1094,7 +1122,26 @@
                 const tileUrl = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'; 
                 tileLayerRef.current = L.tileLayer(tileUrl, { attribution: '', subdomains: 'abcd', maxZoom: 20 }).addTo(map);
                 markersRef.current = L.layerGroup().addTo(map); 
-                const handleMove = () => { if (map.getZoom() < 13) { setZoomWarning(true); setAllLocations([]); markersRef.current.clearLayers(); } else { setZoomWarning(false); setLoading(true); const b = map.getBounds(); setSearchBounds(b); debouncedFetch(b); } }; 
+                
+                // UPDATED: Added savePosition call inside moveend
+                const handleMove = () => { 
+                    if (map.getZoom() < 13) { 
+                        setZoomWarning(true); 
+                        setAllLocations([]); 
+                        markersRef.current.clearLayers(); 
+                    } else { 
+                        setZoomWarning(false); 
+                        setLoading(true); 
+                        const b = map.getBounds(); 
+                        setSearchBounds(b); 
+                        
+                        // Save center for next load
+                        const center = map.getCenter();
+                        savePosition(center.lat, center.lng);
+                        
+                        debouncedFetch(b); 
+                    } 
+                }; 
                 map.on('click', () => { if (selectedLocRef.current) { setCardMinimized(!cardMinimizedRef.current); } });
                 map.on('moveend', handleMove); 
                 if (sharedLat) { setLoading(true); debouncedFetch(map.getBounds()); } else { setLoading(true); const findLocation = async () => { let gpsResolved = false; try { const res = await fetch('https://ipapi.co/json/'); if (res.ok) { const data = await res.json(); if (!gpsResolved && data.latitude && data.longitude) { updateUserLocation([data.latitude, data.longitude], 'IP'); } } } catch (e) { console.log('IP Loc failed'); } navigator.geolocation.getCurrentPosition( (pos) => { gpsResolved = true; updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS'); }, (err) => { console.log('GPS denied'); }, { enableHighAccuracy: true, timeout: 10000 } ); }; findLocation(); }
