@@ -798,6 +798,9 @@
             const filterSheetRef = useRef(null);
             const selectedLocRef = useRef(null); 
             const cardMinimizedRef = useRef(false);
+            
+            // FIXED: New ref to track if we need to force pan on first GPS hit
+            const firstGpsFix = useRef(true);
 
             const params = new URLSearchParams(window.location.search);
             const sharedLat = params.get('lat');
@@ -1126,9 +1129,9 @@
             
             // INITIALIZE MAP & HANDLE SHARED LINKS
             useEffect(() => { if (!mapRef.current || mapInstanceRef.current) return; 
-                // UPDATED: Use mapCenter state (which now defaults to saved pos)
+                // FIXED: Increased zoom for Saved Position (from 15 to 17)
                 const initialCenter = sharedLat && sharedLon ? [parseFloat(sharedLat), parseFloat(sharedLon)] : mapCenter;
-                const initialZoom = sharedLat ? 17 : (savedPos ? 15 : 13); // Zoom in if restoring
+                const initialZoom = sharedLat ? 17 : (savedPos ? 17 : 13); 
                 const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView(initialCenter, initialZoom); 
                 mapInstanceRef.current = map; 
                 const tileUrl = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'; 
@@ -1157,8 +1160,14 @@
                 map.on('click', () => { if (selectedLocRef.current) { setCardMinimized(!cardMinimizedRef.current); } });
                 map.on('moveend', handleMove); 
                 
+                // FIXED: Force an initial fetch even without movement
+                if (savedPos || sharedLat) {
+                    setLoading(true);
+                    debouncedFetch(map.getBounds());
+                }
+
                 if (sharedLat) { 
-                    setLoading(true); debouncedFetch(map.getBounds()); 
+                    // Deep link logic handles itself
                 } else { 
                     // NEW LOGIC: Only run IP lookup if NO saved pos
                     const hasSavedPos = !!savedPos;
@@ -1178,18 +1187,17 @@
                             } catch (e) { console.log('IP Loc failed'); } 
                         }; 
                         findLocation(); 
-                    } else {
-                        // Just trigger fetch for saved pos immediately
-                        setLoading(true);
-                        debouncedFetch(map.getBounds());
-                    }
+                    } 
 
-                    // Always start GPS watch, but don't pan map if we restored a session
+                    // FIXED: Always fly to user on FIRST GPS fix, regardless of saved history
                     navigator.geolocation.getCurrentPosition( 
                         (pos) => { 
-                            // Pan only if we didn't restore a session (i.e. fresh user)
-                            // OR if the user explicitly wants tracking (but this is init)
-                            updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS', !hasSavedPos); 
+                            if (firstGpsFix.current) {
+                                updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS', true); 
+                                firstGpsFix.current = false;
+                            } else {
+                                updateUserLocation([pos.coords.latitude, pos.coords.longitude], 'GPS', false); 
+                            }
                         }, 
                         (err) => { console.log('GPS denied'); }, 
                         { enableHighAccuracy: true, timeout: 10000 } 
